@@ -38,26 +38,39 @@
   - [x] Update `snowdrop-lock.lua` after each install.
   - [ ] Manual Verification: Compare lockfile before/after install, confirm correct changes.
 
-## Milestone 4: Script Runner
+## Milestone 4: CLI Command Feature Parity
 
-- [ ] **Task 4.1: Implement script runner (like npm scripts)**
-  - [ ] Parse `scripts` from `project.lua`.
-  - [ ] Allow running scripts via CLI (e.g., `snowdrop run test`).
-  - [ ] Manual Verification: Run scripts, verify correct execution and output.
+- [x] **Task 4.1: Implement `init` command**
+  - [x] Create/initialize a new Snowdrop project.
+  - [x] Manual Verification: Run `snowdrop init`, check that manifest is created.
 
-## Milestone 5: Project Metadata Display
+- [x] **Task 4.2: Implement `add`/`i` command**
+  - [x] Add dependencies to `project.lua` and download them.
+  - [ ] Manual Verification: Add a dependency, verify it appears and is downloaded.
 
-- [ ] **Task 5.1: Implement CLI command to show project/package info**
-  - [ ] Display name, description, license, version from `project.lua`.
-  - [ ] Manual Verification: Run info command, check output matches manifest.
+- [ ] **Task 4.3: Implement `remove`/`rm`/`uninstall`/`un` command**
+  - [ ] Remove dependencies from `project.lua` and project files.
+  - [ ] Manual Verification: Remove a dependency, verify it is deleted.
 
-## Milestone 6: End-to-End Testing & Documentation
+- [ ] **Task 4.4: Implement `update`/`up`/`upgrade` command (`--latest` flag)**
+  - [ ] Update dependencies to latest allowed version or to latest with `--latest`.
+  - [ ] Manual Verification: Run update, check versions/hashes.
 
-- [ ] **Task 6.1: Write and run end-to-end tests for all major workflows**
+- [ ] **Task 4.5: Implement `run` command (allow omitting if no conflicts)**
+  - [ ] Run scripts from `project.lua`; allow omitting `run` if no conflict.
+  - [ ] Manual Verification: Run scripts with and without `run`, check output.
+
+- [ ] **Task 4.6: Implement `list` command**
+  - [ ] List installed dependencies and their versions.
+  - [ ] Manual Verification: Run `list`, verify output.
+
+## Milestone 5: End-to-End Testing & Documentation
+
+- [ ] **Task 5.1: Write and run end-to-end tests for all major workflows**
   - [ ] Test project init, install, lockfile, script running, info display.
   - [ ] Manual Verification: Run all tests, inspect results, and check code for style/compliance.
 
-- [ ] **Task 6.2: Write user and developer documentation**
+- [ ] **Task 5.2: Write user and developer documentation**
   - [ ] Document all commands, config fields, and workflows.
   - [ ] Manual Verification: Review docs for completeness and clarity.
 
@@ -65,12 +78,10 @@
 
 ## Active Work
 
-- (List any tasks currently in progress here)
-
 ## Backlog / Discovered Tasks
 
 - (Add any new features, bugs, or improvements discovered during development)
 
 ---
 
-*Last updated: 2025-04-26*
+*Last updated: 2025-04-27*
