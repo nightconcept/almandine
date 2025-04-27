@@ -3,19 +3,15 @@
 
   Provides functions to download single files from GitHub (with semver or commit hash pinning) or any raw URL.
   Used for dependency management and reproducible installs.
+  Pure Lua 5.1, no dependencies. Uses curl or wget via os.execute/io.popen.
 ]]--
 
 ---
 -- Downloader module
---
 -- @module downloader
 -- @usage local downloader = require('downloader')
 
 local downloader = {}
-
-local https_available, https = pcall(require, "ssl.https")
-local http_available, http = pcall(require, "socket.http")
-local ltn12 = require("ltn12")
 
 --- Downloads a file from a GitHub repo or a raw URL, supporting pinning by semver or commit hash.
 -- @param source string GitHub dependency string (github:user/repo/path/file.lua@abcdef) or raw URL.
@@ -42,42 +38,28 @@ function downloader.download_file(source, out_path)
     return false, "Unsupported source format: " .. source
   end
 
-  local ok, err = downloader._http_download(url, out_path)
-  if not ok then
-    return false, err
-  end
-  return true, nil
+  return downloader._shell_download(url, out_path)
 end
 
---- Internal HTTP(S) download helper.
+--- Internal download helper using curl or wget (no Lua dependencies).
 -- @param url string URL to download.
 -- @param out_path string Path to save file.
 -- @return boolean, string True and nil on success; false and error message on failure.
-function downloader._http_download(url, out_path)
-  local file, err = io.open(out_path, "wb")
-  if not file then return false, "Could not open file for writing: " .. tostring(err) end
-
-  local resp_body = {}
-  local result, status, resp_headers, status_line
-  if https_available then
-    result, status, resp_headers, status_line = https.request {
-      url = url,
-      sink = ltn12.sink.file(file)
-    }
-  elseif http_available then
-    result, status, resp_headers, status_line = http.request {
-      url = url,
-      sink = ltn12.sink.file(file)
-    }
+function downloader._shell_download(url, out_path)
+  -- Prefer curl, fallback to wget
+  local cmd = string.format('curl -fsSL "%s" -o "%s"', url, out_path)
+  local ok = os.execute(cmd)
+  if ok == 0 then
+    return true, nil
   else
-    file:close()
-    return false, "LuaSocket or LuaSec not available (need socket.http or ssl.https)"
+    -- Try wget if curl failed
+    cmd = string.format('wget -qO "%s" "%s"', out_path, url)
+    ok = os.execute(cmd)
+    if ok == 0 then
+      return true, nil
+    end
   end
-  file:close()
-  if status ~= 200 then
-    return false, "HTTP error: " .. tostring(status) .. " (" .. tostring(status_line) .. ")"
-  end
-  return true, nil
+  return false, "Failed to download file. Ensure curl or wget is installed."
 end
 
 return downloader

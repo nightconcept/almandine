@@ -22,20 +22,20 @@
   - [x] Support pinning by semver or commit hash.
   - [x] Manual Verification: Download a file, verify correct version/hash is retrieved.
 
-- [ ] **Task 2.2: Implement dependency install command**
-  - [ ] Add CLI function to add or remove dependencies from `project.lua` (establish dependency set).
-  - [ ] Parse `dependencies` from `project.lua`.
-  - [ ] Download to correct location (e.g., `lib/`).
+- [x] **Task 2.2: Implement dependency install command**
+  - [x] Add CLI function to add or remove dependencies from `project.lua` (establish dependency set).
+  - [x] Parse `dependencies` from `project.lua`.
+  - [x] Download to correct location (e.g., `lib/`).
   - [ ] Manual Verification: Inspect downloaded files, check hashes/versions.
 
 ## Milestone 3: Lockfile Management
 
-- [ ] **Task 3.1: Design and implement `snowdrop-lock.lua` schema**
-  - [ ] Track `api_version`, resolved package versions/hashes.
-  - [ ] Manual Verification: Generate lockfile, inspect for correctness and reproducibility.
+- [x] **Task 3.1: Design and implement `snowdrop-lock.lua` schema**
+  - [x] Track `api_version`, resolved package versions/hashes.
+  - [x] Manual Verification: Generate lockfile, inspect for correctness and reproducibility.
 
-- [ ] **Task 3.2: Lockfile update on install**
-  - [ ] Update `snowdrop-lock.lua` after each install.
+- [x] **Task 3.2: Lockfile update on install**
+  - [x] Update `snowdrop-lock.lua` after each install.
   - [ ] Manual Verification: Compare lockfile before/after install, confirm correct changes.
 
 ## Milestone 4: Script Runner

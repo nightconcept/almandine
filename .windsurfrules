@@ -45,6 +45,7 @@ This rule is absolute and takes precedence over all other guidelines.
 -   **File Length Limit:** No single Lua file (`.lua`) should exceed 500 lines of code. Refactor larger files into smaller, focused modules or helper files.
 -   **Organization:** Structure code into clearly separated modules, logically grouped by feature or responsibility. Follow the existing file structure patterns outlined in `PLANNING.md`.
 -   **Imports:** Use clear and consistent import paths. Prefer relative imports for modules within the same logical package/feature area. Confirm module paths exist before using them.
+-   **Dependencies:** Use no external dependencies.
 
 ### 2.3. Style & Formatting (Lua)
 

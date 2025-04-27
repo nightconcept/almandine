@@ -5,9 +5,9 @@
 ]]--
 
 return {
-  name = "my-lua-project",
+  name = "snowdrop",
   type = "application",
-  version = "1.0.0",
+  version = "0.0.1",
   license = "MIT",
   description = "A sample Lua project using Snowdrop.",
   scripts = {

@@ -22,6 +22,7 @@ Sample minimal structure for a Snowdrop-managed project:
 * `scripts/`             # (Optional) Project scripts
 * `lib/`                 # (Optional) Downloaded packages/files
 * `src/`                 # (Optional) Project source code
+  * `lib/`               # (Optional) Internal reusable modules (e.g., downloader, lockfile)
 
 ## 4. File Descriptions
 
@@ -60,6 +61,10 @@ return {
   }
 }
 ```
+
+### `src/lib/`
+
+Contains internal reusable Lua modules used by the Snowdrop package manager itself (e.g., downloader, lockfile). Not for user-downloaded dependencies.
 
 ## 5. Conclusion
 
