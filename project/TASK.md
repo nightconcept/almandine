@@ -18,11 +18,12 @@
 
 ## Milestone 2: Dependency Download & Pinning
 
-- [ ] **Task 2.1: Implement file downloader (GitHub/raw URL support)**
-  - [ ] Support pinning by semver or commit hash.
-  - [ ] Manual Verification: Download a file, verify correct version/hash is retrieved.
+- [x] **Task 2.1: Implement file downloader (GitHub/raw URL support)**
+  - [x] Support pinning by semver or commit hash.
+  - [x] Manual Verification: Download a file, verify correct version/hash is retrieved.
 
 - [ ] **Task 2.2: Implement dependency install command**
+  - [ ] Add CLI function to add or remove dependencies from `project.lua` (establish dependency set).
   - [ ] Parse `dependencies` from `project.lua`.
   - [ ] Download to correct location (e.g., `lib/`).
   - [ ] Manual Verification: Inspect downloaded files, check hashes/versions.
