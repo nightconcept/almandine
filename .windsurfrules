@@ -1,0 +1,244 @@
+# Project Development Guidelines for AI Assistant
+
+**Version:** 1.2
+**Last Updated:** 2025-04-24
+
+**Objective:** These guidelines define the mandatory process, coding standards, LÖVE 2D practices, testing requirements, and interaction protocols for AI assistance on this project. Adherence is required for all contributions.
+
+---
+
+## 0. Folder Structure Compliance (MANDATORY)
+
+**STRICT REQUIREMENT:**
+All contributors MUST adhere to the folder and file structure as documented in [project/PLANNING.md].
+
+- **NO files or directories may be added, removed, or relocated** outside of the structure defined in PLANNING.md without explicit prior approval.
+- **Any change to the folder structure requires:**
+  1. Approval from project maintainers.
+  2. Immediate update of PLANNING.md to reflect the change, BEFORE implementation.
+- **Pull requests or contributions that violate this rule will be rejected or flagged.**
+
+This rule is absolute and takes precedence over all other guidelines.
+
+## 1.  Mandatory Pre-computation & Context Assimilation
+
+- **ACTION REQUIRED (Start of Session):** Read and internalize the contents of `PLANNING.md`. This document contains critical information about the project's architecture, goals, overall style guide, and constraints. Read and internalize the contents of `digest.txt`. This document contains a digest of the current state of the project only up to the latest commit.
+- **ACTION REQUIRED (Before Each Task):**
+    1. Consult `TASK.md` to understand the current assignment.
+    2. If the specific task you are about to work on is not listed, **add it** to `TASK.md` with a concise description and the current date (`YYYY-MM-DD`).
+    3. **Develop an Implementation Plan:** Before writing or suggesting code, outline:
+        - A brief description of the problem being solved.
+        - A high-level overview of your proposed solution.
+        - A list of specific steps required for implementation.
+    4. **Analyze Existing Code:** Review relevant existing code files to understand the current implementation, context, and structure *before* suggesting modifications or additions.
+
+---
+
+## 2. Code Implementation Standards
+
+### 2.1. Language & Environment
+
+- **Primary Language:** Lua (specifically targeting Lua 5.4 / LuaJIT).
+- **Framework:** LÖVE 2D version 11.5.
+- **Compatibility:** All code must be compatible with this specific Lua and LÖVE version.
+- **Folder Structure:** (**STRICT REQUIREMENT**)All game code is inside `game/`. The `main.lua` file is in this directory. All files generated should be generated expecting to run `love` from inside the `game/` directory. Test code is inside `spec/` folder. Project planning files are in `project/`. You should NOT be editing anything outside of these three folders.
+
+### 2.2. Modularity & Structure
+
+- **File Length Limit:** No single Lua file (`.lua`) should exceed 500 lines of code. Refactor larger files into smaller, focused modules or helper files.
+- **Organization:** Structure code into clearly separated modules, logically grouped by feature or responsibility. Follow the existing file structure patterns outlined in `PLANNING.md`.
+- **Imports:** Use clear and consistent import paths. Prefer relative imports for modules within the same logical package/feature area. Confirm module paths exist before using them.
+
+### 2.3. Style & Formatting (Lua)
+
+- **Base Style:** Adhere to the Lua Standard Style guidelines.
+- **Type Hinting:** Use LuaLS-style type annotations (`---@type`, `---@param`, `---@return`, `---@class`, etc.) for all functions, variables where appropriate, and table structures.
+- **Indentation:** Use 2 spaces for indentation (strictly enforce, potentially overriding other defaults).
+- **Strings:** Prefer double quotes (`"`) for string literals.
+- **Line Length:** Maximum line length is 120 characters.
+- **Function Calls:** Always use parentheses `()` for function calls, even if no arguments are passed.
+- **Spacing:** Do *not* add a space between a function name and its opening parenthesis (e.g., `my_function()` not `my_function ()`).
+- **Statements:** Do not collapse simple statements onto a single line if they would normally be separate.
+- **Variables:** Use `local` variables by default to avoid polluting the global namespace.
+- Variable names with larger scope should be more descriptive than those with smaller scope. One-letter variable names should be avoided except for very small scopes (less than ten lines) or for iterators.
+- `i` should be used only as a counter variable in for loops (either numeric for
+or `ipairs`).
+- Prefer more descriptive names than `k` and `v` when iterating with `pairs`, unless you are writing a function that operates on generic tables.
+- Use `_` for ignored variables (e.g. in for loops:)
+
+```lua
+for _, item in ipairs(items) do
+   do_something_with_item(item)
+end
+```
+
+- Variables and function names should use `snake_case`.
+- Classes should use `CamelCase`. Acronyms (e.g. XML) should
+only uppercase the first letter (`XmlDocument`).
+- Class methods should use `snake_case` too.
+
+```lua
+for _, name in pairs(names) do
+   -- ...stuff...
+end
+```
+
+- Prefer using `is_` when naming boolean functions:
+
+```lua
+-- bad
+local function evil(alignment)
+   return alignment < 100
+end
+
+-- good
+local function is_evil(alignment)
+   return alignment < 100
+end
+```
+
+- `UPPER_CASE` shall be used with "constants" only.
+- Files should have a header and description.
+
+```lua
+--[[
+  File (not the file name)
+
+  Files start with a descriptive multi-line comment. This is the description of what the file does.
+]]--
+```
+
+- **DO NOT** include in the top comment: Compatibility with Lua, LuaJIT, or LÖVE version info.
+
+### 2.4. Documentation & Comments
+
+- **Docstrings:** Every function must have a docstring using the LuaLS format. Include descriptions for the function's purpose, parameters (`@param`), and return values (`@return`). Markdown within docstrings is permitted.
+  - **Example Format:**
+
+    ```lua
+    --- Brief description of the function's purpose.
+    --- Can include **markdown**.
+    ---@param param_name ParamType Description of the parameter.
+    ---@param another_param AnotherType Description.
+    ---@return ReturnType Description of the return value.
+    ---@return AnotherReturn Another description if multiple returns.
+    function example_function(param_name, another_param)
+      -- Function implementation
+      local result = param_name + 1 -- Example logic
+      return result, "Success"
+    end
+
+    ---@class MyClass Represents a concept.
+    ---@field name string The name associated with this instance.
+    MyClass = {}
+    MyClass.__index = MyClass
+
+    --- Creates a new instance of MyClass.
+    ---@param initial_name string The initial name.
+    ---@return MyClass new_instance A new instance of MyClass.
+    function MyClass:new(initial_name)
+      local self = setmetatable({}, MyClass)
+      self.name = initial_name or "Default"
+      return self
+    end
+
+    ---@type string[] List of item identifiers.
+    local item_ids
+    ```
+
+- **Code Comments:** Add comments to explain non-obvious logic, complex algorithms, or important decisions. Focus on the *why*, not just the *what*.
+- **Reasoning Comments:** For complex or potentially confusing blocks of code, add an inline comment starting with `# Reason:` explaining the rationale behind the implementation choice.
+- **README Updates:** Update `README.md` if changes involve:
+  - Adding new core features.
+  - Changing dependencies.
+  - Modifying setup or build steps.
+
+---
+
+## 3. LÖVE 2D Development Guidelines
+
+- **API Usage:** Utilize the LÖVE 2D API (e.g., `love.graphics`, `love.audio`, `love.filesystem`) correctly.
+  - **Reference:** Consult the official API documentation at `https://love2d-community.github.io/love-api/`. If context source `Context7` (MCP Server) is available, it should be used instead.
+- **Particle Systems:** Use the standard `love.graphics.newParticleSystem` API for particle effects. Refer to its specific documentation: `https://love2d-community.github.io/love-api/#type_ParticleSystem`.
+- **Game Loop:** Respect and correctly implement logic within the standard LÖVE 2D callbacks: `love.load()`, `love.update(dt)`, `love.draw()`.
+- **Shaders:**
+  - Write shaders in separate `.glsl` files.
+  - Target WebGL 1.0 (OpenGL ES 2.0) for maximum compatibility.
+- **Performance:** Be mindful of performance implications, especially regarding object creation/destruction within `love.update` or `love.draw` (potential garbage collection pressure). Optimize as needed, following LÖVE best practices.
+- **Project Structure:** Adhere to the established project structure conventions (refer to `PLANNING.md`), particularly regarding:
+  - Separation of game logic, rendering, and input handling.
+  - Existing patterns for state management.
+  - Established approach to resource loading and management.
+- All global variables (including third-party libraries/modules that require global access, such as `shove`) MUST be assigned to the global environment (_G) in [game/main.lua](cci:7://file:///e:/git/nightrunner-love/game/main.lua:0:0-0:0) only.
+- AI and contributors should NEVER assign globals in other files or modules. Instead, require the module in [main.lua](cci:7://file:///e:/git/nightrunner-love/game/main.lua:0:0-0:0) and assign it to _G as needed.
+- Example:
+    local shove = require("engine.lib.shove")
+    _G.shove = shove
+- **Manual Testing:** To allow a user to manually test, test_scene.lua should be updated to test the new feature that is implemented.
+- **Managers:** Always look to see if using a global manager (e.g. `InputManager`, `AssetManager`, `RenderManager`, `SceneManager`) is available for API calls. Love2D API calls should be limited and primarily handled by a manager.
+
+---
+
+## 4. Development Workflow & Modification Rules
+
+- **Implementation Plan:** Always create the plan outlined in Section 1 before coding.
+- **Read First:** Always read and understand existing code before modifying or adding to it.
+- **Focus:** Keep changes focused on the specific task. Do not refactor unrelated code unless it's part of the explicit task.
+- **Small Functions:** Prefer small, single-purpose functions.
+- **Code Modification Principles:**
+  - Aim for clean, elegant, and idiomatic Lua/LÖVE solutions.
+  - Explain the *rationale* behind significant suggestions or changes.
+  - Propose minimal, incremental changes that are easy to review.
+  - Prioritize low-risk refactoring.
+  - Avoid code duplication; promote reusability.
+  - Leverage Lua's strengths (tables, first-class functions).
+  - Be aware of common Lua pitfalls (e.g., table indexing, scope, closures).
+- **Dependencies:** Do not introduce new external dependencies unless absolutely necessary and explicitly discussed/approved.
+- **Commits:** Ensure commit messages follow the Conventional Commits specification (`https://www.conventionalcommits.org/en/v1.0.0/`). (AI will likely provide code/suggestions, user performs the commit).
+- **Manual Testing:** When developing a task for TASK.md, always allow user to manually test the changes and provide instructions.
+
+---
+
+## 5. Specifying and Verifying Behavior
+
+Our goal is to create living documentation that describes how our system components should behave. We use the `busted` framework to write these executable specifications, ensuring our code meets the intended requirements.
+
+- **Specify Behavior for New/Modified Components:** Any new feature (function, class, significant logic) or modification to existing logic requires corresponding specifications that describe its expected behavior. This ensures clarity and verifies *what* it's supposed to do from an external viewpoint.
+
+- **Specification Location:** Behavior specifications must reside in a top-level `/spec` directory. This directory's structure should mirror the source code being specified, making it easy to locate relevant specifications.
+  - *Example:* Specifications for `game/engine/my_module.lua` belong in `spec/engine/my_module_spec.lua`.
+
+- **Describe Key Behavioral Scenarios:** Each component's specification should describe its behavior under various conditions using `describe` and `it` blocks. At minimum, include scenarios covering:
+  - **Expected Behavior:** At least one example (`it` block) describing the typical, successful interaction or outcome (the "happy path").
+    - *Example:* `it("should return the correct sum for two positive numbers")`
+  - **Boundary Conditions:** At least one example exploring behavior at known or likely limits or edge cases.
+    - *Example:* `it("should handle empty input lists gracefully")`
+    - *Example:* `it("should clamp position at the maximum screen boundary")`
+  - **Handling Undesired Situations:** At least one example describing how the component behaves when encountering errors, invalid inputs, or exceptional conditions.
+    - *Example:* `it("should return nil when a required parameter is missing")`
+    - *Example:* `it("should error if division by zero is attempted")`
+
+- **Maintain Living Documentation:** Software evolves, and so must its specifications. When modifying existing logic, **review and update the corresponding specifications** to ensure they accurately reflect the component's *current* behavior. Outdated specifications are misleading.
+
+- **AI Collaboration in Specification:** When assisting with behavior specification:
+  - **DO** generate executable specification code using `busted` in `_spec.lua` files (aligning with Busted's convention).
+  - **DO** clearly summarize suggested specifications by describing the *behavior* being specified and its context. Frame suggestions around *what* should happen under certain conditions, suitable for `describe` or `it` blocks.
+  - *Example:* "Specify behavior when `my_function` receives `nil` input."
+  - *Example:* "Specify player collision behavior at the screen edge."
+  - *Example:* "Describe the outcome when saving data with an invalid format."
+  - Use the `busted` library for all specifications.
+  - Within specification files (`_spec.lua`), use full module paths for `require` statements (e.g., `require("game.engine.core.scene")`).
+
+---
+
+## 6. AI Interaction Protocols
+
+- **Clarity:** Never assume missing context or requirements. If uncertain about the task, project state, or constraints, **ask clarifying questions** before proceeding.
+- **Factuality:** Do not "hallucinate" or invent libraries, functions, APIs, or file paths. Only use verified LÖVE APIs, standard Lua functions, and modules confirmed to exist within the project.
+- **Verification:** Always confirm file paths and module names exist (based on provided context or previous interactions) before referencing them in code examples, tests, or explanations.
+- **Code Modification Safety:** Never delete or overwrite existing code unless:
+  - Explicitly instructed to do so by the user.
+  - It is a defined part of the current task listed in `TASK.md`.
+- **Model Capability Awareness:** If you assess that a task is complex and might benefit significantly from a more advanced model's capabilities, state this clearly **at the beginning of your response** using **bold text**. Example: "**Suggestion: This refactoring task is complex and involves deep analysis of interactions. A more advanced model might provide a more robust solution.**"
+- **Collaboration Style:** Respond in a friendly, helpful, and collaborative tone, as if we are teammates working together.
+- **Task Completion:** Upon completing the implementation/suggestion for a task, explicitly state that the task requirements (as understood) have been met. Remind the user to mark the task as complete in `TASK.md`.
