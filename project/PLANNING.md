@@ -1,0 +1,72 @@
+# Snowdrop Package Manager
+
+## 1. Introduction
+
+Snowdrop is a lightweight package manager for Lua projects. It enables simple, direct management of single-file dependencies (from GitHub or other supported repositories), project scripts, and project metadata. Snowdrop is designed for projects that want to pin specific versions or commits of files without managing complex dependency trees.
+
+## 2. Core Features
+
+- **Single-file Downloads:** Fetch individual Lua files from remote repositories (e.g., GitHub), pinning by semver (if available) or git commit hash.
+- **No Dependency Tree Management:** Only downloads files explicitly listed in the project; does not resolve or manage full dependency trees.
+- **Project Metadata:** Maintains project name, type, version, license, and package description in `project.lua`.
+- **Script Runner:** Provides a central point for running project scripts (similar to npm scripts).
+- **Lockfile:** Tracks exact versions or commit hashes of all downloaded files for reproducible builds.
+- **License & Description:** Exposes license and package description fields in `project.lua` for clarity and compliance.
+
+## 3. Folder Structure
+
+Sample minimal structure for a Snowdrop-managed project:
+
+* `project.lua`          # Project manifest (metadata, scripts, dependencies)
+* `snowdrop-lock.lua`    # Lockfile (exact versions/hashes of dependencies)
+* `scripts/`             # (Optional) Project scripts
+* `lib/`                 # (Optional) Downloaded packages/files
+* `src/`                 # (Optional) Project source code
+
+## 4. File Descriptions
+
+### `project.lua`
+
+Project manifest. Example fields:
+
+```lua
+return {
+  name = "my-lua-project",
+  type = "library", -- or "application"
+  version = "1.0.0",
+  license = "MIT",
+  description = "A sample Lua project using Snowdrop.",
+  scripts = {
+    test = "lua tests/run.lua",
+    build = "lua build.lua"
+  },
+  dependencies = {
+    ["lunajson"] = "~1.3.4", -- semver or commit hash
+    ["somefile"] = "github:user/repo/path/file.lua@abcdef"
+  }
+}
+```
+
+### `snowdrop-lock.lua`
+
+Tracks resolved dependencies for reproducible installs. Example fields:
+
+```lua
+return {
+  api_version = "1",
+  package = {
+    lunajson = { version = "1.3.4", hash = "sha256:..." },
+    somefile = { source = "github:user/repo/path/file.lua", hash = "abcdef" }
+  }
+}
+```
+
+## 5. Conclusion
+
+Snowdrop aims to provide a simple, robust, and reproducible workflow for Lua projects that need lightweight dependency management and script automation, without the complexity of full dependency trees.
+
+---
+
+## Tech Stack
+
+* Lua 5.1–5.4 / LuaJIT 2.1
