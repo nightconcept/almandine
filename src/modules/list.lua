@@ -7,53 +7,30 @@
 
 --- Lists installed dependencies and their versions.
 -- @param load_manifest function Function to load the manifest.
--- @param lockfile_path string Path to the lockfile (default: "almd-lock.lua").
-local function list_dependencies(load_manifest, lockfile_path)
-  lockfile_path = lockfile_path or "almd-lock.lua"
+-- @param load_lockfile function Function to load the lockfile.
+local function list_dependencies(load_manifest, load_lockfile)
   local lockfile = nil
   local lockfile_exists = false
-  local file = io.open(lockfile_path, "r")
-  if file then
-    local chunk = file:read("*a")
-    file:close()
-    local f, err = load(chunk, "@"..lockfile_path, "t", {})
-    if f then
-      local ok, result = pcall(f)
-      if ok and type(result) == "table" and result.package then
-        lockfile = result
-        lockfile_exists = true
-      end
+  if type(load_lockfile) == "function" then
+    lockfile = load_lockfile()
+    lockfile_exists = lockfile ~= nil
+  end
+  local dependencies = {}
+  if lockfile_exists and type(lockfile) == "table" and lockfile.dependencies then
+    dependencies = lockfile.dependencies
+  else
+    local manifest = load_manifest()
+    if type(manifest) == "table" and manifest.dependencies then
+      dependencies = manifest.dependencies
     end
   end
-
-  if lockfile_exists and lockfile and lockfile.package then
-    print("Installed dependencies (from lockfile):")
-    for name, dep in pairs(lockfile.package) do
-      local version = dep.version or (dep.hash and ("#"..dep.hash)) or "(unknown)"
-      print(string.format("  %s\t%s", name, version))
-    end
+  if next(dependencies) == nil then
+    print("No dependencies found.")
     return
   end
-
-  -- Fall back to manifest if lockfile missing or invalid
-  local manifest, err = load_manifest()
-  if not manifest then
-    print("Could not load project manifest: " .. tostring(err))
-    return
-  end
-  local deps = manifest.dependencies or {}
-  if next(deps) == nil then
-    print("No dependencies found in project.lua.")
-    return
-  end
-  print("Dependencies (from project.lua):")
-  for name, source in pairs(deps) do
-    local version = "(source)"
-    if type(source) == "string" then
-      version = source
-    elseif type(source) == "table" and source.version then
-      version = source.version
-    end
+  print("Installed dependencies:")
+  for name, dep in pairs(dependencies) do
+    local version = dep.version or (dep.hash and ("#"..dep.hash)) or "(unknown)"
     print(string.format("  %s\t%s", name, version))
   end
 end

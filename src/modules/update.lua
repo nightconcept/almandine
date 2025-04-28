@@ -9,39 +9,33 @@
 -- @param load_manifest function Function to load the manifest.
 -- @param save_manifest function Function to save the manifest.
 -- @param ensure_lib_dir function Function to ensure lib dir exists.
--- @param utils table Utils module.
+-- @param utils table Utils module (must provide .downloader).
 -- @param resolve_latest_version function Function to resolve latest version for a dependency (semver or commit).
--- @param latest boolean Whether to force update to absolute latest version.
+-- @param latest boolean|nil Whether to force update to absolute latest version.
 local function update_dependencies(load_manifest, save_manifest, ensure_lib_dir, utils, resolve_latest_version, latest)
   ensure_lib_dir()
   local manifest, err = load_manifest()
   if not manifest then print(err) return end
-  manifest.dependencies = manifest.dependencies or {}
   local updated = false
-  for name, source in pairs(manifest.dependencies) do
-    local new_version, new_url = resolve_latest_version(name, source, latest)
-    if new_version and new_url and new_url ~= source then
-      manifest.dependencies[name] = new_url
-      print(string.format("Updated %s to %s", name, new_version))
+  for name, dep in pairs(manifest.dependencies or {}) do
+    local dep_tbl = dep
+    if type(dep) == "string" then
+      dep_tbl = { url = dep }
+    end
+    local new_version = resolve_latest_version(name)
+    if new_version and dep_tbl.version ~= new_version then
+      dep_tbl.version = new_version
       updated = true
-    else
-      print(string.format("%s is up to date", name))
-    end
-    local out_path
-    if new_url or source then
-      local filesystem_utils = require("utils.filesystem")
-      out_path = filesystem_utils.join_path("src", "lib", name .. ".lua")
-    end
-    local ok, err2 = utils.downloader.download(new_url or source, out_path)
-    if ok then
-      print(string.format("Downloaded %s to %s", name, out_path))
-    else
-      print(string.format("Failed to download %s: %s", name, err2))
+      local url = dep_tbl.url or dep
+      local out_path = dep_tbl.path or ("src/lib/" .. name .. ".lua")
+      local ok, err2 = utils.downloader.download(url, out_path)
+      if not ok then print(err2) end
+      -- If we upgraded from a string, update the manifest entry to a table
+      manifest.dependencies[name] = dep_tbl
     end
   end
   if updated then
-    local ok, err2 = save_manifest(manifest)
-    if not ok then print(err2) end
+    save_manifest(manifest)
   end
 end
 

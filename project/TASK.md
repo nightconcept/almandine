@@ -121,9 +121,21 @@
     - Ensure the workflow is professional and cross-platform aware.
   - [ ] Manual Verification: Trigger release, verify zip contents, changelog accuracy, and release quality.
 
+- [ ] **Task 6.2: Migrate all src/spec tests to Busted framework (2025-04-28)**
+  - [ ] For each test file in `src/spec` named `*_test.lua`, create a corresponding `*_spec.lua` using the Busted test library and idioms (`describe`, `it`, `assert`).
+  - [ ] Preserve all test logic, grouping, and documentation; follow project Lua and LDoc standards.
+  - [ ] Do not delete or move original files unless explicitly approved.
+  - [ ] Manual Verification: Run all new specs with Busted, confirm all tests pass and logic is preserved.
+
 ---
 
 ## Active Work
+
+- [ ] **Task 6.2: Migrate all src/spec tests to Busted framework (2025-04-28)**
+  - [ ] For each test file in `src/spec` named `*_test.lua`, create a corresponding `*_spec.lua` using the Busted test library and idioms (`describe`, `it`, `assert`).
+  - [ ] Preserve all test logic, grouping, and documentation; follow project Lua and LDoc standards.
+  - [ ] Do not delete or move original files unless explicitly approved.
+  - [ ] Manual Verification: Run all new specs with Busted, confirm all tests pass and logic is preserved.
 
 ## Backlog / Discovered Tasks
 

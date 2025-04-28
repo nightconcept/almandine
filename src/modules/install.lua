@@ -11,8 +11,9 @@
 -- @param load_manifest function Function to load the manifest.
 -- @param ensure_lib_dir function Function to ensure lib dir exists.
 -- @param downloader table utils.downloader module.
+-- @param utils table Utils module (must provide .downloader).
 -- @param lockfile_deps table|nil Lockfile dependency table (optional)
-local function install_dependencies(dep_name, load_manifest, ensure_lib_dir, downloader, lockfile_deps)
+local function install_dependencies(dep_name, load_manifest, ensure_lib_dir, downloader, utils, lockfile_deps)
   ensure_lib_dir()
   local deps = {}
   if lockfile_deps then
@@ -34,7 +35,7 @@ local function install_dependencies(dep_name, load_manifest, ensure_lib_dir, dow
         local filesystem_utils = require("utils.filesystem")
         out_path = filesystem_utils.join_path("src", "lib", name .. ".lua")
       end
-      local ok3, err3 = utils.downloader.download(url, out_path)
+      local ok3, err3 = (utils or {downloader=downloader}).downloader.download(url, out_path)
       if ok3 then
         print(string.format("Downloaded %s to %s", name, out_path))
       else
