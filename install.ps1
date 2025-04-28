@@ -2,7 +2,6 @@
 # Fetches and installs almd CLI from the latest (or specified) GitHub release
 
 $Repo = "nightconcept/almandine"
-$AppHome = "$env:USERPROFILE\.almd"
 $WrapperDir = "$env:LOCALAPPDATA\Programs\almd"
 $TmpDir = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), [System.Guid]::NewGuid().ToString())
 $Version = $null
@@ -45,7 +44,7 @@ if (!(Test-Path $TmpDir)) { New-Item -ItemType Directory -Path $TmpDir | Out-Nul
 if ($Version) {
   $Tag = $Version
 } else {
-  Write-Host "Fetching latest tag ..."
+  Write-Host "Fetching Almandine version info ..."
   $TagsApiUrl = "https://api.github.com/repos/$Repo/tags?per_page=1"
   $Tags = GithubApi $TagsApiUrl
   if ($Tags -is [System.Array] -and $Tags.Count -gt 0) {
@@ -61,11 +60,11 @@ if ($Version) {
 $ArchiveUrl = "https://github.com/$Repo/archive/refs/tags/$Tag.zip"
 $ArchiveName = "$Repo-$Tag.zip" -replace "/", "-"
 
-Write-Host "Downloading archive for tag $Tag ..."
+Write-Host "Downloading Almandine archive for tag $Tag ..."
 $ZipPath = Join-Path $TmpDir $ArchiveName
 Download $ArchiveUrl $ZipPath
 
-Write-Host "Extracting CLI ..."
+Write-Host "Extracting Almandine ..."
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $TmpDir)
 
@@ -80,12 +79,9 @@ if (!(Test-Path $ExtractedDir)) {
   }
 }
 
-Write-Host "Installing CLI to $AppHome ..."
-New-Item -ItemType Directory -Path $AppHome -Force | Out-Null
-Copy-Item -Path (Join-Path $ExtractedDir 'src') -Destination $AppHome -Recurse -Force
-
-Write-Host "Installing wrapper script to $WrapperDir ..."
+Write-Host "Installing Almandine to $WrapperDir ..."
 New-Item -ItemType Directory -Path $WrapperDir -Force | Out-Null
+Copy-Item -Path (Join-Path $ExtractedDir 'src') -Destination (Join-Path $WrapperDir 'src') -Recurse -Force
 Copy-Item -Path (Join-Path $ExtractedDir 'install/almd.ps1') -Destination (Join-Path $WrapperDir 'almd.ps1') -Force
 
 Write-Host "\nInstallation complete!"
