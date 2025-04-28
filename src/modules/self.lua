@@ -53,10 +53,11 @@ end
 -- Usage: almd self uninstall
 -- Uninstalls the Almandine CLI and removes all associated files.
 local function help_info()
-  print([[\nUsage: almd self uninstall
+  print([[
+Usage: almd self uninstall
 
-Uninstalls the Almandine CLI, removing all wrapper scripts and the src/ folder.
-Example:
+Uninstalls the Almandine CLI, removing all wrapper scripts and the src/
+folder. Example:
   almd self uninstall
 ]])
 end

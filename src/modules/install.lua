@@ -15,13 +15,12 @@
 -- @param lockfile_deps table|nil Lockfile dependency table (optional)
 local function install_dependencies(dep_name, load_manifest, ensure_lib_dir, downloader, utils, lockfile_deps)
   ensure_lib_dir()
-  local deps = {}
   if lockfile_deps then
-    deps = lockfile_deps
+    local deps = lockfile_deps
   else
     local manifest, err = load_manifest()
     if not manifest then print(err) return end
-    deps = manifest.dependencies or {}
+    local deps = manifest.dependencies or {}
   end
   for name, source in pairs(deps) do
     if (not dep_name) or (dep_name == name) then

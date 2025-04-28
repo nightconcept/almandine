@@ -94,31 +94,59 @@ For help with a command: almd help <command> or almd <command> --help
   elseif args[1] == "add" or args[1] == "i" then
     -- Usage: almd add <dep_name> <source> OR almd add <source>
     if args[2] and args[3] then
-      add_module.add_dependency(args[2], args[3], load_manifest, install_module.save_manifest, filesystem_utils.ensure_lib_dir, downloader)
+      add_module.add_dependency(
+        args[2],
+        args[3],
+        load_manifest,
+        install_module.save_manifest,
+        filesystem_utils.ensure_lib_dir,
+        downloader
+      )
     elseif args[2] and not args[3] then
       -- Only one argument: treat as source, dep_name=nil
-      add_module.add_dependency(nil, args[2], load_manifest, install_module.save_manifest, filesystem_utils.ensure_lib_dir, downloader)
+      add_module.add_dependency(
+        nil,
+        args[2],
+        load_manifest,
+        install_module.save_manifest,
+        filesystem_utils.ensure_lib_dir,
+        downloader
+      )
     else
       print("Usage: almd add <dep_name> <source>\n       almd add <source>")
     end
     return
   elseif args[1] == "install" or args[1] == "in" or args[1] == "ins" then
-    -- Usage: almandine install [<dep_name>]
+    -- Usage: almd install [<dep_name>]
     if args[2] then
-      install_module.install_dependencies(args[2], load_manifest, filesystem_utils.ensure_lib_dir, downloader)
+      install_module.install_dependencies(
+        args[2],
+        load_manifest,
+        filesystem_utils.ensure_lib_dir,
+        downloader
+      )
     else
-      install_module.install_dependencies(nil, load_manifest, filesystem_utils.ensure_lib_dir, downloader)
+      install_module.install_dependencies(
+        nil,
+        load_manifest,
+        filesystem_utils.ensure_lib_dir,
+        downloader
+      )
     end
     return
   elseif args[1] == "remove" or args[1] == "rm" or args[1] == "uninstall" or args[1] == "un" then
     if args[2] then
-      remove_module.remove_dependency(args[2], load_manifest, install_module.save_manifest)
+      remove_module.remove_dependency(
+        args[2],
+        load_manifest,
+        install_module.save_manifest
+      )
     else
-      print("Usage: almandine remove <dep_name>")
+      print("Usage: almd remove <dep_name>")
     end
     return
   elseif args[1] == "update" or args[1] == "up" or args[1] == "upgrade" then
-    -- Usage: almandine update [--latest]
+    -- Usage: almd update [--latest]
     local latest = false
     for i = 2, #args do
       if args[i] == "--latest" then
@@ -129,14 +157,14 @@ For help with a command: almd help <command> or almd <command> --help
       load_manifest,
       install_module.save_manifest,
       filesystem_utils.ensure_lib_dir,
-      {downloader = downloader},
+      { downloader = downloader },
       add_module.resolve_latest_version,
       latest
     )
     return
   elseif args[1] == "run" then
     if not args[2] then
-      print("Usage: almandine run <script_name>")
+      print("Usage: almd run <script_name>")
       return
     end
     local ok, err = run_module.run_script(args[2], manifest_loader)

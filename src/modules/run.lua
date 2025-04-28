@@ -10,23 +10,43 @@
 -- @param manifest_loader [table] The manifest loader module.
 -- @return [boolean, string] True and output if successful, false and error message otherwise.
 local function run_script(script_name, manifest_loader)
-  local manifest, err = manifest_loader.safe_load_project_manifest("project.lua")
+  local manifest = manifest_loader.safe_load_project_manifest("project.lua")
   if not manifest then
-    return false, err
+    return false, "Failed to load project manifest."
   end
   local scripts = manifest.scripts or {}
   local command = scripts[script_name]
   if not command then
-    return false, string.format("Script '%s' not found in project.lua.", script_name)
+    return false, string.format(
+      "Script '%s' not found in project.lua.",
+      script_name
+    )
   end
-  print(string.format("Running script '%s': %s", script_name, command))
+  print(string.format(
+    "Running script '%s': %s",
+    script_name,
+    command
+  ))
   local ok, exit_reason, code = os.execute(command)
   if ok then
-    print(string.format("Script '%s' completed successfully.", script_name))
+    print(string.format(
+      "Script '%s' completed successfully.",
+      script_name
+    ))
     return true, nil
   else
-    print(string.format("Script '%s' failed (reason: %s, code: %s)", script_name, tostring(exit_reason), tostring(code)))
-    return false, string.format("Script '%s' failed (reason: %s, code: %s)", script_name, tostring(exit_reason), tostring(code))
+    print(string.format(
+      "Script '%s' failed (reason: %s, code: %s)",
+      script_name,
+      tostring(exit_reason),
+      tostring(code)
+    ))
+    return false, string.format(
+      "Script '%s' failed (reason: %s, code: %s)",
+      script_name,
+      tostring(exit_reason),
+      tostring(code)
+    )
   end
 end
 
@@ -49,7 +69,7 @@ end
 -- @param manifest_loader [table]
 -- @return [string|nil] The script name if unambiguous, or nil.
 local function get_unambiguous_script(name, manifest_loader)
-  local manifest, err = manifest_loader.safe_load_project_manifest("project.lua")
+  local manifest = manifest_loader.safe_load_project_manifest("project.lua")
   if not manifest or not manifest.scripts then return nil end
   if manifest.scripts[name] then return name end
   return nil
@@ -60,7 +80,8 @@ end
 -- Usage: almd run <script_name>
 -- Executes a script defined in project.lua.
 local function help_info()
-  print([[\nUsage: almd run <script_name>
+  print([[
+Usage: almd run <script_name>
 
 Executes a script defined in the `scripts` table of project.lua.
 Example:

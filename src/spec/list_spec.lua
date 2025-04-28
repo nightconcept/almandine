@@ -10,7 +10,7 @@
 -- @module list_spec
 
 local list_module = require("modules.list")
-local manifest_loader = require("utils.manifest")
+local manifest_loader_module = require("utils.manifest")
 
 local MANIFEST_FILE = "project.lua"
 local LOCKFILE = "almd-lock.lua"
@@ -55,13 +55,14 @@ describe("list_module.list_dependencies", function()
 
   local function capture_print(func)
     local output = {}
-    local _print = print
-    print = function(...) local t = {}
+    local original_print = print
+    local function print(...)
+      local t = {}
       for i=1,select('#', ...) do t[#t+1] = tostring(select(i, ...)) end
       output[#output+1] = table.concat(t, " ")
     end
     func()
-    print = _print
+    print = original_print
     return table.concat(output, "\n")
   end
 

@@ -10,7 +10,8 @@ if not string.find(package.path, src_path, 1, true) then
   package.path = src_path .. ";" .. package.path
 end
 
-local self_module = require("modules.self")
+local self_module = 
+  require("modules.self")
 
 local function file_exists(path)
   local f = io.open(path, "r")

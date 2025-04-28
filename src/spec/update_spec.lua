@@ -14,7 +14,11 @@ describe("update_module.update_dependencies", function()
   local update_dependencies = update_module.update_dependencies
 
   local function make_manifest()
-    local manifest = { dependencies = { foo = "https://example.com/foo.lua" } }
+    local manifest = {
+      dependencies = {
+        foo = "https://example.com/foo.lua"
+      }
+    }
     return function() return manifest end, function(new_manifest) manifest = new_manifest return true end, function() return manifest end
   end
 
@@ -72,7 +76,14 @@ describe("update_module.update_dependencies", function()
   end)
 
   it("updates dependency versions in manifest", function()
-    local manifest = { dependencies = { foo = { version = "1.0.0", url = "https://example.com/foo.lua" } } }
+    local manifest = {
+      dependencies = {
+        foo = {
+          version = "1.0.0",
+          url = "https://example.com/foo.lua"
+        }
+      }
+    }
     local function load() return manifest end
     local function save(tbl) manifest = tbl end
     local function ensure_lib_dir() end

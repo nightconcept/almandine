@@ -14,7 +14,8 @@ local function remove_dependency(dep_name, load_manifest, save_manifest)
   if not manifest then print(err) return end
   manifest.dependencies = manifest.dependencies or {}
   if not manifest.dependencies[dep_name] then
-    print(string.format("Dependency '%s' not found in project.lua.", dep_name))
+    print(string.format("Dependency '%s' not found in project.lua.", 
+      dep_name))
     return
   end
   local dep = manifest.dependencies[dep_name]

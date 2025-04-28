@@ -153,4 +153,9 @@
   - [ ] Upload coverage to Coveralls (on Lua 5.1 only, using `COVERALLS_REPO_TOKEN`).
   - [ ] Manual Verification: Check workflow runs and reports status for all jobs; confirm coverage appears on Coveralls.
 
-*Last updated: 2025-04-28*
+- [ ] **Task 7.2: Fix all luacheck warnings in src/ and src/spec (2025-04-29)**
+  - [ ] Address all line length, unused variable, shadowing, and read-only global warnings reported by `luacheck`.
+  - [ ] Ensure all changes conform to project Lua and LDoc standards.
+  - [ ] Manual Verification: Run `luacheck` and confirm 0 warnings/errors.
+
+*Last updated: 2025-04-29*

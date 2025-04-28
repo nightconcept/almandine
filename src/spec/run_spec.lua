@@ -10,7 +10,7 @@
 
 describe("run_module", function()
   local run_module = require("modules.run")
-  local manifest_loader = require("utils.manifest")
+  local _manifest_loader = require("utils.manifest")
 
   local function fake_manifest_loader(scripts)
     return {
@@ -23,16 +23,16 @@ describe("run_module", function()
   it("runs a script successfully", function()
     local scripts = { hello = "echo hello world" }
     local loader = fake_manifest_loader(scripts)
-    local ok, err = run_module.run_script("hello", loader)
+    local ok, _ = run_module.run_script("hello", loader)
     assert.is_true(ok)
   end)
 
   it("returns error if script not found", function()
     local scripts = { hello = "echo hello world" }
     local loader = fake_manifest_loader(scripts)
-    local ok, err = run_module.run_script("nonexistent_script", loader)
+    local ok, _ = run_module.run_script("nonexistent_script", loader)
     assert.is_false(ok)
-    assert.matches("not found", err)
+    assert.matches("not found", _)
   end)
 
   it("detects reserved commands", function()
