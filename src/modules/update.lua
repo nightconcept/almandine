@@ -1,10 +1,12 @@
 --[[
   Update Command Module
 
-  Provides functionality to update dependencies to the latest allowed version or the absolute latest version if the `--latest` flag is provided.
+  Provides functionality to update dependencies to the latest allowed version or the absolute latest
+  version if the `--latest` flag is provided.
 ]]--
 
---- Updates all dependencies in project.lua to the latest allowed version, or to the latest available if `--latest` is set.
+--- Updates all dependencies in project.lua to the latest allowed version, or to the latest available if
+-- `--latest` is set.
 -- @param load_manifest function Function to load the manifest.
 -- @param save_manifest function Function to save the manifest.
 -- @param ensure_lib_dir function Function to ensure lib dir exists.

@@ -1,7 +1,10 @@
 --[[
   Main Entrypoint for Almandine Package Manager
 
-  This file serves as the main entrypoint for the Almandine Lua package manager. It is responsible for bootstrapping the application and delegating control to the appropriate modules based on user input or CLI arguments. All initialization and top-level logic begins here.
+  This file serves as the main entrypoint for the Almandine Lua package manager.
+  It is responsible for bootstrapping the application and delegating control to the appropriate
+  modules based on user input or CLI arguments.
+  All initialization and top-level logic begins here.
 ]]--
 
 ---

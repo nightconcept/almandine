@@ -1,7 +1,8 @@
 --[[
   Run Command Module
 
-  Provides logic for executing scripts defined in the `scripts` table of project.lua. Used by the main CLI entrypoint for the `run` command and for direct script invocation if unambiguous.
+  Provides logic for executing scripts defined in the `scripts` table of project.lua.
+  Used by the main CLI entrypoint for the `run` command and for direct script invocation if unambiguous.
 ]]--
 
 ---

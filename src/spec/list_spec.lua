@@ -8,13 +8,11 @@
 
 -- luacheck: globals describe it after_each assert
 
-local busted = require("busted")
-
 --- List module specification for Busted.
 -- @module list_spec
 
 local list_module = require("modules.list")
-local manifest_loader_module = require("utils.manifest")
+-- local manifest_loader_module = require("utils.manifest")  -- unused
 
 local MANIFEST_FILE = "project.lua"
 local LOCKFILE = "almd-lock.lua"
@@ -42,15 +40,7 @@ describe("list_module.list_dependencies", function()
     file:close()
   end
 
-  local function write_lockfile(pkgs)
-    local file = assert(io.open(LOCKFILE, "w"))
-    file:write("return {\n  api_version = \"1\",\n  package = {\n")
-    for k, v in pairs(pkgs) do
-      file:write(string.format("    [%q] = { version = %q, hash = %q },\n", k, v.version or "", v.hash or ""))
-    end
-    file:write("  }\n}\n")
-    file:close()
-  end
+  -- local function write_lockfile(pkgs) ... end  -- unused
 
   local function cleanup()
     os.remove(MANIFEST_FILE)
@@ -59,22 +49,25 @@ describe("list_module.list_dependencies", function()
 
   local function capture_print(func)
     local output = {}
-    local original_print = print
     local function print(...)
       local t = {}
       for i=1,select('#', ...) do t[#t+1] = tostring(select(i, ...)) end
       output[#output+1] = table.concat(t, " ")
     end
+    -- Use setfenv to override print for Lua 5.1 compatibility
+    local env = setmetatable({print = print}, {__index = _G})
+    setfenv(func, env)
     func()
-    print = original_print
     return table.concat(output, "\n")
   end
 
   after_each(cleanup)
 
   it("lists dependencies from lockfile", function()
-    local lockfile_loader = function() return { dependencies = { foo = { version = "1.0.0" }, bar = { version = "2.0.0" } } } end
-    local manifest_loader = function() return { dependencies = { foo = { version = "1.0.0" }, bar = { version = "2.0.0" } } } end
+    local lockfile_loader = function() return { dependencies = { foo = { version = "1.0.0" },
+      bar = { version = "2.0.0" } } } end
+    local manifest_loader = function() return { dependencies = { foo = { version = "1.0.0" },
+      bar = { version = "2.0.0" } } } end
     local output = capture_print(function()
       list_module.list_dependencies(manifest_loader, lockfile_loader)
     end)

@@ -69,7 +69,8 @@ local function help_info()
 Usage: almd add <dep_name> <source>
        almd add <source>
 
-Adds a dependency to your project. <dep_name> is the name (optional if source is a GitHub raw URL), <source> is a URL or version specifier.
+Adds a dependency to your project. <dep_name> is the name (optional if source is a GitHub raw URL), <source> is a URL or
+version specifier.
 If <dep_name> is omitted, it will be inferred from the filename in the source URL.
 Examples:
   almd add lunajson https://github.com/grafi-tt/lunajson/raw/master/lunajson.lua

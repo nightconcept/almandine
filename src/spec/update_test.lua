@@ -5,8 +5,6 @@
   No external dependencies. All output is checked for correctness and reproducibility.
 ]]--
 
-local busted = require("busted")
-
 package.path = package.path .. ";./src/?.lua;./src/?/init.lua;./src/?/?.lua"
 
 local update = require("modules.update")
@@ -16,7 +14,9 @@ local utils = require("utils")
 --- Dummy manifest loader/saver for testing.
 local function make_manifest()
   local manifest = { dependencies = { foo = "https://example.com/foo.lua" } }
-  return function() return manifest end, function(new_manifest) manifest = new_manifest return true end, function() return manifest end
+  return function() return manifest end,
+    function(new_manifest) manifest = new_manifest return true end,
+    function() return manifest end
 end
 
 --- Dummy ensure_lib_dir (no-op for test)
@@ -37,7 +37,7 @@ end
 
 --- Dummy resolver: simulates version resolution
 local function make_resolver()
-  return function(name, source, latest)
+  return function(_, _, latest)
     if latest then
       return "2.0.0", "https://example.com/foo-latest.lua"
     else
@@ -48,10 +48,10 @@ end
 
 -- Test: Update dependency to latest allowed version
 local function test_update_default()
-  local load, save = make_manifest()
+  local load, _save = make_manifest()
   local downloader = utils.downloader or make_downloader()
   local resolve_latest_version = make_resolver()
-  update_dependencies(load, save, ensure_lib_dir, downloader, resolve_latest_version, false)
+  update_dependencies(load, _save, ensure_lib_dir, downloader, resolve_latest_version, false)
   local downloads = downloader.get_downloads()
   if #downloads == 1 and downloads[1].url == "https://example.com/foo-1.3.4.lua" then
     print("[PASS] Update to latest allowed version works.")
@@ -62,7 +62,7 @@ end
 
 -- Test: Update dependency to absolute latest version
 local function test_update_latest()
-  local load, save = utils.manifest or make_manifest()
+  local load, save = make_manifest()
   local downloader = utils.downloader or make_downloader()
   local resolve_latest_version = make_resolver()
   update_dependencies(load, save, ensure_lib_dir, downloader, resolve_latest_version, true)

@@ -1,7 +1,8 @@
 --[[
   Remove Command Module
 
-  Provides functionality to remove a dependency from the project manifest and delete the corresponding file from the lib directory.
+  Provides functionality to remove a dependency from the project manifest and delete the corresponding
+  file from the lib directory.
 ]]--
 
 --- Removes a dependency from project.lua and deletes its file.
@@ -13,15 +14,14 @@ local function remove_dependency(dep_name, load_manifest, save_manifest)
   if not manifest then print(err) return end
   manifest.dependencies = manifest.dependencies or {}
   if not manifest.dependencies[dep_name] then
-    print(string.format("Dependency '%s' not found in project.lua.", 
-      dep_name))
+    print(string.format("Dependency '%s' not found in project.lua.", dep_name))
     return
   end
   local dep = manifest.dependencies[dep_name]
   local dep_path
   if type(dep) == "table" and dep.path then
     dep_path = dep.path
-  elseif _G.dependency_add_test_paths and 
+  elseif _G.dependency_add_test_paths and
     _G.dependency_add_test_paths[dep_name] then
     dep_path = _G.dependency_add_test_paths[dep_name]
   else
@@ -36,8 +36,7 @@ local function remove_dependency(dep_name, load_manifest, save_manifest)
   if removed then
     print(string.format("Deleted file %s", dep_path))
   else
-    print(string.format("Warning: Could not delete file %s (may not exist)", 
-      dep_path))
+    print(string.format("Warning: Could not delete file %s (may not exist)", dep_path))
   end
 end
 

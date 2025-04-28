@@ -54,7 +54,7 @@ end
 -- @param load_manifest function Function to load the manifest.
 -- @return boolean True if satisfied, otherwise exits the program.
 function M.check_lua_version(load_manifest)
-  local manifest, err = load_manifest()
+  local manifest = load_manifest()
   if not manifest then return true end
   if manifest.lua then
     if not M.lua_version_satisfies(manifest.lua) then

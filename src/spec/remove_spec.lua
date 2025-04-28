@@ -11,7 +11,6 @@
 --- Remove module specification for Busted.
 -- @module remove_spec
 
-local busted = require("busted")
 local remove_module = require("modules.remove")
 local manifest_loader = require("utils.manifest")
 

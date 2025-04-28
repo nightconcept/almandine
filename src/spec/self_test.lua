@@ -1,10 +1,11 @@
 --[[
   Test for self.uninstall_self()
 
-  This test creates dummy wrapper scripts and a dummy src/ directory, invokes uninstall_self(), and asserts that all targets are removed.
+  This test creates dummy wrapper scripts and a dummy src/ directory,
+  invokes uninstall_self(), and asserts that all targets are removed.
 ]]--
 
-local busted = require("busted")
+-- local busted = require("busted")  -- unused
 
 -- Add src/ to package.path for module resolution
 local src_path = "src/?.lua"
@@ -12,7 +13,7 @@ if not string.find(package.path, src_path, 1, true) then
   package.path = src_path .. ";" .. package.path
 end
 
-local self_module = 
+local self_module =
   require("modules.self")
 
 local function file_exists(path)

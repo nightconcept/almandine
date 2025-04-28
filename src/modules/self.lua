@@ -1,8 +1,8 @@
 --[[
   Self Command Module
 
-  Cross-platform (POSIX and Windows) implementation for self-uninstall and future self-update features.
-  This module provides removal of CLI wrapper scripts and the CLI Lua folder, working on both Unix-like and Windows systems.
+  Implementation for self-uninstall and future self-update features.
+  This module provides removal of CLI wrapper scripts and the CLI Lua folder.
 ]]--
 
 --- Recursively delete a directory and its contents (cross-platform: POSIX and Windows)

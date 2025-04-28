@@ -7,14 +7,13 @@
 
 -- luacheck: globals describe it assert
 
-local busted = require("busted")
-
 --- Run module specification for Busted.
 -- @module run_spec
 
 describe("run_module", function()
   local run_module = require("modules.run")
   local _manifest_loader = require("utils.manifest")
+  local _ = _manifest_loader
 
   local function fake_manifest_loader(scripts)
     return {
