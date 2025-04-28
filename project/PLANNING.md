@@ -29,6 +29,9 @@ Sample minimal structure for an Almandine-managed project:
 * `src/`                 # (Optional) Project source code
   * `lib/`               # (Optional) Internal reusable modules (e.g., downloader, lockfile)
   * `modules/`           # All CLI command modules (init, add, remove, etc.)
+* `install/`             # Cross-platform CLI wrapper scripts
+  * `almd.sh`            # Bash/sh wrapper for Linux/macOS (portable, finds Lua, runs from script dir)
+  * `almd.bat`           # Batch wrapper for Windows CMD (portable, finds Lua, runs from script dir, sets LUA_PATH)
 
 ## 4. File Descriptions
 
@@ -93,6 +96,12 @@ Main entrypoint for the CLI. Responsible for:
 - Explicitly handling all standard command aliases (e.g., install/in/ins, remove/rm/uninstall/un, update/up/upgrade, add/i, etc.).
 - All usage/help output, documentation, and examples must use `almd` as the CLI tool name (never `almandine`).
 - When adding or modifying commands or aliases, update `src/main.lua` to ensure all are handled, and update documentation/tasks accordingly.
+
+### `install/`
+
+Contains cross-platform wrapper scripts for launching the CLI application:
+- `almd.sh`: POSIX shell script for Linux/macOS; finds a suitable Lua interpreter, runs from its own directory, dispatches all arguments to `src/main.lua`.
+- `almd.bat`: Batch script for Windows CMD; finds a suitable Lua interpreter, runs from its own directory, sets `LUA_PATH` so `src/lib` modules are found, dispatches all arguments to `src/main.lua`.
 
 ## 5. Conclusion
 

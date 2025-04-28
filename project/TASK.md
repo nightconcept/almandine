@@ -78,6 +78,17 @@
 
 - [ ] **Update all usage/help text to refer to the CLI tool as `almd` (not `almandine`).**
 
+## Milestone 5: Installer and Wrapper Scripts
+
+- [x] **Task 5.1: Cross-platform installer and advanced wrapper scripts for `almd` CLI**
+  - [x] Create installer scripts (`install.sh`, `install.ps1`) to copy project files and wrapper scripts to user-specific locations on Linux/macOS and Windows.
+  - [x] Implement robust wrapper scripts (`install/almd.sh`, `install/almd.bat`) that:
+    - Locate a suitable Lua interpreter (`lua`, `lua5.4`, ..., `luajit`) automatically.
+    - Always run the CLI from the script's directory for portability (not assuming install location).
+    - Set `LUA_PATH` so that `src/lib` modules are found regardless of working directory (batch script only).
+    - Forward all arguments to `src/main.lua`.
+  - [ ] Manual Verification: Run installer on each platform, verify `almd` is available on the command line and launches the Lua app with arguments, even when run from any directory.
+
 ---
 
 ## Active Work
@@ -88,4 +99,4 @@
 
 ---
 
-*Last updated: 2025-04-27*
+*Last updated: 2025-04-28*
