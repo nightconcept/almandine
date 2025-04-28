@@ -158,4 +158,9 @@
   - [ ] Ensure all changes conform to project Lua and LDoc standards.
   - [ ] Manual Verification: Run `luacheck` and confirm 0 warnings/errors.
 
+- [ ] **Task 7.3: Add pre-commit hook to run luacheck on staged Lua files (2025-04-28)**
+  - [ ] Create a portable pre-commit hook script in `install/pre-commit.sample`.
+  - [ ] Script must block commit if any staged `.lua` files fail `luacheck`.
+  - [ ] Manual Verification: Copy hook to `.git/hooks/pre-commit`, stage a `.lua` file with a lint error, and confirm commit is blocked.
+
 *Last updated: 2025-04-29*
