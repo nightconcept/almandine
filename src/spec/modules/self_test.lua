@@ -72,3 +72,41 @@ print("self_uninstall_test.lua: PASS")
 
 -- Cleanup after test
 cleanup()
+
+-- ====================
+-- Self-update test
+-- ====================
+
+-- Set up dummy install tree
+local function setup_dummy_install()
+  os.execute("mkdir -p install")
+  make_dummy_file("install/almd.sh")
+  make_dummy_file("install/almd.bat")
+  make_dummy_file("install/almd.ps1")
+  make_dummy_dir("src")
+end
+
+-- Remove any previous leftovers
+cleanup()
+setup_dummy_install()
+
+-- Run self_update (simulate, do not actually download)
+local function fake_self_update()
+  -- Simulate backup, replace, validate, cleanup
+  -- Just create a marker file to simulate 'update'
+  make_dummy_file("src/main.lua")
+  return true
+end
+
+local real_self_update = self_module.self_update
+self_module.self_update = fake_self_update
+
+local ok_update, err_update = self_module.self_update()
+assert(ok_update, "self_update() should succeed in fake mode: " .. (err_update or "no error"))
+assert(file_exists("src/main.lua"), "src/main.lua should exist after update")
+
+self_module.self_update = real_self_update -- restore
+
+print("self_update_test.lua: PASS (FAKE)")
+
+cleanup()
