@@ -17,6 +17,7 @@ Almandine is a lightweight package manager for Lua projects. It enables simple, 
 - **Script Runner:** Provides a central point for running project scripts (similar to npm scripts).
 - **Lockfile:** Tracks exact versions or commit hashes of all downloaded files for reproducible builds.
 - **License & Description:** Exposes license and package description fields in `project.lua` for clarity and compliance.
+- **Cross-Platform Requirement:** All code, scripts, and workflows MUST be designed and tested for multiplatform compatibility (Linux, macOS, and Windows) unless otherwise specified. Contributors (including AI) must always consider cross-platform implications in design, implementation, and documentation. Any platform-specific logic must be clearly documented and justified.
 
 ## 3. Folder Structure
 
@@ -112,3 +113,4 @@ Almandine aims to provide a simple, robust, and reproducible workflow for Lua pr
 ## Tech Stack
 
 * Lua 5.1–5.4 / LuaJIT 2.1
+* Platform: Cross-platform (Linux, macOS, Windows)

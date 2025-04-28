@@ -2,6 +2,8 @@
 
 **Purpose:** Tracks all tasks, milestones, and backlog for the Almandine Lua package manager. Each task includes a manual verification step for running and inspecting all tests and code.
 
+**Multiplatform Policy:** All tasks, implementations, and verifications MUST consider cross-platform compatibility (Linux, macOS, and Windows) unless otherwise specified. Contributors (including AI) are required to design, implement, and test with multiplatform support as a baseline expectation. Any platform-specific logic must be clearly documented and justified in both code and task notes.
+
 ---
 
 ## CLI Tool Name
