@@ -1,2 +1,0 @@
-- [2025-04-28] Create a new test that covers src/utils/filesystem.lua in src/spec/utils: Add a Lua test file that provides coverage for the ensure_lib_dir and join_path functions, verifying cross-platform path joining and directory creation logic.
-- [2025-04-28] Increase test coverage for src/modules/remove.lua by updating src/spec/modules/remove_spec.lua: Analyze luacov.stats for missed lines/branches and add tests to cover all code paths, including error handling, alternate dependency path logic, and edge cases.

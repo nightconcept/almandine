@@ -54,7 +54,7 @@ printf '%s\n' "Fetching release info ..."
 RELEASE_JSON="$(github_api "$API_URL")"
 
 if command -v jq >/dev/null 2>&1; then
-  ZIP_URL="$(printf '%s' "$RELEASE_JSON" | jq -r '.assets[] | select(.name == "$ASSET") | .browser_download_url')"
+  ZIP_URL="$(printf '%s' "$RELEASE_JSON" | jq -r ".assets[] | select(.name == \"$ASSET\") | .browser_download_url")"
 else
   ZIP_URL="$(printf '%s' "$RELEASE_JSON" | grep 'browser_download_url' | grep "$ASSET" | head -n1 | sed -E 's/.*"(https:[^"]+)".*/\1/')"
 fi
