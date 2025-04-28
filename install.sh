@@ -5,7 +5,6 @@
 set -e
 
 REPO="nightconcept/almandine"
-ASSET="almd-release.zip"
 APP_HOME="$HOME/.almd"
 WRAPPER_DIR="$HOME/.local/bin"
 TMP_DIR="$(mktemp -d)"
@@ -30,53 +29,45 @@ download() {
   fi
 }
 
-# Helper: fetch release API JSON
-github_api() {
-  url="$1"
-  if command -v curl >/dev/null 2>&1; then
-    curl -sL "$url"
-  elif command -v wget >/dev/null 2>&1; then
-    wget -qO- "$url"
-  else
-    printf '%s\n' "Error: Neither curl nor wget found. Please install one and re-run." >&2
+# Determine tag to install
+if [ -n "$VERSION" ]; then
+  TAG="$VERSION"
+else
+  printf '%s\n' "Fetching latest tag ..."
+  TAG=$(curl -sL "https://api.github.com/repos/$REPO/tags?per_page=1" | \
+    grep '"name"' | head -n1 | sed -E 's/ *\"name\": *\"([^"]+)\".*/\1/')
+  if [ -z "$TAG" ]; then
+    printf '%s\n' "Error: Could not determine latest tag from GitHub." >&2
     exit 1
   fi
-}
-
-# Determine release download URL
-if [ -n "$VERSION" ]; then
-  API_URL="https://api.github.com/repos/$REPO/releases/tags/$VERSION"
-else
-  API_URL="https://api.github.com/repos/$REPO/releases/latest"
 fi
 
-printf '%s\n' "Fetching release info ..."
-RELEASE_JSON="$(github_api "$API_URL")"
+ARCHIVE_URL="https://github.com/$REPO/archive/refs/tags/$TAG.zip"
+ARCHIVE_NAME="$(echo "$REPO-$TAG.zip" | tr '/' '-')"
 
-if command -v jq >/dev/null 2>&1; then
-  ZIP_URL="$(printf '%s' "$RELEASE_JSON" | jq -r ".assets[] | select(.name == \"$ASSET\") | .browser_download_url")"
-else
-  ZIP_URL="$(printf '%s' "$RELEASE_JSON" | grep 'browser_download_url' | grep "$ASSET" | head -n1 | sed -E 's/.*"(https:[^"]+)".*/\1/')"
-fi
-
-if [ -z "$ZIP_URL" ] || [ "$ZIP_URL" = "null" ]; then
-  printf '%s\n' "Error: Could not find $ASSET in release. Check version or release status." >&2
-  exit 1
-fi
-
-printf '%s\n' "Downloading $ASSET ..."
-download "$ZIP_URL" "$TMP_DIR/$ASSET"
+printf '%s\n' "Downloading archive for tag $TAG ..."
+download "$ARCHIVE_URL" "$TMP_DIR/$ARCHIVE_NAME"
 
 printf '%s\n' "Extracting CLI ..."
-unzip -q -o "$TMP_DIR/$ASSET" -d "$TMP_DIR"
+unzip -q -o "$TMP_DIR/$ARCHIVE_NAME" -d "$TMP_DIR"
+
+# Find extracted folder (name format: almandine-<tag> or almandine-v<tag>)
+EXTRACTED_DIR="$TMP_DIR/almandine-$TAG"
+if [ ! -d "$EXTRACTED_DIR" ]; then
+  EXTRACTED_DIR="$TMP_DIR/almandine-v$TAG"
+  if [ ! -d "$EXTRACTED_DIR" ]; then
+    printf '%s\n' "Error: Could not find extracted directory for tag $TAG." >&2
+    exit 1
+  fi
+fi
 
 printf '%s\n' "Installing CLI to $APP_HOME ..."
 mkdir -p "$APP_HOME"
-cp -r "$TMP_DIR/release/src" "$APP_HOME/"
+cp -r "$EXTRACTED_DIR/src" "$APP_HOME/"
 
 printf '%s\n' "Installing wrapper script to $WRAPPER_DIR ..."
 mkdir -p "$WRAPPER_DIR"
-cp "$TMP_DIR/release/install/almd.sh" "$WRAPPER_DIR/almd"
+cp "$EXTRACTED_DIR/install/almd.sh" "$WRAPPER_DIR/almd"
 chmod +x "$WRAPPER_DIR/almd"
 
 printf '\nInstallation complete!\n'
