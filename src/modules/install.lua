@@ -31,7 +31,8 @@ local function install_dependencies(dep_name, load_manifest, ensure_lib_dir, dow
         out_path = source.path
       else
         url = source
-        out_path = "src/lib/" .. name .. ".lua"
+        local filesystem_utils = require("utils.filesystem")
+        out_path = filesystem_utils.join_path("src", "lib", name .. ".lua")
       end
       local ok3, err3 = utils.downloader.download(url, out_path)
       if ok3 then

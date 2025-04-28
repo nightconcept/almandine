@@ -24,7 +24,8 @@ local function remove_dependency(dep_name, load_manifest, save_manifest)
   elseif _G.dependency_add_test_paths and _G.dependency_add_test_paths[dep_name] then
     dep_path = _G.dependency_add_test_paths[dep_name]
   else
-    dep_path = string.format("src/lib/%s.lua", dep_name)
+    local filesystem_utils = require("utils.filesystem")
+    dep_path = filesystem_utils.join_path("src", "lib", dep_name .. ".lua")
   end
   manifest.dependencies[dep_name] = nil
   local ok, err2 = save_manifest(manifest)

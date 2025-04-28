@@ -19,4 +19,13 @@ function M.ensure_lib_dir()
   -- Remove noisy warning, only print if directory is truly missing (optional: check existence)
 end
 
+--- Joins path segments using the correct platform separator.
+-- @param ... string Path segments
+-- @return string Joined path
+function M.join_path(...)
+  local sep = package.config:sub(1,1)
+  local args = {...}
+  return table.concat(args, sep)
+end
+
 return M

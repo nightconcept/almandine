@@ -27,7 +27,11 @@ local function update_dependencies(load_manifest, save_manifest, ensure_lib_dir,
     else
       print(string.format("%s is up to date", name))
     end
-    local out_path = "src/lib/" .. name .. ".lua"
+    local out_path
+    if new_url or source then
+      local filesystem_utils = require("utils.filesystem")
+      out_path = filesystem_utils.join_path("src", "lib", name .. ".lua")
+    end
     local ok, err2 = utils.downloader.download(new_url or source, out_path)
     if ok then
       print(string.format("Downloaded %s to %s", name, out_path))
