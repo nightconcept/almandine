@@ -93,6 +93,8 @@ function M.init_project()
     local script_cmd = prompt("    Command for '" .. script_name .. "'")
     manifest.scripts[script_name] = script_cmd
   end
+  -- Ensure a default 'run' script is present if not set
+  manifest.scripts["run"] = "lua src/main.lua"
 
   -- Dependencies
   manifest.dependencies = {}
