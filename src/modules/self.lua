@@ -105,7 +105,14 @@ local function self_update()
   local extract_dir = work_dir .. (is_windows and "\\extract" or "/extract")
   os.execute((is_windows and "mkdir " or "mkdir -p ") .. extract_dir)
   local unzip_cmd = is_windows
-      and ("powershell -Command \"Add-Type -A 'System.IO.Compression.FileSystem'; " .. "[IO.Compression.ZipFile]::ExtractToDirectory('" .. zip_path .. "', '" .. extract_dir .. "')\"") -- luacheck: ignore 121
+      and (
+        "powershell -Command \"Add-Type -A 'System.IO.Compression.FileSystem'; "
+        .. "[IO.Compression.ZipFile]::ExtractToDirectory('"
+        .. zip_path
+        .. "', '"
+        .. extract_dir
+        .. "')\""
+      ) -- luacheck: ignore 121
     or ("unzip -q -o '" .. zip_path .. "' -d '" .. extract_dir .. "'")
   if not shell(unzip_cmd) then
     return false, "Failed to extract release zip"
