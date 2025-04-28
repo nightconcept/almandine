@@ -95,10 +95,14 @@
   - [ ] Add `almd self uninstall` to remove wrapper scripts and Lua CLI folder.
   - [ ] Manual Verification: Run `almd self uninstall`, confirm all relevant files are deleted. (2025-04-28)
 
+- [ ] **Task 5.3: Remote installer fetches and installs from GitHub Releases** (2025-04-28)
+  - [ ] Update `install.sh` and `install.ps1` so they fetch and extract the distributable CLI zip from the latest (or specified) release on GitHub, using robust multiplatform methods (`curl`, `wget`, etc.).
+  - [ ] Manual Verification: Download and run installer scripts on all platforms with no other files present, confirm correct CLI installation and usability.
+
 ## Milestone 6: Automated Release Workflow & Changelog
 
-- [ ] **Task 6.1: Automated Release Workflow & Changelog (2025-04-28)**
-  - [ ] Add a GitHub Action in `.github/workflows` to:
+- [x] **Task 6.1: Automated Release Workflow & Changelog (2025-04-28)**
+  - [x] Add a GitHub Action in `.github/workflows` to:
     - Build a distributable release zip containing the CLI and all required files (for use by `almd self update`).
     - Automatically generate a changelog listing all changes since the previous release (using commit messages or PR titles).
     - Attach the zip and changelog to a new GitHub Release.
