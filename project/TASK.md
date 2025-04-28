@@ -89,6 +89,10 @@
     - Forward all arguments to `src/main.lua`.
   - [ ] Manual Verification: Run installer on each platform, verify `almd` is available on the command line and launches the Lua app with arguments, even when run from any directory.
 
+- [ ] **Task 5.2: Implement `self uninstall` command**
+  - [ ] Add `almd self uninstall` to remove wrapper scripts and Lua CLI folder.
+  - [ ] Manual Verification: Run `almd self uninstall`, confirm all relevant files are deleted. (2025-04-28)
+
 ---
 
 ## Active Work

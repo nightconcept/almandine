@@ -35,6 +35,7 @@ local version_utils = require("utils.version")
 local update_module = require("modules.update")
 local run_module = require("modules.run")
 local list_module = require("modules.list")
+local self_module = require("modules.self")
 
 local function load_manifest()
   local manifest, err = manifest_loader.safe_load_project_manifest("project.lua")
@@ -103,6 +104,14 @@ local function main(...)
     return
   elseif args[1] == "list" then
     list_module.list_dependencies(load_manifest)
+    return
+  elseif args[1] == "self" and args[2] == "uninstall" then
+    local ok, err = self_module.uninstall_self()
+    if ok then
+      print("almd self uninstall: Success. Wrapper scripts and src/ folder removed.")
+    else
+      print("almd self uninstall: Failed.\n" .. (err or "Unknown error."))
+    end
     return
   elseif not run_module.is_reserved_command(args[1]) then
     -- If not a reserved command, check if it's an unambiguous script name
