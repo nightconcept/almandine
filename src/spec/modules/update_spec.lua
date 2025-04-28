@@ -126,11 +126,12 @@ describe("update_module.update_dependencies", function()
     local function save(_) -- luacheck: ignore
     end
     local ensure_lib_dir = function() end
-    local utils = { downloader = {
-      download = function()
-        error("should not download if up-to-date")
-      end,
-    } }
+    local utils =
+      { downloader = {
+        download = function()
+          error("should not download if up-to-date")
+        end,
+      } }
     local resolve_latest_version = function(_name)
       return "1.3.4"
     end
@@ -139,10 +140,14 @@ describe("update_module.update_dependencies", function()
   end)
 
   it("prints download failure and continues", function()
-    local manifest =
-      { dependencies = { foo = "https://example.com/foo.lua", bar = {
-        url = "https://example.com/bar.lua",
-      } } }
+    local manifest = {
+      dependencies = {
+        foo = "https://example.com/foo.lua",
+        bar = {
+          url = "https://example.com/bar.lua",
+        },
+      },
+    }
     local function load()
       return manifest
     end
@@ -185,11 +190,12 @@ describe("update_module.update_dependencies", function()
     local function save(_) -- luacheck: ignore
     end
     local ensure_lib_dir = function() end
-    local utils = { downloader = {
-      download = function()
-        error("should not download if empty")
-      end,
-    } }
+    local utils =
+      { downloader = {
+        download = function()
+          error("should not download if empty")
+        end,
+      } }
     local resolve_latest_version = function()
       error("should not resolve if empty")
     end
@@ -228,12 +234,14 @@ describe("update_module.update_dependencies", function()
     end
     local ensure_lib_dir = function() end
     local called_out_path
-    local utils = { downloader = {
-      download = function(_, out_path)
-        called_out_path = out_path
-        return true
-      end,
-    } }
+    local utils = {
+      downloader = {
+        download = function(_, out_path)
+          called_out_path = out_path
+          return true
+        end,
+      },
+    }
     local resolve_latest_version = function(_)
       return "2.0.0"
     end
@@ -253,12 +261,14 @@ describe("update_module.update_dependencies", function()
     end
     local ensure_lib_dir = function() end
     local called_out_path
-    local utils = { downloader = {
-      download = function(_, out_path)
-        called_out_path = out_path
-        return true
-      end,
-    } }
+    local utils = {
+      downloader = {
+        download = function(_, out_path)
+          called_out_path = out_path
+          return true
+        end,
+      },
+    }
     local resolve_latest_version = function(_)
       return "2.0.0"
     end

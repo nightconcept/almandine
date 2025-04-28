@@ -192,4 +192,10 @@
   - [ ] Use dependency injection or local overrides for path separator and command execution in tests.
   - [ ] Manual Verification: Run all specs and confirm no warnings about read-only global fields.
 
+## Milestone 8: Refactor Downloader Utility
+
+- [ ] **Task 8.1: Refactor downloader utility to remove external dependencies and use wget/curl (2025-04-28)**
+  - [ ] Update `src/utils/downloader.lua` to eliminate LuaSocket/ltn12 and implement download logic using wget/curl via os.execute.
+  - [ ] Manual Verification: Run `almd` and all commands that download files on Linux, macOS, and Windows; confirm correct behavior and no dependency errors.
+
 *Last updated: 2025-04-29*

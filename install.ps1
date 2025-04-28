@@ -82,7 +82,9 @@ if (!(Test-Path $ExtractedDir)) {
 Write-Host "Installing Almandine to $WrapperDir ..."
 # Check for previous install and warn if present
 if (Test-Path $WrapperDir) {
-  Write-Host "\n⚠️  WARNING: Previous Almandine install detected at $WrapperDir. It will be OVERWRITTEN! ⚠️\n" -ForegroundColor Yellow
+  Write-Host ""
+  Write-Host "⚠️  WARNING: Previous Almandine install detected at $WrapperDir. It will be OVERWRITTEN! ⚠️" -ForegroundColor Yellow
+  Write-Host ""
 }
 New-Item -ItemType Directory -Path $WrapperDir -Force | Out-Null
 Copy-Item -Path (Join-Path $ExtractedDir 'src') -Destination (Join-Path $WrapperDir 'src') -Recurse -Force
