@@ -1,13 +1,8 @@
 # Almandine Package Manager
 
-## CLI Tool Name
-
-- The CLI executable is called `almd` (short for Almandine).
-- All documentation, usage, and examples should refer to the CLI as `almd` (not `almandine`).
-
 ## 1. Introduction
 
-Almandine is a lightweight package manager for Lua projects. It enables simple, direct management of single-file dependencies (from GitHub or other supported repositories), project scripts, and project metadata. Almandine is designed for projects that want to pin specific versions or commits of files without managing complex dependency trees.
+Almandine (`almd` as the CLI command) is a lightweight package manager for Lua projects. It enables simple, direct management of single-file dependencies (from GitHub or other supported repositories), project scripts, and project metadata. Almandine is designed for projects that want to pin specific versions or commits of files without managing complex dependency trees.
 
 ## 2. Core Features
 
@@ -17,7 +12,7 @@ Almandine is a lightweight package manager for Lua projects. It enables simple, 
 - **Script Runner:** Provides a central point for running project scripts (similar to npm scripts).
 - **Lockfile:** Tracks exact versions or commit hashes of all downloaded files for reproducible builds.
 - **License & Description:** Exposes license and package description fields in `project.lua` for clarity and compliance.
-- **Cross-Platform Requirement:** All code, scripts, and workflows MUST be designed and tested for multiplatform compatibility (Linux, macOS, and Windows) unless otherwise specified. Contributors (including AI) must always consider cross-platform implications in design, implementation, and documentation. Any platform-specific logic must be clearly documented and justified.
+- **Cross-Platform:** Cross-platform compatible (Linux, macOS, and Windows).
 
 ## 3. Folder Structure
 
@@ -93,6 +88,7 @@ Contains all CLI command modules (such as init, add, remove, etc.) for the packa
 ### `src/main.lua`
 
 Main entrypoint for the CLI. Responsible for:
+
 - Parsing CLI arguments and dispatching to the correct command module in `src/modules`.
 - Explicitly handling all standard command aliases (e.g., install/in/ins, remove/rm/uninstall/un, update/up/upgrade, add/i, etc.).
 - All usage/help output, documentation, and examples must use `almd` as the CLI tool name (never `almandine`).
@@ -101,6 +97,7 @@ Main entrypoint for the CLI. Responsible for:
 ### `install/`
 
 Contains cross-platform wrapper scripts for launching the CLI application:
+
 - `almd.sh`: POSIX shell script for Linux/macOS; finds a suitable Lua interpreter, runs from its own directory, dispatches all arguments to `src/main.lua`.
 - `almd.bat`: Batch script for Windows CMD; finds a suitable Lua interpreter, runs from its own directory, sets `LUA_PATH` so `src/lib` modules are found, dispatches all arguments to `src/main.lua`.
 
@@ -112,10 +109,10 @@ Almandine aims to provide a simple, robust, and reproducible workflow for Lua pr
 
 ## Tech Stack
 
-* Lua 5.1–5.4 / LuaJIT 2.1
-* Platform: Cross-platform (Linux, macOS, Windows)
+- Lua 5.1–5.4 / LuaJIT 2.1
+- Platform: Cross-platform (Linux, macOS, Windows)
 
-## Language & Project-Specific Rules
+## Project Rules
 
 ### 0. Folder Structure Compliance (MANDATORY)
 
@@ -146,6 +143,7 @@ This rule is absolute and takes precedence over all other guidelines.
 #### Lua Coding Standards (LDoc Compatible)
 
 ##### 2.1. Language & Environment
+
 - **Primary Language:** Lua (specifically targeting Lua 5.1).
 - **Compatibility:** All code must be compatible with versions 5.1 through 5.4 and LuaJIT.
 
@@ -167,12 +165,12 @@ This rule is absolute and takes precedence over all other guidelines.
 - **Spacing:** Do *not* add a space between a function name and its opening parenthesis (e.g., `my_function()` not `my_function ()`).
 - **Statements:** Do not collapse simple statements onto a single line if they would normally be separate.
 - **Variables:** Use `local` variables by default to avoid polluting the global namespace.
-    - Variable names with larger scope should be more descriptive than those with smaller scope. One-letter variable names should be avoided except for very small scopes (less than ten lines) or for iterators.
-    - `i` should be used only as a counter variable in for loops (either numeric `for` or `ipairs`).
-    - Prefer more descriptive names than `k` and `v` when iterating with `pairs`, unless you are writing a function that operates on generic tables.
-    - Use `_` for ignored variables (e.g. in for loops):
+  - Variable names with larger scope should be more descriptive than those with smaller scope. One-letter variable names should be avoided except for very small scopes (less than ten lines) or for iterators.
+  - `i` should be used only as a counter variable in for loops (either numeric `for` or `ipairs`).
+  - Prefer more descriptive names than `k` and `v` when iterating with `pairs`, unless you are writing a function that operates on generic tables.
+  - Use `_` for ignored variables (e.g. in for loops):
 
-      ```lua
+    ```lua
       for _, item in ipairs(items) do
          do_something_with_item(item)
       end
@@ -183,10 +181,11 @@ This rule is absolute and takes precedence over all other guidelines.
          -- ...stuff...
       end
       ```
-    - Variables and function names should use `snake_case`.
-    - Classes should use `CamelCase`. Acronyms (e.g. XML) should only uppercase the first letter (`XmlDocument`).
-    - Class methods should use `snake_case` too.
-    - Prefer using `is_` when naming boolean functions:
+
+  - Variables and function names should use `snake_case`.
+  - Classes should use `CamelCase`. Acronyms (e.g. XML) should only uppercase the first letter (`XmlDocument`).
+  - Class methods should use `snake_case` too.
+  - Prefer using `is_` when naming boolean functions:
 
       ```lua
       -- bad
@@ -199,7 +198,8 @@ This rule is absolute and takes precedence over all other guidelines.
          return alignment < 100
       end
       ```
-    - `UPPER_CASE` shall be used with "constants" only (variables intended not to be reassigned after initial definition).
+
+  - `UPPER_CASE` shall be used with "constants" only (variables intended not to be reassigned after initial definition).
 - **File Header:** Files should have a header and description using a block comment.
 
   ```lua

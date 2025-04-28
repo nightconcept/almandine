@@ -143,4 +143,14 @@
 
 ---
 
+## Milestone 7: CI/CD Improvements
+
+- [ ] **Task 7.1: Add CI workflow for lint, test, and coverage (2025-04-28)**
+  - [ ] Create a GitHub Actions workflow that runs on push and PR.
+  - [ ] Test on Lua 5.1, 5.2, 5.3, 5.4, and LuaJIT.
+  - [ ] Run `luacheck` on `src/` and `src/spec/`.
+  - [ ] Run Busted tests with coverage using `luacov`.
+  - [ ] Upload coverage to Coveralls (on Lua 5.1 only, using `COVERALLS_REPO_TOKEN`).
+  - [ ] Manual Verification: Check workflow runs and reports status for all jobs; confirm coverage appears on Coveralls.
+
 *Last updated: 2025-04-28*
