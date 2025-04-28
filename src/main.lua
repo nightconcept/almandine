@@ -34,6 +34,7 @@ local filesystem_utils = require("utils.filesystem")
 local version_utils = require("utils.version")
 local update_module = require("modules.update")
 local run_module = require("modules.run")
+local list_module = require("modules.list")
 
 local function load_manifest()
   local manifest, err = manifest_loader.safe_load_project_manifest("project.lua")
@@ -99,6 +100,9 @@ local function main(...)
     if not ok then
       print(err)
     end
+    return
+  elseif args[1] == "list" then
+    list_module.list_dependencies(load_manifest)
     return
   elseif not run_module.is_reserved_command(args[1]) then
     -- If not a reserved command, check if it's an unambiguous script name

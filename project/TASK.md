@@ -72,9 +72,9 @@
   - [x] Run scripts from `project.lua`; allow omitting `run` if no conflict.
   - [x] Manual Verification: Run scripts with and without `run`, check output.
 
-- [ ] **Task 4.6: Implement `list` command**
-  - [ ] List installed dependencies and their versions.
-  - [ ] Manual Verification: Run `almd list`, verify output.
+- [x] **Task 4.6: Implement `list` command**
+  - [x] List installed dependencies and their versions.
+  - [x] Manual Verification: Run `almd list`, verify output.
 
 - [ ] **Update all usage/help text to refer to the CLI tool as `almd` (not `almandine`).**
 
