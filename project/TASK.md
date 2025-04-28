@@ -1,6 +1,6 @@
-# Snowdrop Package Manager – Task Checklist (TASK.md)
+# Almandine Package Manager – Task Checklist (TASK.md)
 
-**Purpose:** Tracks all tasks, milestones, and backlog for the Snowdrop Lua package manager. Each task includes a manual verification step for running and inspecting all tests and code.
+**Purpose:** Tracks all tasks, milestones, and backlog for the Almandine Lua package manager. Each task includes a manual verification step for running and inspecting all tests and code.
 
 ---
 
@@ -10,11 +10,15 @@
   - [x] Define fields: `name`, `type`, `version`, `license`, `description`, `scripts`, `dependencies`.
   - [x] Manual Verification: Review schema, create sample file, and validate with test loader.
 
-- [x] **Task 1.2: CLI command to initialize a new Snowdrop project**
-  - [x] Implement `snowdrop init` (creates `project.lua` with prompts).
+- [x] **Task 1.2: CLI command to initialize a new Almandine project**
+  - [x] Implement `almandine init` (creates `project.lua` with prompts).
   - [x] Create a portable shell wrapper script that finds a suitable Lua interpreter and runs `src/main.lua` with all arguments (works on macOS and Linux).
   - [x] Manual Verification: Run shell script with arguments, confirm it finds Lua and dispatches to CLI.
   - [x] Manual Verification: Run CLI, inspect output, ensure correct manifest generation.
+
+- [x] **Task 1.3: Create Windows CLI wrapper script (`almd.bat`)** 
+  - [x] Implement a batch script at the project root that finds a suitable Lua interpreter and runs `src/main.lua` with all arguments (works on Windows).
+  - [x] Manual Verification: Run batch script with arguments, confirm it finds Lua and dispatches to CLI.
 
 ## Milestone 2: Dependency Download & Pinning
 
@@ -30,19 +34,19 @@
 
 ## Milestone 3: Lockfile Management
 
-- [x] **Task 3.1: Design and implement `snowdrop-lock.lua` schema**
+- [x] **Task 3.1: Design and implement `almd-lock.lua` schema**
   - [x] Track `api_version`, resolved package versions/hashes.
   - [x] Manual Verification: Generate lockfile, inspect for correctness and reproducibility.
 
 - [x] **Task 3.2: Lockfile update on install**
-  - [x] Update `snowdrop-lock.lua` after each install.
+  - [x] Update `almd-lock.lua` after each install.
   - [ ] Manual Verification: Compare lockfile before/after install, confirm correct changes.
 
 ## Milestone 4: CLI Command Feature Parity
 
 - [x] **Task 4.1: Implement `init` command**
-  - [x] Create/initialize a new Snowdrop project.
-  - [x] Manual Verification: Run `snowdrop init`, check that manifest is created.
+  - [x] Create/initialize a new Almandine project.
+  - [x] Manual Verification: Run `almandine init`, check that manifest is created.
 
 - [x] **Task 4.2: Implement `add`/`i` command**
   - [x] Add dependencies to `project.lua` and download them.
@@ -63,16 +67,6 @@
 - [ ] **Task 4.6: Implement `list` command**
   - [ ] List installed dependencies and their versions.
   - [ ] Manual Verification: Run `list`, verify output.
-
-## Milestone 5: End-to-End Testing & Documentation
-
-- [ ] **Task 5.1: Write and run end-to-end tests for all major workflows**
-  - [ ] Test project init, install, lockfile, script running, info display.
-  - [ ] Manual Verification: Run all tests, inspect results, and check code for style/compliance.
-
-- [ ] **Task 5.2: Write user and developer documentation**
-  - [ ] Document all commands, config fields, and workflows.
-  - [ ] Manual Verification: Review docs for completeness and clarity.
 
 ---
 

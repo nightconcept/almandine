@@ -1,8 +1,8 @@
-# Snowdrop Package Manager
+# Almandine Package Manager
 
 ## 1. Introduction
 
-Snowdrop is a lightweight package manager for Lua projects. It enables simple, direct management of single-file dependencies (from GitHub or other supported repositories), project scripts, and project metadata. Snowdrop is designed for projects that want to pin specific versions or commits of files without managing complex dependency trees.
+Almandine is a lightweight package manager for Lua projects. It enables simple, direct management of single-file dependencies (from GitHub or other supported repositories), project scripts, and project metadata. Almandine is designed for projects that want to pin specific versions or commits of files without managing complex dependency trees.
 
 ## 2. Core Features
 
@@ -15,10 +15,10 @@ Snowdrop is a lightweight package manager for Lua projects. It enables simple, d
 
 ## 3. Folder Structure
 
-Sample minimal structure for a Snowdrop-managed project:
+Sample minimal structure for an Almandine-managed project:
 
 * `project.lua`          # Project manifest (metadata, scripts, dependencies)
-* `snowdrop-lock.lua`    # Lockfile (exact versions/hashes of dependencies)
+* `almd-lock.lua`   # Lockfile (exact versions/hashes of dependencies)
 * `scripts/`             # (Optional) Project scripts
 * `lib/`                 # (Optional) Downloaded packages/files
 * `src/`                 # (Optional) Project source code
@@ -36,7 +36,7 @@ return {
   type = "library", -- or "application"
   version = "1.0.0",
   license = "MIT",
-  description = "A sample Lua project using Snowdrop.",
+  description = "A sample Lua project using Almandine.",
   scripts = {
     test = "lua tests/run.lua",
     build = "lua build.lua"
@@ -48,7 +48,7 @@ return {
 }
 ```
 
-### `snowdrop-lock.lua`
+### `almd-lock.lua`
 
 Tracks resolved dependencies for reproducible installs. Example fields:
 
@@ -64,11 +64,11 @@ return {
 
 ### `src/lib/`
 
-Contains internal reusable Lua modules used by the Snowdrop package manager itself (e.g., downloader, lockfile). Not for user-downloaded dependencies.
+Contains internal reusable Lua modules used by the Almandine package manager itself (e.g., downloader, lockfile). Not for user-downloaded dependencies.
 
 ## 5. Conclusion
 
-Snowdrop aims to provide a simple, robust, and reproducible workflow for Lua projects that need lightweight dependency management and script automation, without the complexity of full dependency trees.
+Almandine aims to provide a simple, robust, and reproducible workflow for Lua projects that need lightweight dependency management and script automation, without the complexity of full dependency trees.
 
 ---
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Snowdrop CLI wrapper script
+# Almandine CLI wrapper script
 # Finds a suitable Lua interpreter and runs src/main.lua with all arguments.
 # Compatible with macOS and Linux.
 
