@@ -43,11 +43,6 @@ describe("manifest.safe_load_project_manifest", function()
   it("returns error if file has syntax error", function()
     write_file(tmpfile, "return { name = 'test', } thisisnotlua")
     local tbl, err = manifest.safe_load_project_manifest(tmpfile)
-    if err == nil then
-      print("DEBUG: err is nil for syntax error case!")
-    else
-      print("DEBUG: err for syntax error case:", err)
-    end
     assert.is_nil(tbl)
     assert.is_not_nil(err)
     assert.is_string(err)
