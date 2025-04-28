@@ -4,6 +4,13 @@
 
 ---
 
+## CLI Tool Name
+
+- The CLI executable is called `almd` (short for Almandine).
+- All documentation, usage, and examples should refer to the CLI as `almd` (not `almandine`).
+
+---
+
 ## Milestone 1: Project Manifest & Initialization
 
 - [x] **Task 1.1: Design and implement `project.lua` manifest schema**
@@ -11,14 +18,14 @@
   - [x] Manual Verification: Review schema, create sample file, and validate with test loader.
 
 - [x] **Task 1.2: CLI command to initialize a new Almandine project**
-  - [x] Implement `almandine init` (creates `project.lua` with prompts).
+  - [x] Implement `almd init` (creates `project.lua` with prompts).
   - [x] Create a portable shell wrapper script that finds a suitable Lua interpreter and runs `src/main.lua` with all arguments (works on macOS and Linux).
-  - [x] Manual Verification: Run shell script with arguments, confirm it finds Lua and dispatches to CLI.
-  - [x] Manual Verification: Run CLI, inspect output, ensure correct manifest generation.
+  - [x] Manual Verification: Run shell script with arguments, confirm it finds Lua and dispatches to `almd`.
+  - [x] Manual Verification: Run `almd`, inspect output, ensure correct manifest generation.
 
 - [x] **Task 1.3: Create Windows CLI wrapper script (`almd.bat`)** 
   - [x] Implement a batch script at the project root that finds a suitable Lua interpreter and runs `src/main.lua` with all arguments (works on Windows).
-  - [x] Manual Verification: Run batch script with arguments, confirm it finds Lua and dispatches to CLI.
+  - [x] Manual Verification: Run batch script with arguments, confirm it finds Lua and dispatches to `almd`.
 
 ## Milestone 2: Dependency Download & Pinning
 
@@ -59,7 +66,7 @@
 
 - [x] **Task 4.4: Implement `update`/`up`/`upgrade` command (`--latest` flag)**
   - [x] Update dependencies to latest allowed version or to latest with `--latest`.
-  - [x] Manual Verification: Run update, check versions/hashes.
+  - [x] Manual Verification: Run `almd update`, check versions/hashes.
 
 - [ ] **Task 4.5: Implement `run` command (allow omitting if no conflicts)**
   - [ ] Run scripts from `project.lua`; allow omitting `run` if no conflict.
@@ -67,7 +74,7 @@
 
 - [ ] **Task 4.6: Implement `list` command**
   - [ ] List installed dependencies and their versions.
-  - [ ] Manual Verification: Run `list`, verify output.
+  - [ ] Manual Verification: Run `almd list`, verify output.
 
 - [ ] **Refactor: Move all init functionality to src/modules/init.lua (2025-04-27)**
   - [ ] Move all project initialization logic from src/main.lua to src/modules/init.lua.
@@ -84,7 +91,9 @@
 - [ ] **Refactor: Ensure all CLI command aliases and dispatcher logic are explicit in src/main.lua (2025-04-27)**
   - [ ] Review all CLI commands and their common aliases (e.g., install/in/ins, remove/rm/uninstall/un, update/up/upgrade, add/i, etc.).
   - [ ] Update src/main.lua to explicitly handle all aliases for each command.
-  - [ ] Manual Verification: Run each alias, confirm correct command dispatch.
+  - [ ] Manual Verification: Run each alias using `almd`, confirm correct command dispatch.
+
+- [ ] **Update all usage/help text to refer to the CLI tool as `almd` (not `almandine`).**
 
 ---
 

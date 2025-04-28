@@ -1,5 +1,10 @@
 # Almandine Package Manager
 
+## CLI Tool Name
+
+- The CLI executable is called `almd` (short for Almandine).
+- All documentation, usage, and examples should refer to the CLI as `almd` (not `almandine`).
+
 ## 1. Introduction
 
 Almandine is a lightweight package manager for Lua projects. It enables simple, direct management of single-file dependencies (from GitHub or other supported repositories), project scripts, and project metadata. Almandine is designed for projects that want to pin specific versions or commits of files without managing complex dependency trees.
@@ -86,6 +91,7 @@ Contains all CLI command modules (such as init, add, remove, etc.) for the packa
 Main entrypoint for the CLI. Responsible for:
 - Parsing CLI arguments and dispatching to the correct command module in `src/modules`.
 - Explicitly handling all standard command aliases (e.g., install/in/ins, remove/rm/uninstall/un, update/up/upgrade, add/i, etc.).
+- All usage/help output, documentation, and examples must use `almd` as the CLI tool name (never `almandine`).
 - When adding or modifying commands or aliases, update `src/main.lua` to ensure all are handled, and update documentation/tasks accordingly.
 
 ## 5. Conclusion
