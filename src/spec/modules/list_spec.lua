@@ -66,7 +66,77 @@ describe("list_module.list_dependencies", function()
     return table.concat(output, "\n")
   end
 
-  after_each(cleanup)
+  -- Additional helpers for edge-case test coverage
+  local function write_lockfile(deps)
+    local file = assert(io.open(LOCKFILE, "w"))
+    file:write("return {\n  dependencies = {\n")
+    for k, v in pairs(deps) do
+      if type(v) == "string" then
+        file:write(string.format("    [%q] = %q,\n", k, v))
+      elseif type(v) == "table" then
+        file:write(string.format("    [%q] = { version = %q, hash = %q },\n", k, v.version or "", v.hash or ""))
+      end
+    end
+    file:write("  }\n}\n")
+    file:close()
+  end
+
+  -- Edge: lockfile/manifest not a table
+  it("handles non-table lockfile and manifest", function()
+    local lockfile_loader = function() return "notatable" end
+    local manifest_loader = function() return 42 end
+    local output = capture_print(function()
+      list_module.list_dependencies(manifest_loader, lockfile_loader)
+    end)
+    assert.is_truthy(output:find("No dependencies"))
+  end)
+
+  -- Edge: dependencies field missing
+  it("handles missing dependencies field in lockfile and manifest", function()
+    local lockfile_loader = function() return {} end
+    local manifest_loader = function() return {} end
+    local output = capture_print(function()
+      list_module.list_dependencies(manifest_loader, lockfile_loader)
+    end)
+    assert.is_truthy(output:find("No dependencies"))
+  end)
+
+  -- Edge: dependency as string, not table
+  it("handles dependencies as strings", function()
+    write_lockfile({ foo = "1.2.3", bar = "2.3.4" })
+    local lockfile_loader = function()
+      return dofile(LOCKFILE)
+    end
+    local manifest_loader = function() return {} end
+    local output = capture_print(function()
+      list_module.list_dependencies(manifest_loader, lockfile_loader)
+    end)
+    assert.is_truthy(output:find("foo"))
+    assert.is_truthy(output:find("bar"))
+  end)
+
+  -- Edge: dependency missing version and hash
+  it("handles dependencies missing version and hash", function()
+    write_lockfile({ foo = {} })
+    local lockfile_loader = function()
+      return dofile(LOCKFILE)
+    end
+    local manifest_loader = function() return {} end
+    local output = capture_print(function()
+      list_module.list_dependencies(manifest_loader, lockfile_loader)
+    end)
+    assert.is_truthy(output:find("foo"))
+    assert.is_truthy(output:find("%(unknown%)"))
+  end)
+
+  -- Edge: help_info prints usage
+  it("prints help output", function()
+    local output = capture_print(function()
+      list_module.help_info()
+    end)
+    assert.is_truthy(output:lower():find("usage"))
+    assert.is_truthy(output:lower():find("list"))
+  end)
 
   it("lists dependencies from lockfile", function()
     local lockfile_loader = function()
@@ -105,4 +175,6 @@ describe("list_module.list_dependencies", function()
     end)
     assert.is_true(out == "" or out:find("no dependencies") or true)
   end)
+
+  after_each(cleanup)
 end)
