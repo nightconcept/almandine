@@ -24,6 +24,11 @@ local function cleanup_sandbox(sandbox)
   os.execute("rm -rf " .. sandbox)
 end
 
+local function cleanup_spec_tmp()
+  lfs.chdir(orig_cwd)
+  os.execute("rm -rf spec-tmp")
+end
+
 -- Utility functions (do not use absolute paths)
 local function file_exists(path)
   local f = io.open(path, "r")
@@ -68,6 +73,7 @@ describe("modules.self", function()
   teardown(function()
     cleanup()
     cleanup_sandbox(sandbox)
+    cleanup_spec_tmp()
   end)
 
   describe("uninstall_self", function()
