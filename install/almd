@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Almandine CLI wrapper script
+# Finds a suitable Lua interpreter and runs src/main.lua with all arguments.
+# Compatible with macOS and Linux.
+
+find_lua() {
+  for cmd in lua lua5.4 lua5.3 lua5.2 lua5.1 luajit; do
+    if command -v "$cmd" >/dev/null 2>&1; then
+      echo "$cmd"
+      return 0
+    fi
+  done
+  return 1
+}
+
+LUA_BIN=$(find_lua)
+if [ -z "$LUA_BIN" ]; then
+  echo "Error: No suitable Lua interpreter found (lua, lua5.4, lua5.3, lua5.2, lua5.1, or luajit required)." >&2
+  exit 1
+fi
+
+SCRIPT_DIR="$(dirname "$0")"
+exec "$LUA_BIN" "$SCRIPT_DIR/src/main.lua" "$@"

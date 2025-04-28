@@ -1,0 +1,40 @@
+#!/bin/sh
+# Almandine pre-commit sample hook: Stylua + Luacheck
+#
+# Runs Stylua (via npx) and Luacheck on staged Lua files before commit.
+# Blocks commit if formatting or lint errors are found.
+# Copy this file to .git/hooks/pre-commit and make it executable.
+
+# Check for npx
+if ! command -v npx >/dev/null 2>&1; then
+  echo "[pre-commit] Error: 'npx' not found. Please install Node.js and npm (which provides npx) before committing."
+  exit 1
+fi
+
+# Format check (Stylua)
+echo "[pre-commit] Checking Lua formatting with Stylua..."
+npx @johnnymorganz/stylua-bin src/
+STYLUA_STATUS=$?
+if [ $STYLUA_STATUS -ne 0 ]; then
+  echo "\n[pre-commit] Stylua check failed: Please run 'npx @johnnymorganz/stylua-bin src/' and fix formatting errors before committing."
+  exit 1
+fi
+
+echo "[pre-commit] Stylua check passed."
+
+# (Optional) Lint check (Luacheck)
+if command -v luacheck >/dev/null 2>&1; then
+  echo "[pre-commit] Running Luacheck..."
+  STAGED_LUA=$(git diff --cached --name-only --diff-filter=ACM | grep '^src/.*\.lua$' || true)
+  if [ -n "$STAGED_LUA" ]; then
+    luacheck $STAGED_LUA
+    LUACHECK_STATUS=$?
+    if [ $LUACHECK_STATUS -ne 0 ]; then
+      echo "\n[pre-commit] Luacheck failed: Please fix lint errors before committing."
+      exit 1
+    fi
+    echo "[pre-commit] Luacheck passed."
+  fi
+fi
+
+exit 0

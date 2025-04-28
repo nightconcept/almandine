@@ -1,0 +1,83 @@
+# Professional GitHub Action for Automated Release and Changelog
+# See TASK.md Milestone 6, Task 6.1
+
+name: Release and Generate Changelog
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up zip
+        run: sudo apt-get update && sudo apt-get install -y zip
+
+      - name: Gather release files
+        run: |
+          mkdir release
+          cp -r src release/
+          cp -r install release/
+          [ -f project.lua ] && cp project.lua release/ || true
+          [ -f almd-lock.lua ] && cp almd-lock.lua release/ || true
+        shell: bash
+
+      - name: Create distributable zip
+        run: |
+          cd release
+          zip -r ../almd-release.zip .
+        shell: bash
+
+      - name: Get previous release tag
+        id: prevtag
+        run: |
+          PREV_TAG=$(git tag --sort=-creatordate | grep '^v' | grep -v "${GITHUB_REF_NAME}" | head -n1)
+          echo "prev_tag=$PREV_TAG" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          if [ -n "${{ steps.prevtag.outputs.prev_tag }}" ]; then
+            git log --pretty=format:'- %s (%an)' ${{ steps.prevtag.outputs.prev_tag }}..HEAD > changelog.md
+          else
+            git log --pretty=format:'- %s (%an)' > changelog.md
+          fi
+        shell: bash
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body_path: changelog.md
+          draft: false
+          prerelease: false
+
+      - name: Upload release asset (zip)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./almd-release.zip
+          asset_name: almd-release.zip
+          asset_content_type: application/zip
+
+      - name: Upload release asset (changelog)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./changelog.md
+          asset_name: changelog.md
+          asset_content_type: text/markdown
