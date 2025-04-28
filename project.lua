@@ -1,9 +1,9 @@
 return {
-  name = "almandine",
+  name = "dep-test",
   type = "application",
-  version = "0.0.1",
+  version = "0.1.0",
   license = "MIT",
-  description = "Almandine package manager for Lua.",
+  description = "Dependency add/download test",
   scripts = {
   },
   dependencies = {

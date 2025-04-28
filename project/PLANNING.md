@@ -23,6 +23,7 @@ Sample minimal structure for an Almandine-managed project:
 * `lib/`                 # (Optional) Downloaded packages/files
 * `src/`                 # (Optional) Project source code
   * `lib/`               # (Optional) Internal reusable modules (e.g., downloader, lockfile)
+  * `modules/`           # All CLI command modules (init, add, remove, etc.)
 
 ## 4. File Descriptions
 
@@ -33,6 +34,7 @@ Project manifest. Example fields:
 ```lua
 return {
   name = "my-lua-project",
+  lua = ">=5.1",
   type = "library", -- or "application"
   version = "1.0.0",
   license = "MIT",
@@ -47,6 +49,15 @@ return {
   }
 }
 ```
+
+- `name` (string): Project name.
+- `lua` (string, optional): Minimum or specific Lua version required for the project. Accepts version constraints such as ">=5.1", "=5.1", ">5.1", or "<5.4".
+- `type` (string): Project type, either "library" or "application".
+- `version` (string): Project version.
+- `license` (string): Project license.
+- `description` (string): Project description.
+- `scripts` (table): Project scripts.
+- `dependencies` (table): Project dependencies.
 
 ### `almd-lock.lua`
 
@@ -65,6 +76,10 @@ return {
 ### `src/lib/`
 
 Contains internal reusable Lua modules used by the Almandine package manager itself (e.g., downloader, lockfile). Not for user-downloaded dependencies.
+
+### `src/modules/`
+
+Contains all CLI command modules (such as init, add, remove, etc.) for the package manager. All new modules must be placed here. Do not place command modules elsewhere.
 
 ## 5. Conclusion
 

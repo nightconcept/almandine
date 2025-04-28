@@ -50,7 +50,8 @@
 
 - [x] **Task 4.2: Implement `add`/`i` command**
   - [x] Add dependencies to `project.lua` and download them.
-  - [ ] Manual Verification: Add a dependency, verify it appears and is downloaded.
+  - [x] Manual Verification: Add a dependency, verify it appears and is downloaded.
+  - [x] Automated Test: Add, download, and verify real dependencies (Task 4.2, 2025-04-27)
 
 - [ ] **Task 4.3: Implement `remove`/`rm`/`uninstall`/`un` command**
   - [ ] Remove dependencies from `project.lua` and project files.
@@ -67,6 +68,11 @@
 - [ ] **Task 4.6: Implement `list` command**
   - [ ] List installed dependencies and their versions.
   - [ ] Manual Verification: Run `list`, verify output.
+
+- [ ] **Refactor: Move all init functionality to src/modules/init.lua (2025-04-27)**
+  - [ ] Move all project initialization logic from src/main.lua to src/modules/init.lua.
+  - [ ] Update main.lua to use the new module.
+  - [ ] Manual Verification: Run `almandine init`, confirm it works as before.
 
 ---
 

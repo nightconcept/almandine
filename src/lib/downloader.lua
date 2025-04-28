@@ -1,5 +1,5 @@
 --[[
-  Downloader module for Snowdrop Package Manager
+  Downloader module for Almandine Package Manager
 
   Provides functions to download single files from GitHub (with semver or commit hash pinning) or any raw URL.
   Used for dependency management and reproducible installs.

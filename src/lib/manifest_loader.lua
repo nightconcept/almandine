@@ -1,5 +1,5 @@
 --[[
-  Manifest Loader for Snowdrop
+  Manifest Loader for Almandine
 
   Provides a secure loader for project.lua manifest files, ensuring only a single table literal is accepted.
   Prevents arbitrary code execution by using an empty environment and strict pattern matching.

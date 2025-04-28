@@ -8,15 +8,15 @@ local dependencies = {
   -- Format: { url = "raw_github_url", path = "local/path/to/save" }
   {
     url = "https://raw.githubusercontent.com/Oval-Tutu/shove/main/shove.lua",
-    path = "engine/lib/shove.lua"
+    path = "src/spec/shove.lua"
   },
   {
     url = "https://raw.githubusercontent.com/Oval-Tutu/shove/main/shove-profiler.lua",
-    path = "engine/lib/shove-profiler.lua"
+    path = "src/spec/shove-profiler.lua"
   },
   {
     url = "https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/master/gamecontrollerdb.txt",
-    path = "engine/db/gamecontrollerdb.txt"
+    path = "src/spec/gamecontrollerdb.txt"
   },
   -- Add more dependencies here
 }

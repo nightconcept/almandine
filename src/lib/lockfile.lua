@@ -1,12 +1,12 @@
 --[[
   Lockfile Management Module
 
-  Provides functions to generate, serialize, and write the Snowdrop lockfile (`snowdrop-lock.lua`).
+  Provides functions to generate, serialize, and write the Almandine lockfile (`almd-lock.lua`).
   The lockfile captures exact dependency versions and hashes for reproducible builds.
 ]]--
 
 ---
--- Snowdrop Lockfile Management
+-- Almandine Lockfile Management
 -- @module lockfile
 local lockfile = {}
 
