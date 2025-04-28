@@ -6,6 +6,39 @@
   - Covers lockfile, manifest fallback, and empty dependency scenarios.
 ]]--
 
+--[[
+  setfenv compatibility shim for Lua 5.1–5.4 and LuaJIT
+  Provides setfenv for tests, using debug library in Lua 5.2+.
+  @function setfenv
+  @param f [function|number] Function or stack level
+  @param env [table] Environment table
+  @return [function] The given function
+]]--
+if _VERSION == "Lua 5.1" or jit then
+  -- native setfenv
+  setfenv = setfenv
+else
+  -- emulate setfenv for Lua 5.2+
+  local function findenv(f)
+    local level = 1
+    repeat
+      local name, value = debug.getupvalue(f, level)
+      if name == "_ENV" then
+        return level
+      end
+      level = level + 1
+    until name == nil
+    return nil
+  end
+  setfenv = function(f, env)
+    local level = findenv(f)
+    if level then
+      debug.upvaluejoin(f, level, function() return env end, 1)
+    end
+    return f
+  end
+end
+
 -- luacheck: globals describe it after_each assert
 
 --- List module specification for Busted.
@@ -49,15 +82,15 @@ describe("list_module.list_dependencies", function()
 
   local function capture_print(func)
     local output = {}
-    local function print(...)
+    local orig_print = _G.print
+    _G.print = function(...)
       local t = {}
       for i=1,select('#', ...) do t[#t+1] = tostring(select(i, ...)) end
       output[#output+1] = table.concat(t, " ")
     end
-    -- Use setfenv to override print for Lua 5.1 compatibility
-    local env = setmetatable({print = print}, {__index = _G})
-    setfenv(func, env)
-    func()
+    local ok, err = pcall(func)
+    _G.print = orig_print
+    if not ok then error(err) end
     return table.concat(output, "\n")
   end
 
