@@ -14,6 +14,8 @@
 
 describe("add_module.add_dependency", function()
   local add_mod = require("modules.add")
+  local busted = require("busted")
+  local stub = busted.stub or require("luassert.stub")
 
   local function make_fake_manifest()
     return {
@@ -142,5 +144,84 @@ describe("add_module.add_dependency", function()
     assert.is_true(downloader_called)
     assert.are.equal(downloader_args.url, dep_url)
     assert.are.equal(downloader_args.out_path, "src/lib/baz.lua")
+  end)
+
+  it("prints error and returns if manifest fails to load", function()
+    local function load_manifest()
+      return nil, "manifest load error"
+    end
+    local save_manifest = function() end
+    local ensure_lib_dir = function() end
+    local downloader = { download = function() return true, nil end }
+    local printed = {}
+    stub(_G, "print", function(msg) table.insert(printed, tostring(msg)) end)
+    assert.has_no.errors(function()
+      require("modules.add").add_dependency("foo", "url", load_manifest, save_manifest, ensure_lib_dir, downloader)
+    end)
+    assert.is_true(table.concat(printed, "\n"):match("manifest load error") ~= nil)
+  end)
+
+  it("prints error and returns if dep_name cannot be inferred from bad URL", function()
+    local manifest = { dependencies = {} }
+    local function load_manifest() return manifest, nil end
+    local save_manifest_called = false
+    local save_manifest = function() save_manifest_called = true end
+    local ensure_lib_dir = function() end
+    local downloader = { download = function() return true, nil end }
+    local printed = {}
+    stub(_G, "print", function(msg) table.insert(printed, tostring(msg)) end)
+    assert.has_no.errors(function()
+      require("modules.add").add_dependency(
+        nil,
+        "https://example.com/",
+        load_manifest,
+        save_manifest,
+        ensure_lib_dir,
+        downloader
+      )
+    end)
+    assert.is_true(table.concat(printed, "\n"):match("Could not infer dependency name") ~= nil)
+    assert.is_false(save_manifest_called)
+  end)
+
+  it("prints error and returns if save_manifest fails", function()
+    local manifest = { dependencies = {} }
+    local function load_manifest() return manifest, nil end
+    local function save_manifest() return false, "save failed" end
+    local ensure_lib_dir = function() end
+    local downloader = { download = function() return true, nil end }
+    local printed = {}
+    stub(_G, "print", function(msg) table.insert(printed, tostring(msg)) end)
+    assert.has_no.errors(function()
+      require("modules.add").add_dependency("foo", "url", load_manifest, save_manifest, ensure_lib_dir, downloader)
+    end)
+    assert.is_true(table.concat(printed, "\n"):match("save failed") ~= nil)
+  end)
+
+  it("prints error if downloader fails", function()
+    local manifest = { dependencies = {} }
+    local function load_manifest() return manifest, nil end
+    local function save_manifest() return true, nil end
+    local ensure_lib_dir = function() end
+    local downloader = { download = function() return false, "download failed" end }
+    local printed = {}
+    stub(_G, "print", function(msg) table.insert(printed, tostring(msg)) end)
+    assert.has_no.errors(function()
+      require("modules.add").add_dependency("foo", "url", load_manifest, save_manifest, ensure_lib_dir, downloader)
+    end)
+    local output = table.concat(printed, "\n")
+    assert.is_true(output:match("Failed to download") ~= nil)
+    assert.is_true(output:match("download failed") ~= nil)
+  end)
+
+  it("prints usage/help output", function()
+    local add_mod_local = require("modules.add")
+    local output = {}
+    stub(_G, "print", function(msg) table.insert(output, tostring(msg)) end)
+    assert.has_no.errors(function()
+      add_mod_local.help_info()
+    end)
+    local all = table.concat(output, "\n")
+    assert.is_true(all:match("Usage: almd add") ~= nil)
   end)
 end)

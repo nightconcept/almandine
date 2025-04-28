@@ -168,4 +168,14 @@
   - [ ] Exclude `.luarocks/lua/` from coverage to prevent skewed results.
   - [ ] Manual Verification: Confirm coverage report excludes `.luarocks/lua/` files.
 
+- [ ] **Task 7.5: Add pre-commit hook to run Stylua on staged Lua files (2025-04-28)**
+  - [ ] Create a portable pre-commit hook script in `install/pre-commit.sample`.
+  - [ ] Script must block commit if any staged `.lua` files fail formatting check via `npx @johnnymorganz/stylua-bin src/`.
+  - [ ] Manual Verification: Copy hook to `.git/hooks/pre-commit`, stage a `.lua` file with a formatting error, and confirm commit is blocked.
+
+- [ ] **Task 7.3: Eliminate luacheck read-only global warnings in filesystem tests (2025-04-28)**
+  - [ ] Refactor `filesystem.ensure_lib_dir` and its tests to avoid assigning to `os.execute` or `package.config`.
+  - [ ] Use dependency injection or local overrides for path separator and command execution in tests.
+  - [ ] Manual Verification: Run all specs and confirm no warnings about read-only global fields.
+
 *Last updated: 2025-04-29*

@@ -1,0 +1,1 @@
+- [2025-04-28] Create a new test that covers src/utils/filesystem.lua in src/spec/utils: Add a Lua test file that provides coverage for the ensure_lib_dir and join_path functions, verifying cross-platform path joining and directory creation logic.

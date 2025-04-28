@@ -2,6 +2,7 @@
 
 ![CI](https://img.shields.io/github/actions/workflow/status/nightconcept/almandine/release.yml?branch=main)
 ![License](https://img.shields.io/github/license/nightconcept/almandine)
+[![Coverage Status](https://coveralls.io/repos/github/nightconcept/almandine/badge.svg)](https://coveralls.io/github/nightconcept/almandine)
 
 A modern, cross-platform, developer-friendly package manager for Lua projects.
 Easily manage, install, and update Lua dependencies with a single CLI: `almd`.
