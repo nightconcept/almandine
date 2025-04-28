@@ -46,16 +46,16 @@
 
 - [x] **Task 4.1: Implement `init` command**
   - [x] Create/initialize a new Almandine project.
-  - [x] Manual Verification: Run `almandine init`, check that manifest is created.
+  - [x] Manual Verification: Run `almd init`, check that manifest is created.
 
 - [x] **Task 4.2: Implement `add`/`i` command**
   - [x] Add dependencies to `project.lua` and download them.
   - [x] Manual Verification: Add a dependency, verify it appears and is downloaded.
   - [x] Automated Test: Add, download, and verify real dependencies (Task 4.2, 2025-04-27)
 
-- [ ] **Task 4.3: Implement `remove`/`rm`/`uninstall`/`un` command**
-  - [ ] Remove dependencies from `project.lua` and project files.
-  - [ ] Manual Verification: Remove a dependency, verify it is deleted.
+- [x] **Task 4.3: Implement `remove`/`rm`/`uninstall`/`un` command**
+  - [x] Remove dependencies from `project.lua` and project files.
+  - [x] Manual Verification: Remove a dependency, verify it is deleted.
 
 - [ ] **Task 4.4: Implement `update`/`up`/`upgrade` command (`--latest` flag)**
   - [ ] Update dependencies to latest allowed version or to latest with `--latest`.
@@ -72,7 +72,14 @@
 - [ ] **Refactor: Move all init functionality to src/modules/init.lua (2025-04-27)**
   - [ ] Move all project initialization logic from src/main.lua to src/modules/init.lua.
   - [ ] Update main.lua to use the new module.
-  - [ ] Manual Verification: Run `almandine init`, confirm it works as before.
+  - [ ] Manual Verification: Run `almd init`, confirm it works as before.
+
+- [ ] **Refactor: Move all install functionality to src/modules/install.lua (2025-04-27)**
+  - [ ] Move all install logic from src/main.lua to src/modules/install.lua.
+  - [ ] Update main.lua to use the new module.
+  - [ ] Manual Verification: Run `almd install`, confirm it works as before.
+
+- [ ] **Refactor: Move all lockfile management logic from `src/lib/lockfile.lua` to `src/modules/install.lua`. Remove `src/lib/lockfile.lua` after migration. Update any references.**
 
 ---
 

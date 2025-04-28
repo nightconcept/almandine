@@ -1,13 +1,54 @@
 --[[
-  Lockfile Management Module
+  Install Module
 
+  Provides functionality to install all dependencies listed in project.lua or a specific dependency. Extracted from main.lua as part of modularization.
+]]--
+
+--- Installs all dependencies listed in project.lua or a specific dependency.
+-- @param dep_name string|nil Dependency name to install (or all if nil).
+-- @param dep_source string|nil Dependency source string (if installing a new dep).
+-- @param load_manifest function Function to load the manifest.
+-- @param save_manifest function Function to save the manifest.
+-- @param ensure_lib_dir function Function to ensure lib dir exists.
+-- @param downloader table Downloader module.
+local function install_dependency(dep_name, dep_source, load_manifest, save_manifest, ensure_lib_dir, downloader)
+  ensure_lib_dir()
+  local manifest, err = load_manifest()
+  if not manifest then print(err) return end
+  manifest.dependencies = manifest.dependencies or {}
+  if dep_name and dep_source then
+    manifest.dependencies[dep_name] = dep_source
+    local ok, err2 = save_manifest(manifest)
+    if not ok then print(err2) return end
+    print(string.format("Added dependency '%s' to project.lua.", dep_name))
+  end
+  for name, source in pairs(manifest.dependencies) do
+    if (not dep_name) or (dep_name == name) then
+      local out_path
+      local url
+      if type(source) == "table" and source.url and source.path then
+        url = source.url
+        out_path = source.path
+      else
+        url = source
+        out_path = "src/lib/" .. name .. ".lua"
+      end
+      local ok3, err3 = downloader.download(url, out_path)
+      if ok3 then
+        print(string.format("Downloaded %s to %s", name, out_path))
+      else
+        print(string.format("Failed to download %s: %s", name, err3))
+      end
+    end
+  end
+end
+
+--[[
+  Lockfile Management Module (migrated from src/lib/lockfile.lua)
   Provides functions to generate, serialize, and write the Almandine lockfile (`almd-lock.lua`).
   The lockfile captures exact dependency versions and hashes for reproducible builds.
 ]]--
 
----
--- Almandine Lockfile Management
--- @module lockfile
 local lockfile = {}
 
 local io = io
@@ -68,12 +109,12 @@ function lockfile.serialize_lockfile(lockfile_table)
 end
 
 ---
--- Writes the lockfile to disk as `snowdrop-lock.lua`.
+-- Writes the lockfile to disk as `almd-lock.lua`.
 -- @param lockfile_table table Lockfile table
--- @param path string (optional) Path to write to (default: "snowdrop-lock.lua" in project root)
+-- @param path string (optional) Path to write to (default: "almd-lock.lua" in project root)
 -- @return boolean, string True and path if successful, false and error message otherwise
 function lockfile.write_lockfile(lockfile_table, path)
-  path = path or "snowdrop-lock.lua"
+  path = path or "almd-lock.lua"
   local content = lockfile.serialize_lockfile(lockfile_table)
   local file, err = io.open(path, "w")
   if not file then return false, err end
@@ -82,4 +123,7 @@ function lockfile.write_lockfile(lockfile_table, path)
   return true, path
 end
 
-return lockfile
+return {
+  install_dependency = install_dependency,
+  lockfile = lockfile
+}

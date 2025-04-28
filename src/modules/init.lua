@@ -1,5 +1,5 @@
 --[[
-  Project Initialization Module for Snowdrop
+  Project Initialization Module for Almandine
 
   This module implements interactive project initialization, manifest creation, and related helpers.
 ]]--
@@ -55,15 +55,15 @@ local function save_manifest(manifest)
   return true, nil
 end
 
---- Initializes a new Snowdrop project by interactively prompting the user for manifest fields and writing project.lua.
+--- Initializes a new Almandine project by interactively prompting the user for manifest fields and writing project.lua.
 function M.init_project()
-  print("Snowdrop Project Initialization\n-------------------------------")
+  print("Almandine Project Initialization\n-------------------------------")
   local manifest = {}
   manifest.name = prompt("Project name", "my-lua-project")
   manifest.type = "application"
   manifest.version = prompt("Project version", "0.0.1")
   manifest.license = prompt("License", "MIT")
-  manifest.description = prompt("Description", "A sample Lua project using Snowdrop.")
+  manifest.description = prompt("Description", "A sample Lua project using Almandine.")
 
   -- Scripts
   manifest.scripts = {}

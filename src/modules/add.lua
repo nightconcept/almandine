@@ -17,6 +17,10 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
   local manifest, err = load_manifest()
   if not manifest then print(err) return end
   manifest.dependencies = manifest.dependencies or {}
+  if not dep_name or not dep_source then
+    -- Nothing to add, exit early
+    return
+  end
   if dep_name and dep_source then
     manifest.dependencies[dep_name] = dep_source
     local ok, err2 = save_manifest(manifest)
