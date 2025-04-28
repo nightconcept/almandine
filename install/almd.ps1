@@ -19,5 +19,23 @@ if (-not $LUA_BIN) {
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $Main = Join-Path $ScriptDir 'src/main.lua'
 
+# Construct module paths
+$luaPathPrefix = "$ScriptDir/src/?.lua;$ScriptDir/src/lib/?.lua;"
+$luaCPathPrefix = "$ScriptDir/src/?.dll;$ScriptDir/src/lib/?.dll;"
+
+# Prepend to LUA_PATH if set, else set default
+if ($env:LUA_PATH) {
+  $env:LUA_PATH = "$luaPathPrefix$env:LUA_PATH"
+} else {
+  $env:LUA_PATH = "$luaPathPrefix;"
+}
+
+# Prepend to LUA_CPATH if set, else set default
+if ($env:LUA_CPATH) {
+  $env:LUA_CPATH = "$luaCPathPrefix$env:LUA_CPATH"
+} else {
+  $env:LUA_CPATH = "$luaCPathPrefix;"
+}
+
 & $LUA_BIN $Main @args
 exit $LASTEXITCODE
