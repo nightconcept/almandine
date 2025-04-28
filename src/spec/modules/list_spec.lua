@@ -83,8 +83,12 @@ describe("list_module.list_dependencies", function()
 
   -- Edge: lockfile/manifest not a table
   it("handles non-table lockfile and manifest", function()
-    local lockfile_loader = function() return "notatable" end
-    local manifest_loader = function() return 42 end
+    local lockfile_loader = function()
+      return "notatable"
+    end
+    local manifest_loader = function()
+      return 42
+    end
     local output = capture_print(function()
       list_module.list_dependencies(manifest_loader, lockfile_loader)
     end)
@@ -93,8 +97,12 @@ describe("list_module.list_dependencies", function()
 
   -- Edge: dependencies field missing
   it("handles missing dependencies field in lockfile and manifest", function()
-    local lockfile_loader = function() return {} end
-    local manifest_loader = function() return {} end
+    local lockfile_loader = function()
+      return {}
+    end
+    local manifest_loader = function()
+      return {}
+    end
     local output = capture_print(function()
       list_module.list_dependencies(manifest_loader, lockfile_loader)
     end)
@@ -107,7 +115,9 @@ describe("list_module.list_dependencies", function()
     local lockfile_loader = function()
       return dofile(LOCKFILE)
     end
-    local manifest_loader = function() return {} end
+    local manifest_loader = function()
+      return {}
+    end
     local output = capture_print(function()
       list_module.list_dependencies(manifest_loader, lockfile_loader)
     end)
@@ -121,7 +131,9 @@ describe("list_module.list_dependencies", function()
     local lockfile_loader = function()
       return dofile(LOCKFILE)
     end
-    local manifest_loader = function() return {} end
+    local manifest_loader = function()
+      return {}
+    end
     local output = capture_print(function()
       list_module.list_dependencies(manifest_loader, lockfile_loader)
     end)
