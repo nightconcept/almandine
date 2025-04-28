@@ -5,7 +5,8 @@
   It is responsible for bootstrapping the application and delegating control to the appropriate
   modules based on user input or CLI arguments.
   All initialization and top-level logic begins here.
-]]--
+]]
+--
 
 ---
 -- Entry point for the Almandine CLI application.
@@ -42,7 +43,9 @@ local self_module = require("modules.self")
 
 local function load_manifest()
   local manifest, err = manifest_loader.safe_load_project_manifest("project.lua")
-  if not manifest then return nil, err end
+  if not manifest then
+    return nil, err
+  end
   return manifest, nil
 end
 
@@ -50,10 +53,8 @@ local function main(...)
   --- The main entry point for the Almandine CLI application.
   --
   -- @param ... string CLI arguments.
-  version_utils.check_lua_version(
-    load_manifest
-  )
-  local args = {...}
+  version_utils.check_lua_version(load_manifest)
+  local args = { ... }
   -- Modular help delegation
   if args[1] == "--help" or args[1] == "help" or (args[2] and args[2] == "--help") then
     local cmd = args[2] or args[1]
@@ -65,7 +66,7 @@ local function main(...)
       update = update_module.help_info,
       run = run_module.help_info,
       list = list_module.help_info,
-      ["self"] = self_module.help_info
+      ["self"] = self_module.help_info,
     }
     if not args[2] or args[1] == "--help" then
       print([[almd: Modern Lua Package Manager
@@ -124,28 +125,14 @@ For help with a command: almd help <command> or almd <command> --help
   elseif args[1] == "install" or args[1] == "in" or args[1] == "ins" then
     -- Usage: almd install [<dep_name>]
     if args[2] then
-      install_module.install_dependencies(
-        args[2],
-        load_manifest,
-        filesystem_utils.ensure_lib_dir,
-        downloader
-      )
+      install_module.install_dependencies(args[2], load_manifest, filesystem_utils.ensure_lib_dir, downloader)
     else
-      install_module.install_dependencies(
-        nil,
-        load_manifest,
-        filesystem_utils.ensure_lib_dir,
-        downloader
-      )
+      install_module.install_dependencies(nil, load_manifest, filesystem_utils.ensure_lib_dir, downloader)
     end
     return
   elseif args[1] == "remove" or args[1] == "rm" or args[1] == "uninstall" or args[1] == "un" then
     if args[2] then
-      remove_module.remove_dependency(
-        args[2],
-        load_manifest,
-        install_module.save_manifest
-      )
+      remove_module.remove_dependency(args[2], load_manifest, install_module.save_manifest)
     else
       print("Usage: almd remove <dep_name>")
     end
@@ -206,5 +193,5 @@ end
 main(unpack(arg, 1))
 
 return {
-  remove_dependency = remove_module.remove_dependency
+  remove_dependency = remove_module.remove_dependency,
 }

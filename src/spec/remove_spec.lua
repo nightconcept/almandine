@@ -4,7 +4,8 @@
   Busted test suite for the remove command in src/modules/remove.lua.
   - Verifies dependencies are removed from project.lua and files are deleted.
   - Handles both existing and non-existent dependencies.
-]]--
+]]
+--
 
 -- luacheck: globals describe it after_each assert
 
@@ -22,11 +23,11 @@ describe("remove_module.remove_dependency", function()
   local function write_manifest(deps)
     local file = assert(io.open(MANIFEST_FILE, "w"))
     file:write("return {\n")
-    file:write("  name = \"testproj\",\n")
-    file:write("  type = \"application\",\n")
-    file:write("  version = \"0.1.0\",\n")
-    file:write("  license = \"MIT\",\n")
-    file:write("  description = \"Test manifest\",\n")
+    file:write('  name = "testproj",\n')
+    file:write('  type = "application",\n')
+    file:write('  version = "0.1.0",\n')
+    file:write('  license = "MIT",\n')
+    file:write('  description = "Test manifest",\n')
     file:write("  scripts = {},\n")
     file:write("  dependencies = {\n")
     for k, v in pairs(deps) do
@@ -39,7 +40,10 @@ describe("remove_module.remove_dependency", function()
 
   local function file_exists(path)
     local f = io.open(path, "r")
-    if f then f:close() return true end
+    if f then
+      f:close()
+      return true
+    end
     return false
   end
 

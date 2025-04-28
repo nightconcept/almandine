@@ -3,7 +3,8 @@
 
   Provides functionality to list all installed dependencies and their versions as recorded in the lockfile
   (almd-lock.lua) or manifest (project.lua).
-]]--
+]]
+--
 
 --- Lists installed dependencies and their versions.
 -- @param load_manifest function Function to load the manifest.
@@ -49,5 +50,5 @@ end
 
 return {
   list_dependencies = list_dependencies,
-  help_info = help_info
+  help_info = help_info,
 }

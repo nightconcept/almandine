@@ -3,7 +3,8 @@
 
   This test creates dummy wrapper scripts and a dummy src/ directory,
   invokes uninstall_self(), and asserts that all targets are removed.
-]]--
+]]
+--
 
 -- local busted = require("busted")  -- unused
 
@@ -13,18 +14,20 @@ if not string.find(package.path, src_path, 1, true) then
   package.path = src_path .. ";" .. package.path
 end
 
-local self_module =
-  require("modules.self")
+local self_module = require("modules.self")
 
 local function file_exists(path)
   local f = io.open(path, "r")
-  if f then f:close() return true end
+  if f then
+    f:close()
+    return true
+  end
   return false
 end
 
 local function dir_exists(path)
   -- POSIX only: use os.execute('test -d path')
-  local cmd = string.format('test -d %q', path)
+  local cmd = string.format("test -d %q", path)
   local ok = os.execute(cmd)
   return ok == 0 or ok == true
 end
@@ -36,7 +39,7 @@ local function make_dummy_file(path)
 end
 
 local function make_dummy_dir(path)
-  os.execute('mkdir -p ' .. path)
+  os.execute("mkdir -p " .. path)
   make_dummy_file(path .. "/dummy.lua")
 end
 
@@ -44,12 +47,12 @@ local function cleanup()
   os.remove("install/almd.sh")
   os.remove("install/almd.bat")
   os.remove("install/almd.ps1")
-  os.execute('rm -rf src')
+  os.execute("rm -rf src")
 end
 
 -- Test setup
 cleanup()
-os.execute('mkdir -p install')
+os.execute("mkdir -p install")
 make_dummy_file("install/almd.sh")
 make_dummy_file("install/almd.bat")
 make_dummy_file("install/almd.ps1")

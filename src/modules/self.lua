@@ -3,26 +3,27 @@
 
   Implementation for self-uninstall and future self-update features.
   This module provides removal of CLI wrapper scripts and the CLI Lua folder.
-]]--
+]]
+--
 
 --- Recursively delete a directory and its contents (cross-platform: POSIX and Windows)
 -- @param path [string] Directory path to delete
 -- @return [boolean, string?] True if successful, or false and error message
 local function rmdir_recursive(path)
-  local is_windows = package.config:sub(1,1) == '\\'
+  local is_windows = package.config:sub(1, 1) == "\\"
   local cmd
   if is_windows then
     -- Windows: use rmdir /s /q
     cmd = string.format('rmdir /s /q "%s"', path)
   else
     -- POSIX: use rm -rf
-    cmd = string.format('rm -rf %q', path)
+    cmd = string.format("rm -rf %q", path)
   end
   local ok = os.execute(cmd)
   if ok == 0 or ok == true then
     return true
   else
-    return false, 'Failed to remove directory: ' .. path
+    return false, "Failed to remove directory: " .. path
   end
 end
 
@@ -59,5 +60,5 @@ end
 
 return {
   uninstall_self = uninstall_self,
-  help_info = help_info
+  help_info = help_info,
 }

@@ -6,6 +6,7 @@ in
   packages = with pkgs-unstable; [
     lua51Packages.busted
     lua51Packages.luacheck
+    lua51Packages.luacov
   ];
 
   languages.lua = {

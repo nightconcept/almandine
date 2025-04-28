@@ -4,7 +4,8 @@
   Busted test suite for update_dependencies in src/modules/update.lua.
   - Verifies update to latest allowed and absolute latest versions.
   - Uses stubs/mocks for manifest, downloader, and resolver.
-]]--
+]]
+--
 
 -- luacheck: globals describe it assert
 -- local busted = require("busted")  -- unused
@@ -17,10 +18,18 @@ describe("update_module.update_dependencies", function()
 
   it("updates dependency to latest allowed version", function()
     local manifest = { dependencies = { foo = "https://example.com/foo.lua" } }
-    local function load() return manifest end
-    local function save(tbl) manifest = tbl end
+    local function load()
+      return manifest
+    end
+    local function save(tbl)
+      manifest = tbl
+    end
     local function ensure_lib_dir1() end
-    local utils = { downloader = { download = function() return true end } }
+    local utils = { downloader = {
+      download = function()
+        return true
+      end,
+    } }
     local function resolve_latest_version(_name)
       return "1.3.4"
     end
@@ -32,10 +41,18 @@ describe("update_module.update_dependencies", function()
 
   it("updates dependency to absolute latest version", function()
     local manifest = { dependencies = { foo = "https://example.com/foo.lua" } }
-    local function load() return manifest end
-    local function save(tbl) manifest = tbl end
+    local function load()
+      return manifest
+    end
+    local function save(tbl)
+      manifest = tbl
+    end
     local function ensure_lib_dir2() end
-    local utils = { downloader = { download = function() return true end } }
+    local utils = { downloader = {
+      download = function()
+        return true
+      end,
+    } }
     local function resolve_latest_version(_name)
       return "latest"
     end
@@ -49,14 +66,22 @@ describe("update_module.update_dependencies", function()
       dependencies = {
         foo = {
           version = "1.0.0",
-          url = "https://example.com/foo.lua"
-        }
-      }
+          url = "https://example.com/foo.lua",
+        },
+      },
     }
-    local function load() return manifest end
-    local function save(tbl) manifest = tbl end
+    local function load()
+      return manifest
+    end
+    local function save(tbl)
+      manifest = tbl
+    end
     local function ensure_lib_dir3() end
-    local utils = { downloader = { download = function() return true end } }
+    local utils = { downloader = {
+      download = function()
+        return true
+      end,
+    } }
     local function resolve_latest_version(_name)
       return "2.0.0"
     end

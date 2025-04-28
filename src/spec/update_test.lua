@@ -3,7 +3,8 @@
 
   Verifies correct behavior of the update_dependencies function in modules/update.lua.
   No external dependencies. All output is checked for correctness and reproducibility.
-]]--
+]]
+--
 
 package.path = package.path .. ";./src/?.lua;./src/?/init.lua;./src/?/?.lua"
 
@@ -14,9 +15,14 @@ local utils = require("utils")
 --- Dummy manifest loader/saver for testing.
 local function make_manifest()
   local manifest = { dependencies = { foo = "https://example.com/foo.lua" } }
-  return function() return manifest end,
-    function(new_manifest) manifest = new_manifest return true end,
-    function() return manifest end
+  return function()
+    return manifest
+  end, function(new_manifest)
+    manifest = new_manifest
+    return true
+  end, function()
+    return manifest
+  end
 end
 
 --- Dummy ensure_lib_dir (no-op for test)
@@ -27,11 +33,15 @@ local function make_downloader()
   local downloads = {}
   return {
     download = function(url, out_path)
-      table.insert(downloads, {url=url, out_path=out_path})
-      if url and out_path then return true end
+      table.insert(downloads, { url = url, out_path = out_path })
+      if url and out_path then
+        return true
+      end
       return false, "invalid args"
     end,
-    get_downloads = function() return downloads end
+    get_downloads = function()
+      return downloads
+    end,
   }
 end
 

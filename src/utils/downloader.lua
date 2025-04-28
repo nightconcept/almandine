@@ -2,7 +2,8 @@
   Downloader Utility
 
   Provides functions to download files for dependencies.
-]]--
+]]
+--
 
 local downloader = {}
 
@@ -14,12 +15,16 @@ function downloader.download(url, out_path)
   local http = require("socket.http")
   local ltn12 = require("ltn12")
   local file, err = io.open(out_path, "wb")
-  if not file then return false, err end
-  local ok, http_err = http.request{
+  if not file then
+    return false, err
+  end
+  local ok, http_err = http.request({
     url = url,
-    sink = ltn12.sink.file(file)
-  }
-  if not ok then return false, http_err end
+    sink = ltn12.sink.file(file),
+  })
+  if not ok then
+    return false, http_err
+  end
   return true
 end
 

@@ -2,7 +2,8 @@
   Manifest Loader Utility
 
   Provides functions to safely load the project manifest (project.lua) with validation.
-]]--
+]]
+--
 
 local manifest = {}
 
@@ -12,9 +13,13 @@ local manifest = {}
 function manifest.safe_load_project_manifest(path)
   path = path or "project.lua"
   local chunk, err = loadfile(path)
-  if not chunk then return nil, err end
+  if not chunk then
+    return nil, err
+  end
   local ok, result = pcall(chunk)
-  if not ok then return nil, result end
+  if not ok then
+    return nil, result
+  end
   if type(result) ~= "table" then
     return nil, "Manifest must return a table"
   end

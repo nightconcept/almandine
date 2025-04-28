@@ -3,7 +3,8 @@
 
   Busted test suite for the run command module in src/modules/run.lua.
   - Verifies script running, error handling, reserved command detection, and script resolution.
-]]--
+]]
+--
 
 -- luacheck: globals describe it assert
 
@@ -19,7 +20,7 @@ describe("run_module", function()
     return {
       safe_load_project_manifest = function()
         return { scripts = scripts }, nil
-      end
+      end,
     }
   end
 

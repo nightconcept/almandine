@@ -1,5 +1,2 @@
-; .luacov
-; Exclude .luarocks/share/lua/ from coverage reports to avoid including system/third-party code.
-
 [exclude]
 pattern = .luarocks/share/lua/

@@ -3,7 +3,8 @@
 
   Provides logic for executing scripts defined in the `scripts` table of project.lua.
   Used by the main CLI entrypoint for the `run` command and for direct script invocation if unambiguous.
-]]--
+]]
+--
 
 ---
 -- Executes a script by name from the project manifest.
@@ -17,14 +18,8 @@ local function run_script(script_name, manifest_loader)
   end
   local scripts = manifest.scripts or {}
   if not scripts or not scripts[script_name] then
-    print(string.format(
-      "Script '%s' not found in project.lua.",
-      script_name
-    ))
-    return false, string.format(
-      "Script '%s' not found in project.lua.",
-      script_name
-    )
+    print(string.format("Script '%s' not found in project.lua.", script_name))
+    return false, string.format("Script '%s' not found in project.lua.", script_name)
   end
   local script = scripts[script_name]
   local cmd = script.cmd or script
@@ -33,31 +28,17 @@ local function run_script(script_name, manifest_loader)
   if #args > 0 then
     command = cmd .. " " .. table.concat(args, " ")
   end
-  print(string.format(
-    "Running script '%s': %s",
-    script_name,
-    command
-  ))
+  print(string.format("Running script '%s': %s", script_name, command))
   local ok, exit_reason, code = os.execute(command)
   if ok then
-    print(string.format(
-      "Script '%s' completed successfully.",
-      script_name
-    ))
+    print(string.format("Script '%s' completed successfully.", script_name))
     return true, nil
   else
-    print(string.format(
-      "Script '%s' failed (reason: %s, code: %s)",
-      script_name,
-      tostring(exit_reason),
-      tostring(code)
-    ))
-    return false, string.format(
-      "Script '%s' failed (reason: %s, code: %s)",
-      script_name,
-      tostring(exit_reason),
-      tostring(code)
+    print(
+      string.format("Script '%s' failed (reason: %s, code: %s)", script_name, tostring(exit_reason), tostring(code))
     )
+    return false,
+      string.format("Script '%s' failed (reason: %s, code: %s)", script_name, tostring(exit_reason), tostring(code))
   end
 end
 
@@ -67,9 +48,21 @@ end
 -- @return [boolean]
 local function is_reserved_command(name)
   local reserved = {
-    ["init"] = true, ["add"] = true, ["i"] = true, ["install"] = true, ["in"] = true, ["ins"] = true,
-    ["remove"] = true, ["rm"] = true, ["uninstall"] = true, ["un"] = true,
-    ["update"] = true, ["up"] = true, ["upgrade"] = true, ["run"] = true, ["list"] = true,
+    ["init"] = true,
+    ["add"] = true,
+    ["i"] = true,
+    ["install"] = true,
+    ["in"] = true,
+    ["ins"] = true,
+    ["remove"] = true,
+    ["rm"] = true,
+    ["uninstall"] = true,
+    ["un"] = true,
+    ["update"] = true,
+    ["up"] = true,
+    ["upgrade"] = true,
+    ["run"] = true,
+    ["list"] = true,
   }
   return reserved[name] == true
 end
@@ -81,8 +74,12 @@ end
 -- @return [string|nil] The script name if unambiguous, or nil.
 local function get_unambiguous_script(name, manifest_loader)
   local manifest = manifest_loader.safe_load_project_manifest("project.lua")
-  if not manifest or not manifest.scripts then return nil end
-  if manifest.scripts[name] then return name end
+  if not manifest or not manifest.scripts then
+    return nil
+  end
+  if manifest.scripts[name] then
+    return name
+  end
   return nil
 end
 
@@ -104,5 +101,5 @@ return {
   run_script = run_script,
   is_reserved_command = is_reserved_command,
   get_unambiguous_script = get_unambiguous_script,
-  help_info = help_info
+  help_info = help_info,
 }

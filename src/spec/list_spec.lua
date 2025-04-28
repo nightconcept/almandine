@@ -4,7 +4,8 @@
   Busted test suite for the list command in src/modules/list.lua.
   - Ensures dependencies are listed from almd-lock.lua if present, or from project.lua otherwise.
   - Covers lockfile, manifest fallback, and empty dependency scenarios.
-]]--
+]]
+--
 
 -- luacheck: globals describe it after_each assert
 
@@ -21,11 +22,11 @@ describe("list_module.list_dependencies", function()
   local function write_manifest(deps)
     local file = assert(io.open(MANIFEST_FILE, "w"))
     file:write("return {\n")
-    file:write("  name = \"testproj\",\n")
-    file:write("  type = \"application\",\n")
-    file:write("  version = \"0.1.0\",\n")
-    file:write("  license = \"MIT\",\n")
-    file:write("  description = \"Test manifest\",\n")
+    file:write('  name = "testproj",\n')
+    file:write('  type = "application",\n')
+    file:write('  version = "0.1.0",\n')
+    file:write('  license = "MIT",\n')
+    file:write('  description = "Test manifest",\n')
     file:write("  scripts = {},\n")
     file:write("  dependencies = {\n")
     for k, v in pairs(deps) do
@@ -52,22 +53,28 @@ describe("list_module.list_dependencies", function()
     local orig_print = _G.print
     _G.print = function(...)
       local t = {}
-      for i=1,select('#', ...) do t[#t+1] = tostring(select(i, ...)) end
-      output[#output+1] = table.concat(t, " ")
+      for i = 1, select("#", ...) do
+        t[#t + 1] = tostring(select(i, ...))
+      end
+      output[#output + 1] = table.concat(t, " ")
     end
     local ok, err = pcall(func)
     _G.print = orig_print
-    if not ok then error(err) end
+    if not ok then
+      error(err)
+    end
     return table.concat(output, "\n")
   end
 
   after_each(cleanup)
 
   it("lists dependencies from lockfile", function()
-    local lockfile_loader = function() return { dependencies = { foo = { version = "1.0.0" },
-      bar = { version = "2.0.0" } } } end
-    local manifest_loader = function() return { dependencies = { foo = { version = "1.0.0" },
-      bar = { version = "2.0.0" } } } end
+    local lockfile_loader = function()
+      return { dependencies = { foo = { version = "1.0.0" }, bar = { version = "2.0.0" } } }
+    end
+    local manifest_loader = function()
+      return { dependencies = { foo = { version = "1.0.0" }, bar = { version = "2.0.0" } } }
+    end
     local output = capture_print(function()
       list_module.list_dependencies(manifest_loader, lockfile_loader)
     end)
@@ -76,8 +83,12 @@ describe("list_module.list_dependencies", function()
   end)
 
   it("falls back to manifest if lockfile missing", function()
-    local lockfile_loader = function() return nil end
-    local manifest_loader = function() return { dependencies = { baz = { version = "3.0.0" } } } end
+    local lockfile_loader = function()
+      return nil
+    end
+    local manifest_loader = function()
+      return { dependencies = { baz = { version = "3.0.0" } } }
+    end
     local output = capture_print(function()
       list_module.list_dependencies(manifest_loader, lockfile_loader)
     end)
@@ -88,7 +99,9 @@ describe("list_module.list_dependencies", function()
     write_manifest({})
     os.remove(LOCKFILE)
     local out = capture_print(function()
-      list_module.list_dependencies(function() return {} end, LOCKFILE)
+      list_module.list_dependencies(function()
+        return {}
+      end, LOCKFILE)
     end)
     assert.is_true(out == "" or out:find("no dependencies") or true)
   end)

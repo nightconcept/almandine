@@ -2,7 +2,8 @@
   Add Command Module
 
   Provides functionality to add a dependency to the project manifest and download it to the lib directory.
-]]--
+]]
+--
 
 --- Adds a dependency to the project manifest and downloads it.
 -- @param dep_name string|nil Dependency name to add. If nil, inferred from source URL.
@@ -14,7 +15,10 @@
 local function add_dependency(dep_name, dep_source, load_manifest, save_manifest, ensure_lib_dir, downloader)
   ensure_lib_dir()
   local manifest, err = load_manifest()
-  if not manifest then print(err) return end
+  if not manifest then
+    print(err)
+    return
+  end
   manifest.dependencies = manifest.dependencies or {}
 
   -- If dep_name is missing, infer from URL (filename minus .lua)
@@ -33,7 +37,10 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
   end
   manifest.dependencies[dep_name] = dep_source
   local ok, err2 = save_manifest(manifest)
-  if not ok then print(err2) return end
+  if not ok then
+    print(err2)
+    return
+  end
   print(string.format("Added dependency '%s' to project.lua.", dep_name))
 
   local name, source = dep_name, dep_source
@@ -45,16 +52,11 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
   else
     url = source
     local filesystem_utils = require("utils.filesystem")
-    out_path = filesystem_utils.join_path(
-      "src",
-      "lib",
-      name .. ".lua"
-    )
+    out_path = filesystem_utils.join_path("src", "lib", name .. ".lua")
   end
   local ok3, err3 = downloader.download(url, out_path)
   if ok3 then
-    print(string.format("Downloaded %s to %s",
-      name, out_path))
+    print(string.format("Downloaded %s to %s", name, out_path))
   else
     print(string.format("Failed to download %s: %s", name, err3))
   end
@@ -80,5 +82,5 @@ end
 
 return {
   add_dependency = add_dependency,
-  help_info = help_info
+  help_info = help_info,
 }

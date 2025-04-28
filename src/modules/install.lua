@@ -2,7 +2,8 @@
   Install Command Module
 
   Provides functionality to install all dependencies listed in project.lua or a specific dependency.
-]]--
+]]
+--
 
 ---
 -- Installs dependencies from the manifest or lockfile.
@@ -27,13 +28,9 @@ local function install_dependencies(dep_name, load_manifest, ensure_lib_dir, dow
         else
           url = source
           local filesystem_utils = require("utils.filesystem")
-          out_path = filesystem_utils.join_path(
-            "src",
-            "lib",
-            name .. ".lua"
-          )
+          out_path = filesystem_utils.join_path("src", "lib", name .. ".lua")
         end
-        local ok3, err3 = (utils or {downloader=downloader}).downloader.download(url, out_path)
+        local ok3, err3 = (utils or { downloader = downloader }).downloader.download(url, out_path)
         if ok3 then
           print(string.format("Downloaded %s to %s", name, out_path))
         else
@@ -43,7 +40,10 @@ local function install_dependencies(dep_name, load_manifest, ensure_lib_dir, dow
     end
   else
     local manifest, err = load_manifest()
-    if not manifest then print(err) return end
+    if not manifest then
+      print(err)
+      return
+    end
     local deps = manifest.dependencies or {}
     for name, source in pairs(deps) do
       if (not dep_name) or (dep_name == name) then
@@ -55,13 +55,9 @@ local function install_dependencies(dep_name, load_manifest, ensure_lib_dir, dow
         else
           url = source
           local filesystem_utils = require("utils.filesystem")
-          out_path = filesystem_utils.join_path(
-            "src",
-            "lib",
-            name .. ".lua"
-          )
+          out_path = filesystem_utils.join_path("src", "lib", name .. ".lua")
         end
-        local ok3, err3 = (utils or {downloader=downloader}).downloader.download(url, out_path)
+        local ok3, err3 = (utils or { downloader = downloader }).downloader.download(url, out_path)
         if ok3 then
           print(string.format("Downloaded %s to %s", name, out_path))
         else
@@ -76,7 +72,8 @@ end
   Lockfile Management Module (migrated from src/lib/lockfile.lua)
   Provides functions to generate, serialize, and write the Almandine lockfile (`almd-lock.lua`).
   The lockfile captures exact dependency versions and hashes for reproducible builds.
-]]--
+]]
+--
 
 local lockfile = {}
 
@@ -101,13 +98,17 @@ function lockfile.generate_lockfile_table(resolved_deps)
     assert(type(dep) == "table", "Dependency entry must be a table")
     assert(dep.hash, "Dependency '" .. name .. "' must have a hash")
     local entry = { hash = dep.hash }
-    if dep.version then entry.version = dep.version end
-    if dep.source then entry.source = dep.source end
+    if dep.version then
+      entry.version = dep.version
+    end
+    if dep.source then
+      entry.source = dep.source
+    end
     pkgs[name] = entry
   end
   return {
     api_version = API_VERSION,
-    package = pkgs
+    package = pkgs,
   }
 end
 
@@ -120,7 +121,7 @@ function lockfile.serialize_lockfile(lockfile_table)
   local function serialize(tbl, indent)
     indent = indent or 0
     local pad = string.rep("  ", indent)
-    local lines = {"{"}
+    local lines = { "{" }
     for k, v in pairs(tbl) do
       local key = (type(k) == "string" and string.format("%s = ", k)) or ("[" .. tostring(k) .. "] = ")
       if type(v) == "table" then
@@ -146,7 +147,9 @@ function lockfile.write_lockfile(lockfile_table, path)
   path = path or "almd-lock.lua"
   local content = lockfile.serialize_lockfile(lockfile_table)
   local file, err = io.open(path, "w")
-  if not file then return false, err end
+  if not file then
+    return false, err
+  end
   file:write(content)
   file:close()
   return true, path
@@ -169,5 +172,5 @@ end
 return {
   install_dependencies = install_dependencies,
   lockfile = lockfile,
-  help_info = help_info
+  help_info = help_info,
 }

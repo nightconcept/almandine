@@ -2,7 +2,8 @@
   Init Module
 
   This module implements interactive project initialization, manifest creation, and related helpers.
-]]--
+]]
+--
 
 -- Add both src/ and src/lib/ to package.path for require
 local src_path = "src/?.lua"
@@ -22,10 +23,16 @@ local M = {}
 -- @return string The user's input or the default value if empty.
 local function prompt(msg, default)
   io.write(msg)
-  if default then io.write(" [" .. default .. "]") end
+  if default then
+    io.write(" [" .. default .. "]")
+  end
   io.write(": ")
   local input = io.read()
-  if input == "" or input == nil then return default else return input end
+  if input == "" or input == nil then
+    return default
+  else
+    return input
+  end
 end
 
 --- Saves the project manifest to project.lua.
@@ -33,20 +40,22 @@ end
 -- @return boolean, string True on success, false and error message on failure.
 local function save_manifest(manifest)
   local file, err = io.open("project.lua", "w")
-  if not file then return false, "Could not write project.lua: " .. tostring(err) end
+  if not file then
+    return false, "Could not write project.lua: " .. tostring(err)
+  end
   file:write("return {\n")
-  file:write(string.format("  name = \"%s\",\n", manifest.name or ""))
-  file:write(string.format("  type = \"%s\",\n", manifest.type or ""))
-  file:write(string.format("  version = \"%s\",\n", manifest.version or ""))
-  file:write(string.format("  license = \"%s\",\n", manifest.license or ""))
-  file:write(string.format("  description = \"%s\",\n", manifest.description or ""))
+  file:write(string.format('  name = "%s",\n', manifest.name or ""))
+  file:write(string.format('  type = "%s",\n', manifest.type or ""))
+  file:write(string.format('  version = "%s",\n', manifest.version or ""))
+  file:write(string.format('  license = "%s",\n', manifest.license or ""))
+  file:write(string.format('  description = "%s",\n', manifest.description or ""))
   file:write("  scripts = {\n")
   for k, v in pairs(manifest.scripts or {}) do
-    file:write(string.format("    %s = \"%s\",\n", k, v))
+    file:write(string.format('    %s = "%s",\n', k, v))
   end
   file:write("  },\n  dependencies = {\n")
   for k, v in pairs(manifest.dependencies or {}) do
-    file:write(string.format("    [%q] = \"%s\",\n", k, v))
+    file:write(string.format('    [%q] = "%s",\n', k, v))
   end
   file:write("  }\n}\n")
   file:close()
@@ -78,7 +87,9 @@ function M.init_project()
   print("Add scripts (leave name empty to finish):")
   while true do
     local script_name = prompt("  Script name")
-    if not script_name or script_name == "" then break end
+    if not script_name or script_name == "" then
+      break
+    end
     local script_cmd = prompt("    Command for '" .. script_name .. "'")
     manifest.scripts[script_name] = script_cmd
   end
@@ -88,7 +99,9 @@ function M.init_project()
   print("Add dependencies (leave name empty to finish):")
   while true do
     local dep_name = prompt("  Dependency name")
-    if not dep_name or dep_name == "" then break end
+    if not dep_name or dep_name == "" then
+      break
+    end
     local dep_ver = prompt("    Version/source for '" .. dep_name .. "'")
     manifest.dependencies[dep_name] = dep_ver
   end
