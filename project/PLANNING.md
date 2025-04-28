@@ -150,12 +150,14 @@ This rule is absolute and takes precedence over all other guidelines.
 - **Compatibility:** All code must be compatible with versions 5.1 through 5.4 and LuaJIT.
 
 ##### 2.2. Modularity & Structure
+
 - **File Length Limit:** No single Lua file (`.lua`) should exceed 500 lines of code. Refactor larger files into smaller, focused modules or helper files.
 - **Organization:** Structure code into clearly separated modules, logically grouped by feature or responsibility. Follow the existing file structure patterns outlined in `PLANNING.md`.
 - **Imports:** Use clear and consistent import paths. Prefer relative imports for modules within the same logical package/feature area. Confirm module paths exist before using them.
 - **Dependencies:** Use no external dependencies.
 
 ##### 2.3. Style & Formatting (Lua)
+
 - **Base Style:** Adhere to the Lua Standard Style guidelines.
 - **Type Hinting:** Use LDoc-style type annotations within documentation comments (`@type`, `@param name [type]`, `@return [type]`, `@class`, `@field`) where appropriate to clarify data structures and function signatures.
 - **Indentation:** Use 2 spaces for indentation (strictly enforce).
@@ -212,6 +214,7 @@ This rule is absolute and takes precedence over all other guidelines.
 - **DO NOT** include Lua/LuaJIT version compatibility info in the top file comment; this is covered by the overall project standard (Section 2.1).
 
 ##### 2.4. Documentation & Comments (LDoc)
+
 - **Docstrings:** Every public function, class, and module should have a documentation comment using the LDoc format (starting with `---`). Include descriptions for the element's purpose, parameters (`@param`), and return values (`@return`). Markdown within descriptions is permitted.
 - **Module Documentation:** Use a `---` comment block at the top of the file (after the file header block comment) to document the module itself, potentially using `@module ModuleName`.
 - **Example Format:**

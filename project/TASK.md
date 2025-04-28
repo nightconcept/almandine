@@ -95,6 +95,16 @@
   - [ ] Add `almd self uninstall` to remove wrapper scripts and Lua CLI folder.
   - [ ] Manual Verification: Run `almd self uninstall`, confirm all relevant files are deleted. (2025-04-28)
 
+## Milestone 6: Automated Release Workflow & Changelog
+
+- [ ] **Task 6.1: Automated Release Workflow & Changelog (2025-04-28)**
+  - [ ] Add a GitHub Action in `.github/workflows` to:
+    - Build a distributable release zip containing the CLI and all required files (for use by `almd self update`).
+    - Automatically generate a changelog listing all changes since the previous release (using commit messages or PR titles).
+    - Attach the zip and changelog to a new GitHub Release.
+    - Ensure the workflow is professional and cross-platform aware.
+  - [ ] Manual Verification: Trigger release, verify zip contents, changelog accuracy, and release quality.
+
 ---
 
 ## Active Work
