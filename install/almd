@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Almandine CLI wrapper script
 # Finds a suitable Lua interpreter and runs src/main.lua with all arguments.
 # Compatible with macOS and Linux.
