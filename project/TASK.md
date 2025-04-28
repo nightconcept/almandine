@@ -89,6 +89,10 @@
   - [ ] Add comprehensive tests for all code paths in manifest.safe_load_project_manifest (valid, file-not-found, syntax error, runtime error, non-table return).
   - [ ] Manual Verification: Run all tests, confirm all branches are covered in luacov.stats.
 
+- [ ] **Task 4.3: Ensure default 'run' script in project.lua** (2025-04-29)
+  - When initializing a new project, automatically include a 'run' script in the scripts table ("run = 'lua src/main.lua'") unless the user defines it interactively.
+  - Manual Verification: Run `almd init`, inspect project.lua, confirm 'run' script is present and correct.
+
 - [ ] **Update all usage/help text to refer to the CLI tool as `almd` (not `almandine`).**
 
 ## Milestone 5: Installer and Wrapper Scripts
