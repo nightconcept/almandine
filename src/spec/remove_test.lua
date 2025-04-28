@@ -16,7 +16,7 @@ if not string.find(package.path, lib_path, 1, true) then
 end
 
 local main = require("main")
-local manifest_loader = require("lib.manifest_loader")
+local manifest_loader = require("utils.manifest")
 
 local TEST_DEP_NAME = "testdep"
 local TEST_DEP_PATH = "src/lib/testdep.lua"

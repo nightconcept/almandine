@@ -81,6 +81,13 @@ Contains internal reusable Lua modules used by the Almandine package manager its
 
 Contains all CLI command modules (such as init, add, remove, etc.) for the package manager. All new modules must be placed here. Do not place command modules elsewhere.
 
+### `src/main.lua`
+
+Main entrypoint for the CLI. Responsible for:
+- Parsing CLI arguments and dispatching to the correct command module in `src/modules`.
+- Explicitly handling all standard command aliases (e.g., install/in/ins, remove/rm/uninstall/un, update/up/upgrade, add/i, etc.).
+- When adding or modifying commands or aliases, update `src/main.lua` to ensure all are handled, and update documentation/tasks accordingly.
+
 ## 5. Conclusion
 
 Almandine aims to provide a simple, robust, and reproducible workflow for Lua projects that need lightweight dependency management and script automation, without the complexity of full dependency trees.

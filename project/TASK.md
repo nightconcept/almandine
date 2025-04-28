@@ -57,9 +57,9 @@
   - [x] Remove dependencies from `project.lua` and project files.
   - [x] Manual Verification: Remove a dependency, verify it is deleted.
 
-- [ ] **Task 4.4: Implement `update`/`up`/`upgrade` command (`--latest` flag)**
-  - [ ] Update dependencies to latest allowed version or to latest with `--latest`.
-  - [ ] Manual Verification: Run update, check versions/hashes.
+- [x] **Task 4.4: Implement `update`/`up`/`upgrade` command (`--latest` flag)**
+  - [x] Update dependencies to latest allowed version or to latest with `--latest`.
+  - [x] Manual Verification: Run update, check versions/hashes.
 
 - [ ] **Task 4.5: Implement `run` command (allow omitting if no conflicts)**
   - [ ] Run scripts from `project.lua`; allow omitting `run` if no conflict.
@@ -80,6 +80,11 @@
   - [ ] Manual Verification: Run `almd install`, confirm it works as before.
 
 - [ ] **Refactor: Move all lockfile management logic from `src/lib/lockfile.lua` to `src/modules/install.lua`. Remove `src/lib/lockfile.lua` after migration. Update any references.**
+
+- [ ] **Refactor: Ensure all CLI command aliases and dispatcher logic are explicit in src/main.lua (2025-04-27)**
+  - [ ] Review all CLI commands and their common aliases (e.g., install/in/ins, remove/rm/uninstall/un, update/up/upgrade, add/i, etc.).
+  - [ ] Update src/main.lua to explicitly handle all aliases for each command.
+  - [ ] Manual Verification: Run each alias, confirm correct command dispatch.
 
 ---
 

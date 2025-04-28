@@ -9,10 +9,10 @@
 -- @param load_manifest function Function to load the manifest.
 -- @param save_manifest function Function to save the manifest.
 -- @param ensure_lib_dir function Function to ensure lib dir exists.
--- @param downloader table Downloader module.
+-- @param utils table Utils module.
 -- @param resolve_latest_version function Function to resolve latest version for a dependency (semver or commit).
 -- @param latest boolean Whether to force update to absolute latest version.
-local function update_dependencies(load_manifest, save_manifest, ensure_lib_dir, downloader, resolve_latest_version, latest)
+local function update_dependencies(load_manifest, save_manifest, ensure_lib_dir, utils, resolve_latest_version, latest)
   ensure_lib_dir()
   local manifest, err = load_manifest()
   if not manifest then print(err) return end
@@ -28,7 +28,7 @@ local function update_dependencies(load_manifest, save_manifest, ensure_lib_dir,
       print(string.format("%s is up to date", name))
     end
     local out_path = "src/lib/" .. name .. ".lua"
-    local ok, err2 = downloader.download(new_url or source, out_path)
+    local ok, err2 = utils.downloader.download(new_url or source, out_path)
     if ok then
       print(string.format("Downloaded %s to %s", name, out_path))
     else

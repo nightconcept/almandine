@@ -1,7 +1,8 @@
 --[[
   Install module tests for Almandine
 
-  Verifies correct behavior of the install_dependency function.
+  Verifies correct behavior of the install_dependencies function.
+  Ensures only dependencies present in the manifest are installed, and manifest is not modified.
   No external dependencies. All output is checked for correctness and reproducibility.
 ]]--
 
@@ -9,12 +10,12 @@
 package.path = package.path .. ";./src/?.lua;./src/?/init.lua;./src/?/?.lua"
 
 local install = require("modules.install")
-local install_dependency = install.install_dependency
+local install_dependencies = install.install_dependencies
 
---- Dummy manifest loader/saver for testing.
-local function make_manifest()
-  local manifest = { dependencies = {} }
-  return function() return manifest end, function(new_manifest) manifest = new_manifest return true end
+--- Dummy manifest loader for testing.
+local function make_manifest(deps)
+  local manifest = { dependencies = deps or {} }
+  return function() return manifest, nil end
 end
 
 --- Dummy ensure_lib_dir (no-op for test)
@@ -33,17 +34,37 @@ local function make_downloader()
   }
 end
 
--- Test: Add and install a new dependency
-local function test_install_single_dependency()
-  local load, save = make_manifest()
+-- Test: Install all dependencies from manifest
+local function test_install_all_dependencies()
+  local deps = {
+    foo = "https://example.com/foo.lua",
+    bar = { url = "https://example.com/bar.lua", path = "custom/bar.lua" }
+  }
+  local load = make_manifest(deps)
   local downloader = make_downloader()
-  install_dependency("foo", "https://example.com/foo.lua", load, save, ensure_lib_dir, downloader)
+  install_dependencies(nil, load, ensure_lib_dir, downloader)
   local downloads = downloader.get_downloads()
-  if #downloads == 1 and downloads[1].url == "https://example.com/foo.lua" then
-    print("[PASS] Single dependency install works.")
-  else
-    print("[FAIL] Single dependency install failed.")
-  end
+  assert(#downloads == 2, "Should install all dependencies")
+  assert(downloads[1].url == "https://example.com/foo.lua", "First dependency URL incorrect")
+  assert(downloads[2].url == "https://example.com/bar.lua", "Second dependency URL incorrect")
+  assert(downloads[2].out_path == "custom/bar.lua", "Table source out_path incorrect")
+  print("[PASS] Install all dependencies from manifest")
 end
 
+-- Test: Install single dependency from manifest
+local function test_install_single_dependency()
+  local deps = {
+    foo = "https://example.com/foo.lua",
+    bar = "https://example.com/bar.lua"
+  }
+  local load = make_manifest(deps)
+  local downloader = make_downloader()
+  install_dependencies("foo", load, ensure_lib_dir, downloader)
+  local downloads = downloader.get_downloads()
+  assert(#downloads == 1, "Should install only the specified dependency")
+  assert(downloads[1].url == "https://example.com/foo.lua", "Dependency URL incorrect")
+  print("[PASS] Single dependency install works.")
+end
+
+test_install_all_dependencies()
 test_install_single_dependency()

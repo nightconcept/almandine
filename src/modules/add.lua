@@ -11,7 +11,7 @@
 -- @param load_manifest function Function to load the manifest.
 -- @param save_manifest function Function to save the manifest.
 -- @param ensure_lib_dir function Function to ensure lib dir exists.
--- @param downloader table Downloader module.
+-- @param downloader table utils.downloader module.
 local function add_dependency(dep_name, dep_source, load_manifest, save_manifest, ensure_lib_dir, downloader)
   ensure_lib_dir()
   local manifest, err = load_manifest()

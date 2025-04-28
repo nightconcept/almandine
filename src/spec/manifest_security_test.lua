@@ -4,7 +4,7 @@
 ]]--
 
 -- Use the manifest_loader module directly for testing
-local manifest_loader = require("src.lib.manifest_loader")
+local manifest_loader = require("utils.manifest")
 
 local function write_file(path, content)
   local f = assert(io.open(path, "w"))

@@ -22,14 +22,15 @@ if not string.find(package.path, lib_path, 1, true) then
   package.path = lib_path .. ";" .. package.path
 end
 
-local downloader = require("downloader")
-local manifest_loader = require("manifest_loader")
+local downloader = require("utils.downloader")
+local manifest_loader = require("utils.manifest")
 local init_module = require("modules.init")
 local add_module = require("modules.add")
 local install_module = require("modules.install")
 local remove_module = require("modules.remove")
 local filesystem_utils = require("utils.filesystem")
 local version_utils = require("utils.version")
+local update_module = require("modules.update")
 
 local function load_manifest()
   local manifest, err = manifest_loader.safe_load_project_manifest("project.lua")
@@ -54,20 +55,37 @@ local function main(...)
       print("Usage: almandine add <dep_name> <source>")
     end
     return
-  elseif args[1] == "install" then
-    -- Usage: almandine install [<dep_name> <source>]
-    if args[2] and args[3] then
-      install_module.install_dependency(args[2], args[3], load_manifest, install_module.save_manifest or save_manifest, filesystem_utils.ensure_lib_dir, downloader)
+  elseif args[1] == "install" or args[1] == "in" or args[1] == "ins" then
+    -- Usage: almandine install [<dep_name>]
+    if args[2] then
+      install_module.install_dependencies(args[2], load_manifest, filesystem_utils.ensure_lib_dir, downloader)
     else
-      install_module.install_dependency(nil, nil, load_manifest, install_module.save_manifest or save_manifest, filesystem_utils.ensure_lib_dir, downloader)
+      install_module.install_dependencies(nil, load_manifest, filesystem_utils.ensure_lib_dir, downloader)
     end
     return
-  elseif args[1] == "remove" then
+  elseif args[1] == "remove" or args[1] == "rm" or args[1] == "uninstall" or args[1] == "un" then
     if args[2] then
       remove_module.remove_dependency(args[2], load_manifest, install_module.save_manifest or save_manifest)
     else
       print("Usage: almandine remove <dep_name>")
     end
+    return
+  elseif args[1] == "update" or args[1] == "up" or args[1] == "upgrade" then
+    -- Usage: almandine update [--latest]
+    local latest = false
+    for i = 2, #args do
+      if args[i] == "--latest" then
+        latest = true
+      end
+    end
+    update_module.update_dependencies(
+      load_manifest,
+      install_module.save_manifest or save_manifest,
+      filesystem_utils.ensure_lib_dir,
+      {downloader = downloader},
+      add_module.resolve_latest_version,
+      latest
+    )
     return
   elseif args[1] == "run" then
     if not args[2] then
@@ -99,9 +117,9 @@ local function main(...)
   -- TODO: Parse CLI arguments and dispatch to subcommands/modules
 end
 
--- Expose install_dependency and remove_dependency for testing
+-- Expose install_dependencies and remove_dependency for testing
 return {
-  install_dependency = install_module.install_dependency,
+  install_dependencies = install_module.install_dependencies,
   remove_dependency = remove_module.remove_dependency,
   main = main
 }

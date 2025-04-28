@@ -2,8 +2,9 @@
   Add Module Unit Test
 
   Tests the add_dependency function in src/modules/add.lua:
-  - Verifies that a dependency is added to the manifest
-  - Verifies that downloader is called with correct arguments
+  - Verifies that a dependency is added to the manifest and installed (downloader called)
+  - Verifies manifest update
+  - Verifies downloader is called
   - Stubs manifest loader/saver and downloader
   - Does not touch real files or network
 
@@ -17,6 +18,7 @@ if not string.find(package.path, src_path, 1, true) then
 end
 
 local add_mod = require("modules.add")
+local utils = require("utils")
 
 local function make_fake_manifest()
   return {
@@ -48,14 +50,7 @@ local function test_add_simple()
   end
   local downloader_called = false
   local downloader_args = {}
-  local downloader = {
-    download = function(url, out_path)
-      downloader_called = true
-      downloader_args.url = url
-      downloader_args.out_path = out_path
-      return true, nil
-    end
-  }
+  local downloader = utils.downloader
   local dep_name = "foo"
   local dep_url = "https://example.com/foo.lua"
   add_mod.add_dependency(dep_name, dep_url, load_manifest, save_manifest, ensure_lib_dir, downloader)
@@ -81,13 +76,7 @@ local function test_add_table_source()
   end
   local ensure_lib_dir = function() end
   local downloader_args = {}
-  local downloader = {
-    download = function(url, out_path)
-      downloader_args.url = url
-      downloader_args.out_path = out_path
-      return true, nil
-    end
-  }
+  local downloader = utils.downloader
   local dep_name = "bar"
   local dep_source = { url = "https://example.com/bar.lua", path = "custom/bar.lua" }
   add_mod.add_dependency(dep_name, dep_source, load_manifest, save_manifest, ensure_lib_dir, downloader)
@@ -102,7 +91,7 @@ local function test_add_no_dep()
   local function load_manifest() return manifest, nil end
   local save_manifest = function() error("Should not be called") end
   local ensure_lib_dir = function() end
-  local downloader = { download = function() error("Should not be called") end }
+  local downloader = utils.downloader
   add_mod.add_dependency(nil, nil, load_manifest, save_manifest, ensure_lib_dir, downloader)
   print("[PASS] test_add_no_dep (no error)")
 end

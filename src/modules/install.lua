@@ -4,25 +4,25 @@
   Provides functionality to install all dependencies listed in project.lua or a specific dependency. Extracted from main.lua as part of modularization.
 ]]--
 
---- Installs all dependencies listed in project.lua or a specific dependency.
+---
+-- Installs dependencies from the manifest or lockfile.
+-- If dep_name is provided, only installs that dependency.
 -- @param dep_name string|nil Dependency name to install (or all if nil).
--- @param dep_source string|nil Dependency source string (if installing a new dep).
 -- @param load_manifest function Function to load the manifest.
--- @param save_manifest function Function to save the manifest.
 -- @param ensure_lib_dir function Function to ensure lib dir exists.
--- @param downloader table Downloader module.
-local function install_dependency(dep_name, dep_source, load_manifest, save_manifest, ensure_lib_dir, downloader)
+-- @param downloader table utils.downloader module.
+-- @param lockfile_deps table|nil Lockfile dependency table (optional)
+local function install_dependencies(dep_name, load_manifest, ensure_lib_dir, downloader, lockfile_deps)
   ensure_lib_dir()
-  local manifest, err = load_manifest()
-  if not manifest then print(err) return end
-  manifest.dependencies = manifest.dependencies or {}
-  if dep_name and dep_source then
-    manifest.dependencies[dep_name] = dep_source
-    local ok, err2 = save_manifest(manifest)
-    if not ok then print(err2) return end
-    print(string.format("Added dependency '%s' to project.lua.", dep_name))
+  local deps = {}
+  if lockfile_deps then
+    deps = lockfile_deps
+  else
+    local manifest, err = load_manifest()
+    if not manifest then print(err) return end
+    deps = manifest.dependencies or {}
   end
-  for name, source in pairs(manifest.dependencies) do
+  for name, source in pairs(deps) do
     if (not dep_name) or (dep_name == name) then
       local out_path
       local url
@@ -33,7 +33,7 @@ local function install_dependency(dep_name, dep_source, load_manifest, save_mani
         url = source
         out_path = "src/lib/" .. name .. ".lua"
       end
-      local ok3, err3 = downloader.download(url, out_path)
+      local ok3, err3 = utils.downloader.download(url, out_path)
       if ok3 then
         print(string.format("Downloaded %s to %s", name, out_path))
       else
@@ -124,6 +124,6 @@ function lockfile.write_lockfile(lockfile_table, path)
 end
 
 return {
-  install_dependency = install_dependency,
+  install_dependencies = install_dependencies,
   lockfile = lockfile
 }

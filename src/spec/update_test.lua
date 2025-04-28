@@ -9,6 +9,7 @@ package.path = package.path .. ";./src/?.lua;./src/?/init.lua;./src/?/?.lua"
 
 local update = require("modules.update")
 local update_dependencies = update.update_dependencies
+local utils = require("utils")
 
 --- Dummy manifest loader/saver for testing.
 local function make_manifest()
@@ -46,7 +47,7 @@ end
 -- Test: Update dependency to latest allowed version
 local function test_update_default()
   local load, save = make_manifest()
-  local downloader = make_downloader()
+  local downloader = utils.downloader or make_downloader()
   local resolve_latest_version = make_resolver()
   update_dependencies(load, save, ensure_lib_dir, downloader, resolve_latest_version, false)
   local downloads = downloader.get_downloads()
@@ -59,8 +60,8 @@ end
 
 -- Test: Update dependency to absolute latest version
 local function test_update_latest()
-  local load, save = make_manifest()
-  local downloader = make_downloader()
+  local load, save = utils.manifest or make_manifest()
+  local downloader = utils.downloader or make_downloader()
   local resolve_latest_version = make_resolver()
   update_dependencies(load, save, ensure_lib_dir, downloader, resolve_latest_version, true)
   local downloads = downloader.get_downloads()

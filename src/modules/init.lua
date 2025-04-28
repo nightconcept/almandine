@@ -14,7 +14,7 @@ if not string.find(package.path, lib_path, 1, true) then
   package.path = lib_path .. ";" .. package.path
 end
 
-local manifest_loader = require("manifest_loader")
+local manifest_loader = require("utils.manifest")
 
 local M = {}
 
