@@ -15,12 +15,22 @@ local function run_script(script_name, manifest_loader)
     return false, "Failed to load project manifest."
   end
   local scripts = manifest.scripts or {}
-  local command = scripts[script_name]
-  if not command then
+  if not scripts or not scripts[script_name] then
+    print(string.format(
+      "Script '%s' not found in project.lua.",
+      script_name
+    ))
     return false, string.format(
       "Script '%s' not found in project.lua.",
       script_name
     )
+  end
+  local script = scripts[script_name]
+  local cmd = script.cmd or script
+  local args = script.args or {}
+  local command = cmd
+  if #args > 0 then
+    command = cmd .. " " .. table.concat(args, " ")
   end
   print(string.format(
     "Running script '%s': %s",

@@ -1,5 +1,5 @@
 --[[
-  Self-management commands for Almandine Package Manager
+  Self Command Module
 
   Cross-platform (POSIX and Windows) implementation for self-uninstall and future self-update features.
   This module provides removal of CLI wrapper scripts and the CLI Lua folder, working on both Unix-like and Windows systems.
@@ -53,13 +53,8 @@ end
 -- Usage: almd self uninstall
 -- Uninstalls the Almandine CLI and removes all associated files.
 local function help_info()
-  print([[
-Usage: almd self uninstall
-
-Uninstalls the Almandine CLI, removing all wrapper scripts and the src/
-folder. Example:
-  almd self uninstall
-]])
+  print("Usage: almd self uninstall")
+  print("Uninstalls the Almandine CLI and removes all associated files.")
 end
 
 return {

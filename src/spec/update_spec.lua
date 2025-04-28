@@ -6,6 +6,9 @@
   - Uses stubs/mocks for manifest, downloader, and resolver.
 ]]--
 
+-- luacheck: globals describe it assert
+local busted = require("busted")
+
 --- Update module specification for Busted.
 -- @module update_spec
 

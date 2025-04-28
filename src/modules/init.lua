@@ -1,5 +1,5 @@
 --[[
-  Project Initialization Module for Almandine
+  Init Module
 
   This module implements interactive project initialization, manifest creation, and related helpers.
 ]]--

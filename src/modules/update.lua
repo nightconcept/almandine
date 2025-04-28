@@ -1,8 +1,7 @@
 --[[
-  Update Module
+  Update Command Module
 
   Provides functionality to update dependencies to the latest allowed version or the absolute latest version if the `--latest` flag is provided.
-  Implements Task 4.4 from TASK.md.
 ]]--
 
 --- Updates all dependencies in project.lua to the latest allowed version, or to the latest available if `--latest` is set.
@@ -30,7 +29,18 @@ local function update_dependencies(load_manifest, save_manifest, ensure_lib_dir,
       local out_path = dep_tbl.path or ("src/lib/" .. name .. ".lua")
       local ok, err2 = utils.downloader.download(url, out_path)
       if not ok then
-        print(err2)
+        print(string.format(
+          "Failed to download %s: %s",
+          name,
+          err2 or "unknown error"
+        ))
+      else
+        print(string.format(
+          "Updating %s from %s to %s",
+          name,
+          dep_tbl.version or "(unknown)",
+          new_version
+        ))
       end
       -- If we upgraded from a string, update the manifest entry to a table
       manifest.dependencies[name] = dep_tbl

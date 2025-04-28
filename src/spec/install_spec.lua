@@ -6,6 +6,10 @@
   - Ensures manifest is not modified and only manifest dependencies are installed.
 ]]--
 
+-- luacheck: globals describe it assert
+
+local busted = require("busted")
+
 --- Install module specification for Busted.
 -- @module install_spec
 

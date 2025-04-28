@@ -1,8 +1,7 @@
 --[[
-  Remove Module
+  Remove Command Module
 
   Provides functionality to remove a dependency from the project manifest and delete the corresponding file from the lib directory.
-  Extracted from main.lua as part of modularization (Task 4.3).
 ]]--
 
 --- Removes a dependency from project.lua and deletes its file.
@@ -22,7 +21,8 @@ local function remove_dependency(dep_name, load_manifest, save_manifest)
   local dep_path
   if type(dep) == "table" and dep.path then
     dep_path = dep.path
-  elseif _G.dependency_add_test_paths and _G.dependency_add_test_paths[dep_name] then
+  elseif _G.dependency_add_test_paths and 
+    _G.dependency_add_test_paths[dep_name] then
     dep_path = _G.dependency_add_test_paths[dep_name]
   else
     local filesystem_utils = require("utils.filesystem")
@@ -36,7 +36,8 @@ local function remove_dependency(dep_name, load_manifest, save_manifest)
   if removed then
     print(string.format("Deleted file %s", dep_path))
   else
-    print(string.format("Warning: Could not delete file %s (may not exist)", dep_path))
+    print(string.format("Warning: Could not delete file %s (may not exist)", 
+      dep_path))
   end
 end
 

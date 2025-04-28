@@ -47,7 +47,9 @@ local function main(...)
   --- The main entry point for the Almandine CLI application.
   --
   -- @param ... string CLI arguments.
-  version_utils.check_lua_version(load_manifest)
+  version_utils.check_lua_version(
+    load_manifest
+  )
   local args = {...}
   -- Modular help delegation
   if args[1] == "--help" or args[1] == "help" or (args[2] and args[2] == "--help") then

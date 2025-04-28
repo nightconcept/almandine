@@ -4,6 +4,8 @@
   This test creates dummy wrapper scripts and a dummy src/ directory, invokes uninstall_self(), and asserts that all targets are removed.
 ]]--
 
+local busted = require("busted")
+
 -- Add src/ to package.path for module resolution
 local src_path = "src/?.lua"
 if not string.find(package.path, src_path, 1, true) then

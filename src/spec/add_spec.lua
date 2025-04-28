@@ -6,6 +6,10 @@
   - Uses only stubs/mocks and does not touch real files or network.
 ]]--
 
+local busted = require("busted")
+
+-- luacheck: globals describe it assert
+
 --- Add module specification for Busted.
 -- @module add_spec
 

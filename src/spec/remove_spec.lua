@@ -6,9 +6,12 @@
   - Handles both existing and non-existent dependencies.
 ]]--
 
+-- luacheck: globals describe it after_each assert
+
 --- Remove module specification for Busted.
 -- @module remove_spec
 
+local busted = require("busted")
 local remove_module = require("modules.remove")
 local manifest_loader = require("utils.manifest")
 
@@ -68,6 +71,7 @@ describe("remove_module.remove_dependency", function()
     end
     remove_module.remove_dependency(TEST_DEP_NAME, manifest_loader.safe_load_project_manifest, save_manifest)
     local manifest = manifest_loader.safe_load_project_manifest()
+    -- TODO: Check for nil value before using result
     assert.is_not_nil(manifest)
     assert.is_nil((manifest.dependencies or {})[TEST_DEP_NAME])
     assert.is_false(file_exists(TEST_DEP_PATH))

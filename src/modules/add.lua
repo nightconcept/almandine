@@ -1,8 +1,7 @@
 --[[
-  Add Module
+  Add Command Module
 
   Provides functionality to add a dependency to the project manifest and download it to the lib directory.
-  Extracted from main.lua as part of modularization.
 ]]--
 
 --- Adds a dependency to the project manifest and downloads it.
@@ -54,7 +53,8 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
   end
   local ok3, err3 = downloader.download(url, out_path)
   if ok3 then
-    print(string.format("Downloaded %s to %s", name, out_path))
+    print(string.format("Downloaded %s to %s",
+      name, out_path))
   else
     print(string.format("Failed to download %s: %s", name, err3))
   end

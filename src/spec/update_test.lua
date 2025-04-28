@@ -5,6 +5,8 @@
   No external dependencies. All output is checked for correctness and reproducibility.
 ]]--
 
+local busted = require("busted")
+
 package.path = package.path .. ";./src/?.lua;./src/?/init.lua;./src/?/?.lua"
 
 local update = require("modules.update")

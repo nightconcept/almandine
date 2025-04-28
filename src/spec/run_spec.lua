@@ -5,6 +5,10 @@
   - Verifies script running, error handling, reserved command detection, and script resolution.
 ]]--
 
+-- luacheck: globals describe it assert
+
+local busted = require("busted")
+
 --- Run module specification for Busted.
 -- @module run_spec
 

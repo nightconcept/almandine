@@ -6,6 +6,10 @@
   - Covers lockfile, manifest fallback, and empty dependency scenarios.
 ]]--
 
+-- luacheck: globals describe it after_each assert
+
+local busted = require("busted")
+
 --- List module specification for Busted.
 -- @module list_spec
 

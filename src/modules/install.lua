@@ -1,7 +1,7 @@
 --[[
-  Install Module
+  Install Command Module
 
-  Provides functionality to install all dependencies listed in project.lua or a specific dependency. Extracted from main.lua as part of modularization.
+  Provides functionality to install all dependencies listed in project.lua or a specific dependency.
 ]]--
 
 ---
@@ -17,28 +17,56 @@ local function install_dependencies(dep_name, load_manifest, ensure_lib_dir, dow
   ensure_lib_dir()
   if lockfile_deps then
     local deps = lockfile_deps
+    for name, source in pairs(deps) do
+      if (not dep_name) or (dep_name == name) then
+        local out_path
+        local url
+        if type(source) == "table" and source.url and source.path then
+          url = source.url
+          out_path = source.path
+        else
+          url = source
+          local filesystem_utils = require("utils.filesystem")
+          out_path = filesystem_utils.join_path(
+            "src",
+            "lib",
+            name .. ".lua"
+          )
+        end
+        local ok3, err3 = (utils or {downloader=downloader}).downloader.download(url, out_path)
+        if ok3 then
+          print(string.format("Downloaded %s to %s", name, out_path))
+        else
+          print(string.format("Failed to download %s: %s", name, err3))
+        end
+      end
+    end
   else
     local manifest, err = load_manifest()
     if not manifest then print(err) return end
     local deps = manifest.dependencies or {}
-  end
-  for name, source in pairs(deps) do
-    if (not dep_name) or (dep_name == name) then
-      local out_path
-      local url
-      if type(source) == "table" and source.url and source.path then
-        url = source.url
-        out_path = source.path
-      else
-        url = source
-        local filesystem_utils = require("utils.filesystem")
-        out_path = filesystem_utils.join_path("src", "lib", name .. ".lua")
-      end
-      local ok3, err3 = (utils or {downloader=downloader}).downloader.download(url, out_path)
-      if ok3 then
-        print(string.format("Downloaded %s to %s", name, out_path))
-      else
-        print(string.format("Failed to download %s: %s", name, err3))
+    for name, source in pairs(deps) do
+      if (not dep_name) or (dep_name == name) then
+        local out_path
+        local url
+        if type(source) == "table" and source.url and source.path then
+          url = source.url
+          out_path = source.path
+        else
+          url = source
+          local filesystem_utils = require("utils.filesystem")
+          out_path = filesystem_utils.join_path(
+            "src",
+            "lib",
+            name .. ".lua"
+          )
+        end
+        local ok3, err3 = (utils or {downloader=downloader}).downloader.download(url, out_path)
+        if ok3 then
+          print(string.format("Downloaded %s to %s", name, out_path))
+        else
+          print(string.format("Failed to download %s: %s", name, err3))
+        end
       end
     end
   end
