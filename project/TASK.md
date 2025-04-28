@@ -163,4 +163,9 @@
   - [ ] Script must block commit if any staged `.lua` files fail `luacheck`.
   - [ ] Manual Verification: Copy hook to `.git/hooks/pre-commit`, stage a `.lua` file with a lint error, and confirm commit is blocked.
 
+- [ ] **Task 7.4: Add `.luacov` config to exclude `.luarocks/lua/` from coverage (2025-04-28)**
+  - [ ] Create `.luacov` in the project root.
+  - [ ] Exclude `.luarocks/lua/` from coverage to prevent skewed results.
+  - [ ] Manual Verification: Confirm coverage report excludes `.luarocks/lua/` files.
+
 *Last updated: 2025-04-29*
