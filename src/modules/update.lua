@@ -15,8 +15,15 @@
 -- @param resolve_latest_version function Function to resolve latest version for a dependency (semver or commit).
 -- @param _latest boolean|nil Whether to force update to absolute latest version.
 -- @param printer function|nil Optional print function for output (default: print)
-local function update_dependencies(load_manifest, save_manifest, ensure_lib_dir, utils, resolve_latest_version,
-  _latest, printer)
+local function update_dependencies(
+  load_manifest,
+  save_manifest,
+  ensure_lib_dir,
+  utils,
+  resolve_latest_version,
+  _latest,
+  printer
+)
   printer = printer or print
   ensure_lib_dir()
   local manifest, err = load_manifest()
@@ -38,18 +45,9 @@ local function update_dependencies(load_manifest, save_manifest, ensure_lib_dir,
       local out_path = dep_tbl.path or ("src/lib/" .. name .. ".lua")
       local ok, err2 = utils.downloader.download(url, out_path)
       if not ok then
-        printer(string.format(
-          "Failed to download %s: %s",
-          name,
-          err2 or "unknown error"
-        ))
+        printer(string.format("Failed to download %s: %s", name, err2 or "unknown error"))
       else
-        printer(string.format(
-          "Updating %s from %s to %s",
-          name,
-          dep_tbl.version or "(unknown)",
-          new_version
-        ))
+        printer(string.format("Updating %s from %s to %s", name, dep_tbl.version or "(unknown)", new_version))
       end
       -- If we upgraded from a string, update the manifest entry to a table
       manifest.dependencies[name] = dep_tbl
