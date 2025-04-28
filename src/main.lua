@@ -88,7 +88,7 @@ Scripts:
    run                   Run a script defined in project.lua scripts table
 
 Self-management:
-   self uninstall        Remove the almd CLI and wrapper scripts
+   self uninstall        Remove the almd CLI
 
 Options:
   -h, --help             Show this help message
@@ -213,7 +213,7 @@ For help with a command: almd help <command> or almd <command> --help
   elseif args[1] == "self" and args[2] == "uninstall" then
     local ok, err = self_module.uninstall_self()
     if ok then
-      print("almd self uninstall: Success. Wrapper scripts and src/ folder removed.")
+      print("almd self uninstall: Success.")
     else
       print("almd self uninstall: Failed.\n" .. (err or "Unknown error."))
     end
