@@ -86,7 +86,9 @@ describe("install_module.install_dependencies", function()
       foo = "https://example.com/foo.lua",
       bar = { url = "https://example.com/bar.lua", path = "custom/bar.lua" },
     }
-    local load = function() error("should not call load_manifest when lockfile_deps provided") end
+    local load = function()
+      error("should not call load_manifest when lockfile_deps provided")
+    end
     local downloader = make_downloader()
     local utils = { downloader = downloader }
     install_dependencies(nil, load, ensure_lib_dir, downloader, utils, lockfile_deps)
@@ -94,22 +96,32 @@ describe("install_module.install_dependencies", function()
     assert.are.equal(#downloads, 2)
     local found_foo, found_bar, found_custom = false, false, false
     for _, d in ipairs(downloads) do
-      if d.url == "https://example.com/foo.lua" then found_foo = true end
-      if d.url == "https://example.com/bar.lua" then found_bar = true end
-      if d.out_path == "custom/bar.lua" then found_custom = true end
+      if d.url == "https://example.com/foo.lua" then
+        found_foo = true
+      end
+      if d.url == "https://example.com/bar.lua" then
+        found_bar = true
+      end
+      if d.out_path == "custom/bar.lua" then
+        found_custom = true
+      end
     end
     assert.is_true(found_foo and found_bar and found_custom)
   end)
 
   it("prints error and returns if manifest fails to load", function()
-    local load = function() return nil, "load error!" end
+    local load = function()
+      return nil, "load error!"
+    end
     local downloader = make_downloader()
     local utils = { downloader = downloader }
     local printed = nil
-    local print_stub = require("luassert.stub")(_G, "print", function(msg) printed = msg end)
+    local print_stub = require("luassert.stub")(_G, "print", function(msg)
+      printed = msg
+    end)
     install_dependencies(nil, load, ensure_lib_dir, downloader, utils)
     print_stub:revert()
-    assert.is_true(type(printed) == "string" and printed:match("load error!"))
+    assert.is_truthy(type(printed) == "string" and printed:match("load error!"))
     assert.is_true(type(#downloader.get_downloads()) == "number" and #downloader.get_downloads() == 0)
   end)
 
@@ -131,27 +143,35 @@ describe("install_module.install_dependencies", function()
     end)
 
     it("errors if resolved_deps is not a table", function()
-      assert.has_error(function() lockfile.generate_lockfile_table(nil) end)
+      assert.has_error(function()
+        lockfile.generate_lockfile_table(nil)
+      end)
     end)
 
     it("errors if dependency entry is not a table", function()
       local resolved = { foo = "notatable" }
-      assert.has_error(function() lockfile.generate_lockfile_table(resolved) end)
+      assert.has_error(function()
+        lockfile.generate_lockfile_table(resolved)
+      end)
     end)
 
     it("errors if dependency entry is missing hash", function()
       local resolved = { foo = {} }
-      assert.has_error(function() lockfile.generate_lockfile_table(resolved) end)
+      assert.has_error(function()
+        lockfile.generate_lockfile_table(resolved)
+      end)
     end)
 
     it("serializes lockfile table to Lua string", function()
       local tbl = { api_version = "1", package = { foo = { hash = "abc" } } }
       local str = lockfile.serialize_lockfile(tbl)
-      assert.is_true(type(str) == "string" and str:match("return"))
+      assert.is_truthy(type(str) == "string" and str:match("return"))
     end)
 
     it("errors if serialize_lockfile arg is not a table", function()
-      assert.has_error(function() lockfile.serialize_lockfile(nil) end)
+      assert.has_error(function()
+        lockfile.serialize_lockfile(nil)
+      end)
     end)
 
     it("writes lockfile to disk and returns true", function()
@@ -168,7 +188,9 @@ describe("install_module.install_dependencies", function()
 
     it("returns false and error if file cannot be opened", function()
       local tbl = { api_version = "1", package = { foo = { hash = "abc" } } }
-      local io_stub = require("luassert.stub")(io, "open", function() return nil, "fail open" end)
+      local io_stub = require("luassert.stub")(io, "open", function()
+        return nil, "fail open"
+      end)
       local ok, err = lockfile.write_lockfile(tbl, "bad-path")
       io_stub:revert()
       assert.is_false(ok)
@@ -179,9 +201,11 @@ describe("install_module.install_dependencies", function()
   it("prints help_info output", function()
     local help = install_mod.help_info
     local printed = {}
-    local print_stub = require("luassert.stub")(_G, "print", function(msg) table.insert(printed, msg) end)
+    local print_stub = require("luassert.stub")(_G, "print", function(msg)
+      table.insert(printed, msg)
+    end)
     help()
     print_stub:revert()
-    assert.is_true(#printed > 0 and tostring(printed[1]):match("Usage: almd install"))
+    assert.is_truthy(#printed > 0 and tostring(printed[1]):match("Usage: almd install"))
   end)
 end)

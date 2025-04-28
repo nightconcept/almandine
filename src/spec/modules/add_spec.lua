@@ -152,9 +152,15 @@ describe("add_module.add_dependency", function()
     end
     local save_manifest = function() end
     local ensure_lib_dir = function() end
-    local downloader = { download = function() return true, nil end }
+    local downloader = {
+      download = function()
+        return true, nil
+      end,
+    }
     local printed = {}
-    stub(_G, "print", function(msg) table.insert(printed, tostring(msg)) end)
+    stub(_G, "print", function(msg)
+      table.insert(printed, tostring(msg))
+    end)
     assert.has_no.errors(function()
       require("modules.add").add_dependency("foo", "url", load_manifest, save_manifest, ensure_lib_dir, downloader)
     end)
@@ -163,13 +169,23 @@ describe("add_module.add_dependency", function()
 
   it("prints error and returns if dep_name cannot be inferred from bad URL", function()
     local manifest = { dependencies = {} }
-    local function load_manifest() return manifest, nil end
+    local function load_manifest()
+      return manifest, nil
+    end
     local save_manifest_called = false
-    local save_manifest = function() save_manifest_called = true end
+    local save_manifest = function()
+      save_manifest_called = true
+    end
     local ensure_lib_dir = function() end
-    local downloader = { download = function() return true, nil end }
+    local downloader = {
+      download = function()
+        return true, nil
+      end,
+    }
     local printed = {}
-    stub(_G, "print", function(msg) table.insert(printed, tostring(msg)) end)
+    stub(_G, "print", function(msg)
+      table.insert(printed, tostring(msg))
+    end)
     assert.has_no.errors(function()
       require("modules.add").add_dependency(
         nil,
@@ -186,12 +202,22 @@ describe("add_module.add_dependency", function()
 
   it("prints error and returns if save_manifest fails", function()
     local manifest = { dependencies = {} }
-    local function load_manifest() return manifest, nil end
-    local function save_manifest() return false, "save failed" end
+    local function load_manifest()
+      return manifest, nil
+    end
+    local function save_manifest()
+      return false, "save failed"
+    end
     local ensure_lib_dir = function() end
-    local downloader = { download = function() return true, nil end }
+    local downloader = {
+      download = function()
+        return true, nil
+      end,
+    }
     local printed = {}
-    stub(_G, "print", function(msg) table.insert(printed, tostring(msg)) end)
+    stub(_G, "print", function(msg)
+      table.insert(printed, tostring(msg))
+    end)
     assert.has_no.errors(function()
       require("modules.add").add_dependency("foo", "url", load_manifest, save_manifest, ensure_lib_dir, downloader)
     end)
@@ -200,12 +226,22 @@ describe("add_module.add_dependency", function()
 
   it("prints error if downloader fails", function()
     local manifest = { dependencies = {} }
-    local function load_manifest() return manifest, nil end
-    local function save_manifest() return true, nil end
+    local function load_manifest()
+      return manifest, nil
+    end
+    local function save_manifest()
+      return true, nil
+    end
     local ensure_lib_dir = function() end
-    local downloader = { download = function() return false, "download failed" end }
+    local downloader = {
+      download = function()
+        return false, "download failed"
+      end,
+    }
     local printed = {}
-    stub(_G, "print", function(msg) table.insert(printed, tostring(msg)) end)
+    stub(_G, "print", function(msg)
+      table.insert(printed, tostring(msg))
+    end)
     assert.has_no.errors(function()
       require("modules.add").add_dependency("foo", "url", load_manifest, save_manifest, ensure_lib_dir, downloader)
     end)
@@ -217,7 +253,9 @@ describe("add_module.add_dependency", function()
   it("prints usage/help output", function()
     local add_mod_local = require("modules.add")
     local output = {}
-    stub(_G, "print", function(msg) table.insert(output, tostring(msg)) end)
+    stub(_G, "print", function(msg)
+      table.insert(output, tostring(msg))
+    end)
     assert.has_no.errors(function()
       add_mod_local.help_info()
     end)

@@ -2,7 +2,8 @@
   Spec: Filesystem Utilities
 
   Tests for src/utils/filesystem.lua covering directory creation and path joining.
-]]--
+]]
+--
 
 local filesystem = require("utils.filesystem")
 
@@ -33,7 +34,7 @@ describe("filesystem.ensure_lib_dir", function()
       return 0
     end
     filesystem.ensure_lib_dir(test_sep, fake_execute)
-    assert.is_true(type(called) == "string" and called:match("mkdir %-p src/lib"))
+    assert.is_truthy(type(called) == "string" and called:match("mkdir %-p src/lib"))
   end)
 
   it("calls os.execute with correct mkdir on windows", function()
@@ -44,6 +45,6 @@ describe("filesystem.ensure_lib_dir", function()
       return 0
     end
     filesystem.ensure_lib_dir(test_sep, fake_execute)
-    assert.is_true(type(called) == "string" and called:match("mkdir src\\lib"))
+    assert.is_truthy(type(called) == "string" and called:match("mkdir src\\lib"))
   end)
 end)
