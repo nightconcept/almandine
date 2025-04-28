@@ -10,8 +10,10 @@
 -- Executes a script by name from the project manifest.
 -- @param script_name [string] The key of the script in the scripts table.
 -- @param manifest_loader [table] The manifest loader module.
+-- @param executor [function] (optional) Function to execute the command, defaults to os.execute.
 -- @return [boolean, string] True and output if successful, false and error message otherwise.
-local function run_script(script_name, manifest_loader)
+local function run_script(script_name, manifest_loader, executor)
+  executor = executor or os.execute
   local manifest = manifest_loader.safe_load_project_manifest("project.lua")
   if not manifest then
     return false, "Failed to load project manifest."
@@ -29,7 +31,7 @@ local function run_script(script_name, manifest_loader)
     command = cmd .. " " .. table.concat(args, " ")
   end
   print(string.format("Running script '%s': %s", script_name, command))
-  local ok, exit_reason, code = os.execute(command)
+  local ok, exit_reason, code = executor(command)
   if ok then
     print(string.format("Script '%s' completed successfully.", script_name))
     return true, nil

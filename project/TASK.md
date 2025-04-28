@@ -133,6 +133,16 @@
 
 ---
 
+## Lessons Learned (2025-04-28)
+
+- **Never overwrite or assign to read-only global fields (e.g., `os.execute`) in tests or implementation code.**
+  - This practice is flagged by luacheck and can cause subtle bugs or incompatibilities across Lua versions and environments.
+  - **Preferred approach:** Refactor code to allow dependency injection (e.g., pass an executor function as a parameter), so tests can inject mocks or stubs without touching global state.
+  - If output capture is required in tests, prefer dependency injection or local overrides. Directly overriding global functions like `print` or redirecting `io.output` may not work reliably in all environments (especially with Busted or other test runners).
+  - Always verify that any test workaround is both cross-platform and compliant with project linting and style rules.
+
+---
+
 ## Active Work
 
 - [ ] **Task 6.2: Migrate all src/spec tests to Busted framework (2025-04-28)**

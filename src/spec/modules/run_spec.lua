@@ -50,4 +50,46 @@ describe("run_module", function()
     assert.are.equal(run_module.get_unambiguous_script("foo", loader), "foo")
     assert.is_nil(run_module.get_unambiguous_script("baz", loader))
   end)
+
+  it("returns error if manifest fails to load", function()
+    local loader = {
+      safe_load_project_manifest = function()
+        return nil
+      end,
+    }
+    local ok, err = run_module.run_script("hello", loader)
+    assert.is_false(ok)
+    assert.matches("Failed to load project manifest", err)
+  end)
+
+  it("runs a script with cmd and args table", function()
+    local scripts = {
+      hello = { cmd = "echo", args = { "hello", "world" } },
+    }
+    local loader = fake_manifest_loader(scripts)
+    local ok, _ = run_module.run_script("hello", loader)
+    assert.is_true(ok)
+  end)
+
+  it("handles script execution failure", function()
+    local scripts = { fail = "failing_cmd" }
+    local loader = fake_manifest_loader(scripts)
+    local fake_executor = function()
+      return false, "exit", 1
+    end
+    local ok, err = run_module.run_script("fail", loader, fake_executor)
+    assert.is_false(ok)
+    assert.matches("failed", err)
+  end)
+
+  it("handles empty scripts table", function()
+    local loader = fake_manifest_loader({})
+    local ok, err = run_module.run_script("anything", loader)
+    assert.is_false(ok)
+    assert.matches("not found", err)
+  end)
+
+  it("prints help info", function()
+    assert.has_no.errors(run_module.help_info)
+  end)
 end)
