@@ -49,6 +49,45 @@ local function main(...)
   -- @param ... string CLI arguments.
   version_utils.check_lua_version(load_manifest)
   local args = {...}
+  -- Modular help delegation
+  if args[1] == "--help" or args[1] == "help" or (args[2] and args[2] == "--help") then
+    local cmd = args[2] or args[1]
+    local help_map = {
+      init = init_module.help_info,
+      add = add_module.help_info,
+      install = install_module.help_info,
+      remove = remove_module.help_info,
+      update = update_module.help_info,
+      run = run_module.help_info,
+      list = list_module.help_info,
+      ["self"] = self_module.help_info
+    }
+    if not args[2] or args[1] == "--help" then
+      print([[almd: Modern Lua Package Manager
+
+Usage: almd <command> [options]
+
+Commands:
+  init       Initialize a new Lua project
+  add        Add a dependency to the project
+  install    Install dependencies
+  remove     Remove a dependency
+  update     Update dependencies
+  run        Run a project script
+  list       List installed dependencies
+  self       Self-management commands
+
+For help with a command: almd help <command> or almd <command> --help
+]])
+      return
+    elseif help_map[cmd] then
+      help_map[cmd]()
+      return
+    else
+      print("Unknown command for help: " .. tostring(cmd))
+      return
+    end
+  end
   if args[1] == "init" then
     init_module.init_project()
     return

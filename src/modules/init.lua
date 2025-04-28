@@ -55,6 +55,16 @@ local function save_manifest(manifest)
   return true, nil
 end
 
+--- Prints usage/help information for the `init` command.
+-- Usage: almd init
+-- Initializes a new Almandine project interactively.
+local function help_info()
+  print([[\nUsage: almd init
+
+Interactively initializes a new Almandine project and creates a project.lua manifest.
+]])
+end
+
 --- Initializes a new Almandine project by interactively prompting the user for manifest fields and writing project.lua.
 function M.init_project()
   print("Almandine Project Initialization\n-------------------------------")
@@ -93,5 +103,7 @@ function M.init_project()
   end
   print("\nproject.lua written successfully.")
 end
+
+M.help_info = help_info
 
 return M

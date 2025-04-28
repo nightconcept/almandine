@@ -49,6 +49,19 @@ local function uninstall_self()
   return true
 end
 
+--- Prints usage/help information for the `self` command.
+-- Usage: almd self uninstall
+-- Uninstalls the Almandine CLI and removes all associated files.
+local function help_info()
+  print([[\nUsage: almd self uninstall
+
+Uninstalls the Almandine CLI, removing all wrapper scripts and the src/ folder.
+Example:
+  almd self uninstall
+]])
+end
+
 return {
-  uninstall_self = uninstall_self
+  uninstall_self = uninstall_self,
+  help_info = help_info
 }

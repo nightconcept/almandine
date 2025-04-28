@@ -45,6 +45,21 @@ local function update_dependencies(load_manifest, save_manifest, ensure_lib_dir,
   end
 end
 
+---
+-- Prints usage/help information for the `update` command.
+-- Usage: almd update [--latest]
+-- Updates dependencies to the latest allowed or absolute latest version.
+local function help_info()
+  print([[\nUsage: almd update [--latest]
+
+Updates all dependencies to the latest allowed version, or to the absolute latest if --latest is specified.
+Example:
+  almd update
+  almd update --latest
+]])
+end
+
 return {
-  update_dependencies = update_dependencies
+  update_dependencies = update_dependencies,
+  help_info = help_info
 }

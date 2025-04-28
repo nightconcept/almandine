@@ -55,8 +55,22 @@ local function get_unambiguous_script(name, manifest_loader)
   return nil
 end
 
+---
+-- Prints usage/help information for the `run` command.
+-- Usage: almd run <script_name>
+-- Executes a script defined in project.lua.
+local function help_info()
+  print([[\nUsage: almd run <script_name>
+
+Executes a script defined in the `scripts` table of project.lua.
+Example:
+  almd run test
+]])
+end
+
 return {
   run_script = run_script,
   is_reserved_command = is_reserved_command,
   get_unambiguous_script = get_unambiguous_script,
+  help_info = help_info
 }

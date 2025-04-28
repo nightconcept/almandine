@@ -124,7 +124,22 @@ function lockfile.write_lockfile(lockfile_table, path)
   return true, path
 end
 
+---
+-- Prints usage/help information for the `install` command.
+-- Usage: almd install [<dep_name>]
+-- Installs all dependencies listed in project.lua, or only <dep_name> if specified.
+local function help_info()
+  print([[\nUsage: almd install [<dep_name>]
+
+Installs all dependencies listed in project.lua, or only <dep_name> if specified.
+Example:
+  almd install
+  almd install lunajson
+]])
+end
+
 return {
   install_dependencies = install_dependencies,
-  lockfile = lockfile
+  lockfile = lockfile,
+  help_info = help_info
 }

@@ -99,6 +99,11 @@
   - [ ] Update `install.sh` and `install.ps1` so they fetch and extract the distributable CLI zip from the latest (or specified) release on GitHub, using robust multiplatform methods (`curl`, `wget`, etc.).
   - [ ] Manual Verification: Download and run installer scripts on all platforms with no other files present, confirm correct CLI installation and usability.
 
+- [ ] **Task 5.4: Modularize and delegate CLI help output** (2025-04-28)
+  - [ ] Refactor all CLI help/usage output so that each command module in `src/modules/` exposes a `help_info()` function returning or printing its usage/help text (using `almd` as the CLI name).
+  - [ ] Update `src/main.lua` to route `--help`/`help` invocations to the relevant module, and print a summary help if called as `almd --help` or `almd help` with no subcommand.
+  - [ ] Manual Verification: Run `almd --help`, `almd help <command>`, and `almd <command> --help` to verify correct output and routing.
+
 ## Milestone 6: Automated Release Workflow & Changelog
 
 - [x] **Task 6.1: Automated Release Workflow & Changelog (2025-04-28)**

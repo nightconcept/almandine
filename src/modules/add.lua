@@ -46,6 +46,20 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
   end
 end
 
+---
+-- Prints usage/help information for the `add` command.
+-- Usage: almd add <dep_name> <source>
+-- Adds a dependency to the project manifest and downloads it to the lib directory.
+local function help_info()
+  print([[\nUsage: almd add <dep_name> <source>
+
+Adds a dependency to your project. <dep_name> is the name, <source> is a URL or version specifier.
+Example:
+  almd add lunajson https://github.com/grafi-tt/lunajson/raw/master/lunajson.lua
+]])
+end
+
 return {
-  add_dependency = add_dependency
+  add_dependency = add_dependency,
+  help_info = help_info
 }

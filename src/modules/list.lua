@@ -58,6 +58,20 @@ local function list_dependencies(load_manifest, lockfile_path)
   end
 end
 
+---
+-- Prints usage/help information for the `list` command.
+-- Usage: almd list
+-- Lists all installed dependencies and their versions.
+local function help_info()
+  print([[\nUsage: almd list
+
+Lists all installed dependencies and their versions as recorded in the lockfile or project.lua.
+Example:
+  almd list
+]])
+end
+
 return {
-  list_dependencies = list_dependencies
+  list_dependencies = list_dependencies,
+  help_info = help_info
 }

@@ -39,6 +39,20 @@ local function remove_dependency(dep_name, load_manifest, save_manifest)
   end
 end
 
+---
+-- Prints usage/help information for the `remove` command.
+-- Usage: almd remove <dep_name>
+-- Removes a dependency from the project and deletes its file from the lib directory.
+local function help_info()
+  print([[\nUsage: almd remove <dep_name>
+
+Removes a dependency from your project and deletes the corresponding file.
+Example:
+  almd remove lunajson
+]])
+end
+
 return {
-  remove_dependency = remove_dependency
+  remove_dependency = remove_dependency,
+  help_info = help_info
 }
