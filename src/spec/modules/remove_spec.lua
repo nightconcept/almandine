@@ -100,11 +100,15 @@ describe("remove_module.remove_dependency", function()
   it("prints error when manifest fails to load", function()
     local printed = {}
     local stub = require("luassert.stub")
-    local print_stub = stub(_G, "print", function(msg) table.insert(printed, tostring(msg)) end)
+    local print_stub = stub(_G, "print", function(msg)
+      table.insert(printed, tostring(msg))
+    end)
     local function load_fail()
       return nil, "load error!"
     end
-    local save_manifest = function() error("should not be called") end
+    local save_manifest = function()
+      error("should not be called")
+    end
     remove_module.remove_dependency(TEST_DEP_NAME, load_fail, save_manifest)
     print_stub:revert()
     assert.is_not_nil(table.concat(printed, "\n"):match("load error!"))
@@ -117,7 +121,9 @@ describe("remove_module.remove_dependency", function()
     f:close()
     local printed = {}
     local stub = require("luassert.stub")
-    local print_stub = stub(_G, "print", function(msg) table.insert(printed, tostring(msg)) end)
+    local print_stub = stub(_G, "print", function(msg)
+      table.insert(printed, tostring(msg))
+    end)
     local function save_fail()
       return false, "save failed!"
     end
@@ -163,7 +169,9 @@ describe("remove_module.remove_dependency", function()
     write_manifest({ bar = "url" })
     local printed = {}
     local stub = require("luassert.stub")
-    local print_stub = stub(_G, "print", function(msg) table.insert(printed, tostring(msg)) end)
+    local print_stub = stub(_G, "print", function(msg)
+      table.insert(printed, tostring(msg))
+    end)
     local function save_manifest(m)
       write_manifest(m.dependencies or {})
       return true, nil
@@ -177,7 +185,9 @@ describe("remove_module.remove_dependency", function()
   it("prints help_info output", function()
     local printed = {}
     local stub = require("luassert.stub")
-    local print_stub = stub(_G, "print", function(msg) table.insert(printed, tostring(msg)) end)
+    local print_stub = stub(_G, "print", function(msg)
+      table.insert(printed, tostring(msg))
+    end)
     assert.has_no.errors(function()
       remove_module.help_info()
     end)

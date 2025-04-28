@@ -85,6 +85,10 @@
   - [x] List installed dependencies and their versions.
   - [x] Manual Verification: Run `almd list`, verify output.
 
+- [ ] **Task 4.7: Improve test coverage for src/utils/manifest.lua (2025-04-28)**
+  - [ ] Add comprehensive tests for all code paths in manifest.safe_load_project_manifest (valid, file-not-found, syntax error, runtime error, non-table return).
+  - [ ] Manual Verification: Run all tests, confirm all branches are covered in luacov.stats.
+
 - [ ] **Update all usage/help text to refer to the CLI tool as `almd` (not `almandine`).**
 
 ## Milestone 5: Installer and Wrapper Scripts
