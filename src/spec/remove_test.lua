@@ -15,7 +15,7 @@ if not string.find(package.path, lib_path, 1, true) then
   package.path = lib_path .. ";" .. package.path
 end
 
-local main = require("main")
+local remove_module = require("modules.remove")
 local manifest_loader = require("utils.manifest")
 
 local TEST_DEP_NAME = "testdep"
@@ -72,7 +72,7 @@ local function test_remove_existing()
     write_manifest(deps)
     return true, nil
   end
-  main.remove_dependency(TEST_DEP_NAME, manifest_loader.safe_load_project_manifest, save_manifest)
+  remove_module.remove_dependency(TEST_DEP_NAME, manifest_loader.safe_load_project_manifest, save_manifest)
   local manifest, err = manifest_loader.safe_load_project_manifest()
   if not manifest then
     print("[FAIL] Could not load manifest after removal: "..tostring(err))
@@ -94,7 +94,7 @@ end
 local function test_remove_nonexistent()
   print("[TEST] Removing nonexistent dependency...")
   write_manifest({})
-  main.remove_dependency("doesnotexist", manifest_loader.safe_load_project_manifest, function(m)
+  remove_module.remove_dependency("doesnotexist", manifest_loader.safe_load_project_manifest, function(m)
     return write_manifest(m.dependencies or {})
   end)
   print("[PASS] No error on removing nonexistent dependency (check output above for warning).")

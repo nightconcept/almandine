@@ -22,6 +22,8 @@ if not string.find(package.path, lib_path, 1, true) then
   package.path = lib_path .. ";" .. package.path
 end
 
+local unpack = table.unpack or unpack
+
 local downloader = require("utils.downloader")
 local manifest_loader = require("utils.manifest")
 local init_module = require("modules.init")
@@ -31,6 +33,7 @@ local remove_module = require("modules.remove")
 local filesystem_utils = require("utils.filesystem")
 local version_utils = require("utils.version")
 local update_module = require("modules.update")
+local run_module = require("modules.run")
 
 local function load_manifest()
   local manifest, err = manifest_loader.safe_load_project_manifest("project.lua")
@@ -50,7 +53,7 @@ local function main(...)
   elseif args[1] == "add" or args[1] == "i" then
     -- Usage: almandine add <dep_name> <source>
     if args[2] and args[3] then
-      add_module.add_dependency(args[2], args[3], load_manifest, install_module.save_manifest or save_manifest, filesystem_utils.ensure_lib_dir, downloader)
+      add_module.add_dependency(args[2], args[3], load_manifest, install_module.save_manifest, filesystem_utils.ensure_lib_dir, downloader)
     else
       print("Usage: almandine add <dep_name> <source>")
     end
@@ -65,7 +68,7 @@ local function main(...)
     return
   elseif args[1] == "remove" or args[1] == "rm" or args[1] == "uninstall" or args[1] == "un" then
     if args[2] then
-      remove_module.remove_dependency(args[2], load_manifest, install_module.save_manifest or save_manifest)
+      remove_module.remove_dependency(args[2], load_manifest, install_module.save_manifest)
     else
       print("Usage: almandine remove <dep_name>")
     end
@@ -80,7 +83,7 @@ local function main(...)
     end
     update_module.update_dependencies(
       load_manifest,
-      install_module.save_manifest or save_manifest,
+      install_module.save_manifest,
       filesystem_utils.ensure_lib_dir,
       {downloader = downloader},
       add_module.resolve_latest_version,
@@ -92,34 +95,28 @@ local function main(...)
       print("Usage: almandine run <script_name>")
       return
     end
-    local script_name = args[2]
-    local manifest, err = load_manifest()
-    if not manifest then
+    local ok, err = run_module.run_script(args[2], manifest_loader)
+    if not ok then
       print(err)
-      return
-    end
-    local scripts = manifest.scripts or {}
-    local command = scripts[script_name]
-    if not command then
-      print(string.format("Script '%s' not found in project.lua.", script_name))
-      return
-    end
-    print(string.format("Running script '%s': %s", script_name, command))
-    local ok, exit_reason, code = os.execute(command)
-    if ok then
-      print(string.format("Script '%s' completed successfully.", script_name))
-    else
-      print(string.format("Script '%s' failed (reason: %s, code: %s)", script_name, tostring(exit_reason), tostring(code)))
     end
     return
+  elseif not run_module.is_reserved_command(args[1]) then
+    -- If not a reserved command, check if it's an unambiguous script name
+    local script_name = run_module.get_unambiguous_script(args[1], manifest_loader)
+    if script_name then
+      local ok, err = run_module.run_script(script_name, manifest_loader)
+      if not ok then
+        print(err)
+      end
+      return
+    end
   end
   print("Almandine Package Manager: main entrypoint initialized.")
   -- TODO: Parse CLI arguments and dispatch to subcommands/modules
 end
 
--- Expose install_dependencies and remove_dependency for testing
+main(unpack(arg, 1))
+
 return {
-  install_dependencies = install_module.install_dependencies,
-  remove_dependency = remove_module.remove_dependency,
-  main = main
+  remove_dependency = remove_module.remove_dependency
 }

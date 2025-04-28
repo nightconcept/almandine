@@ -68,30 +68,13 @@
   - [x] Update dependencies to latest allowed version or to latest with `--latest`.
   - [x] Manual Verification: Run `almd update`, check versions/hashes.
 
-- [ ] **Task 4.5: Implement `run` command (allow omitting if no conflicts)**
-  - [ ] Run scripts from `project.lua`; allow omitting `run` if no conflict.
-  - [ ] Manual Verification: Run scripts with and without `run`, check output.
+- [x] **Task 4.5: Implement `run` command (allow omitting if no conflicts)**
+  - [x] Run scripts from `project.lua`; allow omitting `run` if no conflict.
+  - [x] Manual Verification: Run scripts with and without `run`, check output.
 
 - [ ] **Task 4.6: Implement `list` command**
   - [ ] List installed dependencies and their versions.
   - [ ] Manual Verification: Run `almd list`, verify output.
-
-- [ ] **Refactor: Move all init functionality to src/modules/init.lua (2025-04-27)**
-  - [ ] Move all project initialization logic from src/main.lua to src/modules/init.lua.
-  - [ ] Update main.lua to use the new module.
-  - [ ] Manual Verification: Run `almd init`, confirm it works as before.
-
-- [ ] **Refactor: Move all install functionality to src/modules/install.lua (2025-04-27)**
-  - [ ] Move all install logic from src/main.lua to src/modules/install.lua.
-  - [ ] Update main.lua to use the new module.
-  - [ ] Manual Verification: Run `almd install`, confirm it works as before.
-
-- [ ] **Refactor: Move all lockfile management logic from `src/lib/lockfile.lua` to `src/modules/install.lua`. Remove `src/lib/lockfile.lua` after migration. Update any references.**
-
-- [ ] **Refactor: Ensure all CLI command aliases and dispatcher logic are explicit in src/main.lua (2025-04-27)**
-  - [ ] Review all CLI commands and their common aliases (e.g., install/in/ins, remove/rm/uninstall/un, update/up/upgrade, add/i, etc.).
-  - [ ] Update src/main.lua to explicitly handle all aliases for each command.
-  - [ ] Manual Verification: Run each alias using `almd`, confirm correct command dispatch.
 
 - [ ] **Update all usage/help text to refer to the CLI tool as `almd` (not `almandine`).**
 
