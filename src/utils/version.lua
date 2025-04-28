@@ -78,4 +78,13 @@ function M.check_lua_version(load_manifest)
   return true
 end
 
+--- Returns the Almandine CLI version string from src/almd_version.lua
+function M.get_version()
+  local ok, v = pcall(require, "almd_version")
+  if ok and type(v) == "string" then
+    return v
+  end
+  return "(unknown)"
+end
+
 return M

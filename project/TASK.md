@@ -202,4 +202,8 @@
   - [ ] Update `src/utils/downloader.lua` to eliminate LuaSocket/ltn12 and implement download logic using wget/curl via os.execute.
   - [ ] Manual Verification: Run `almd` and all commands that download files on Linux, macOS, and Windows; confirm correct behavior and no dependency errors.
 
+- [ ] **Task 8.2: Print pnpm-style usage/help when running `almd` with no arguments (2025-04-28)**
+  - [ ] Update CLI entrypoint so that running `almd` (with no arguments) prints a detailed usage/help message similar to pnpm, listing version, usage, command groups, and options, with formatting and descriptions matching the pnpm example.
+  - [ ] Manual Verification: Run `almd` (no arguments), confirm output matches the pnpm-style usage/help format, includes all commands, aliases, and options.
+
 *Last updated: 2025-04-29*
