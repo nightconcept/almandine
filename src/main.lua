@@ -65,6 +65,39 @@ local function main(...)
   -- @param ... string CLI arguments.
   version_utils.check_lua_version(load_manifest)
   local args = { ... }
+  -- pnpm-style usage/help if no arguments
+  if not args[1] or args[1] == "--help" or args[1] == "help" or (args[2] and args[2] == "--help") then
+    local version = version_utils.get_version and version_utils.get_version() or "(unknown)"
+    print(([[
+Almandine CLI v%s
+
+Usage: almd [command] [options]
+       almd [ -h | --help | -v | --version ]
+
+Project Management:
+   init                  Initialize a new Lua project in the current directory
+
+Dependency Management:
+   add                   Add a dependency to the project
+   install               Install all dependencies listed in project.lua (aliases: i)
+   remove                Remove a dependency from the project (aliases: rm, uninstall, un)
+   update                Update dependencies to latest allowed version (aliases: up)
+   list                  List installed dependencies and their versions (aliases: ls)
+
+Scripts:
+   run                   Run a script defined in project.lua scripts table
+
+Self-management:
+   self uninstall        Remove the almd CLI and wrapper scripts
+
+Options:
+  -h, --help             Show this help message
+  -v, --version          Show version
+
+For help with a command: almd help <command> or almd <command> --help
+]]):format(version))
+    return
+  end
   -- Modular help delegation
   if args[1] == "--help" or args[1] == "help" or (args[2] and args[2] == "--help") then
     local cmd = args[2] or args[1]
@@ -107,7 +140,7 @@ For help with a command: almd help <command> or almd <command> --help
   if args[1] == "init" then
     init_module.init_project()
     return
-  elseif args[1] == "add" or args[1] == "i" then
+  elseif args[1] == "add" then
     -- Usage: almd add <dep_name> <source> OR almd add <source>
     if args[2] and args[3] then
       add_module.add_dependency(
@@ -132,7 +165,7 @@ For help with a command: almd help <command> or almd <command> --help
       print("Usage: almd add <dep_name> <source>\n       almd add <source>")
     end
     return
-  elseif args[1] == "install" or args[1] == "in" or args[1] == "ins" then
+  elseif args[1] == "install" or args[1] == "i" then
     -- Usage: almd install [<dep_name>]
     if args[2] then
       install_module.install_dependencies(args[2], load_manifest, filesystem_utils.ensure_lib_dir, downloader)
@@ -147,7 +180,7 @@ For help with a command: almd help <command> or almd <command> --help
       print("Usage: almd remove <dep_name>")
     end
     return
-  elseif args[1] == "update" or args[1] == "up" or args[1] == "upgrade" then
+  elseif args[1] == "update" or args[1] == "up" then
     -- Usage: almd update [--latest]
     local latest = false
     for i = 2, #args do
@@ -174,7 +207,7 @@ For help with a command: almd help <command> or almd <command> --help
       print(err)
     end
     return
-  elseif args[1] == "list" then
+  elseif args[1] == "list" or args[1] == "ls" then
     list_module.list_dependencies(load_manifest)
     return
   elseif args[1] == "self" and args[2] == "uninstall" then
