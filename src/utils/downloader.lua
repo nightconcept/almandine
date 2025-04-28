@@ -3,7 +3,8 @@
 
   Provides functions to download files for dependencies using system tools (wget or curl).
   No external Lua dependencies required. Cross-platform.
-]]--
+]]
+--
 
 --- Downloader utility module.
 -- Provides file download functionality using wget or curl.
@@ -15,7 +16,8 @@ local downloader = {}
 -- @param cmd string Command name (e.g., "wget").
 -- @return boolean True if command exists, false otherwise.
 local function has_command(cmd)
-  local check = package.config:sub(1,1) == "\\" and ("where " .. cmd .. ">NUL 2>NUL") or ("command -v " .. cmd .. " >/dev/null 2>&1")
+  local check = package.config:sub(1, 1) == "\\" and ("where " .. cmd .. ">NUL 2>NUL")
+    or ("command -v " .. cmd .. " >/dev/null 2>&1")
   local ok = os.execute(check)
   return ok == true or ok == 0
 end

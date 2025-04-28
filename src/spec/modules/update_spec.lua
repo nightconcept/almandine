@@ -126,12 +126,13 @@ describe("update_module.update_dependencies", function()
     local function save(_) -- luacheck: ignore
     end
     local ensure_lib_dir = function() end
-    local utils =
-      { downloader = {
+    local utils = {
+      downloader = {
         download = function()
           error("should not download if up-to-date")
         end,
-      } }
+      },
+    }
     local resolve_latest_version = function(_name)
       return "1.3.4"
     end
@@ -190,12 +191,13 @@ describe("update_module.update_dependencies", function()
     local function save(_) -- luacheck: ignore
     end
     local ensure_lib_dir = function() end
-    local utils =
-      { downloader = {
+    local utils = {
+      downloader = {
         download = function()
           error("should not download if empty")
         end,
-      } }
+      },
+    }
     local resolve_latest_version = function()
       error("should not resolve if empty")
     end

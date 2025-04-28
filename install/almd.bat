@@ -24,7 +24,18 @@ rem Remove trailing backslash if present
 if "%SCRIPT_DIR:~-1%"=="\" set SCRIPT_DIR=%SCRIPT_DIR:~0,-1%
 
 rem Set LUA_PATH so Lua can find src/lib modules regardless of CWD
-set "LUA_PATH=%SCRIPT_DIR%\src\?.lua;%SCRIPT_DIR%\src\lib\?.lua;;"
+if defined LUA_PATH (
+  set "LUA_PATH=%SCRIPT_DIR%\src\?.lua;%SCRIPT_DIR%\src\lib\?.lua;%LUA_PATH%"
+) else (
+  set "LUA_PATH=%SCRIPT_DIR%\src\?.lua;%SCRIPT_DIR%\src\lib\?.lua;;"
+)
+
+rem Set LUA_CPATH so Lua can find C modules if needed
+if defined LUA_CPATH (
+  set "LUA_CPATH=%SCRIPT_DIR%\src\?.dll;%SCRIPT_DIR%\src\lib\?.dll;%LUA_CPATH%"
+) else (
+  set "LUA_CPATH=%SCRIPT_DIR%\src\?.dll;%SCRIPT_DIR%\src\lib\?.dll;;"
+)
 
 "%LUA_BIN%" "%SCRIPT_DIR%\src\main.lua" %*
 exit /b %ERRORLEVEL%
