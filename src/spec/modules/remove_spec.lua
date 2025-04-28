@@ -19,6 +19,11 @@ local TEST_DEP_NAME = "testdep"
 local TEST_DEP_PATH = "src/lib/testdep.lua"
 local MANIFEST_FILE = "project.lua"
 
+-- Helper to remove 'nul' file (Windows test artifact)
+local function cleanup_nul()
+  os.remove("nul")
+end
+
 describe("remove_module.remove_dependency", function()
   local function write_manifest(deps)
     local file = assert(io.open(MANIFEST_FILE, "w"))
@@ -60,7 +65,9 @@ describe("remove_module.remove_dependency", function()
     os.remove(TEST_DEP_PATH)
   end
 
+  setup(cleanup_nul)
   after_each(cleanup)
+  teardown(cleanup_nul)
 
   it("removes existing dependency and deletes file", function()
     write_manifest({ [TEST_DEP_NAME] = "dummy_source" })

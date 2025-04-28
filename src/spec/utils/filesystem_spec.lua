@@ -10,6 +10,15 @@ local filesystem = require("utils.filesystem")
 -- Helper to detect OS for path separator
 local sep = package.config:sub(1, 1)
 
+-- Helper to remove 'nul' file (Windows test artifact)
+local function cleanup_nul()
+  os.remove("nul")
+end
+
+-- Remove 'nul' before and after all tests
+setup(cleanup_nul)
+teardown(cleanup_nul)
+
 -- Test suite for join_path
 describe("filesystem.join_path", function()
   it("joins two segments", function()
