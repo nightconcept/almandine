@@ -139,6 +139,12 @@
   - [ ] Do not delete or move original files unless explicitly approved.
   - [ ] Manual Verification: Run all new specs with Busted, confirm all tests pass and logic is preserved.
 
+- [ ] **Task 6.3: Implement `self update` command for atomic CLI self-upgrade (2025-04-28)**
+  - [ ] Add `almd self update` to check GitHub for the latest release, download, and atomically replace the CLI install tree.
+  - [ ] Make a backup of the current install tree before replacing; only delete backup if the new version is fully extracted and ready.
+  - [ ] Ensure the running process is not disrupted during update (atomic move, careful file ops, etc.).
+  - [ ] Manual Verification: Run `almd self update` from an active shell, confirm seamless upgrade and CLI remains usable if update fails or is interrupted.
+
 ---
 
 ## Lessons Learned (2025-04-28)

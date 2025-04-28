@@ -89,6 +89,7 @@ Scripts:
 
 Self-management:
    self uninstall        Remove the almd CLI
+   self update           Update the almd CLI
 
 Options:
   -h, --help             Show this help message
@@ -216,6 +217,14 @@ For help with a command: almd help <command> or almd <command> --help
       print("almd self uninstall: Success.")
     else
       print("almd self uninstall: Failed.\n" .. (err or "Unknown error."))
+    end
+    return
+  elseif args[1] == "self" and args[2] == "update" then
+    local ok, err = self_module.self_update()
+    if ok then
+      print("almd self update: Success.")
+    else
+      print("almd self update: Failed.\n" .. (err or "Unknown error."))
     end
     return
   elseif not run_module.is_reserved_command(args[1]) then
