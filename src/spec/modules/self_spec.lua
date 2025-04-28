@@ -3,7 +3,8 @@
 
   Covers uninstall_self() and self_update() logic using Busted BDD-style tests.
   Ensures cross-platform compatibility and atomicity of uninstall/update logic.
-]]--
+]]
+--
 
 local self_module = require("modules.self")
 
@@ -26,7 +27,10 @@ end
 -- Utility functions (do not use absolute paths)
 local function file_exists(path)
   local f = io.open(path, "r")
-  if f then f:close() return true end
+  if f then
+    f:close()
+    return true
+  end
   return false
 end
 
