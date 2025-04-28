@@ -6,7 +6,7 @@
 ]]--
 
 --- Adds a dependency to the project manifest and downloads it.
--- @param dep_name string Dependency name to add.
+-- @param dep_name string|nil Dependency name to add. If nil, inferred from source URL.
 -- @param dep_source string Dependency source string (URL or table with url/path).
 -- @param load_manifest function Function to load the manifest.
 -- @param save_manifest function Function to save the manifest.
@@ -17,16 +17,26 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
   local manifest, err = load_manifest()
   if not manifest then print(err) return end
   manifest.dependencies = manifest.dependencies or {}
+
+  -- If dep_name is missing, infer from URL (filename minus .lua)
+  if (not dep_name or dep_name == "") and type(dep_source) == "string" then
+    local fname = dep_source:match("([^/]+)$")
+    if fname then
+      dep_name = fname:gsub("%.lua$", "")
+    else
+      print("Could not infer dependency name from source URL.")
+      return
+    end
+  end
   if not dep_name or not dep_source then
     -- Nothing to add, exit early
     return
   end
-  if dep_name and dep_source then
-    manifest.dependencies[dep_name] = dep_source
-    local ok, err2 = save_manifest(manifest)
-    if not ok then print(err2) return end
-    print(string.format("Added dependency '%s' to project.lua.", dep_name))
-  end
+  manifest.dependencies[dep_name] = dep_source
+  local ok, err2 = save_manifest(manifest)
+  if not ok then print(err2) return end
+  print(string.format("Added dependency '%s' to project.lua.", dep_name))
+
   local name, source = dep_name, dep_source
   local out_path
   local url
@@ -51,11 +61,15 @@ end
 -- Usage: almd add <dep_name> <source>
 -- Adds a dependency to the project manifest and downloads it to the lib directory.
 local function help_info()
-  print([[\nUsage: almd add <dep_name> <source>
+  print([[
+Usage: almd add <dep_name> <source>
+       almd add <source>
 
-Adds a dependency to your project. <dep_name> is the name, <source> is a URL or version specifier.
-Example:
+Adds a dependency to your project. <dep_name> is the name (optional if source is a GitHub raw URL), <source> is a URL or version specifier.
+If <dep_name> is omitted, it will be inferred from the filename in the source URL.
+Examples:
   almd add lunajson https://github.com/grafi-tt/lunajson/raw/master/lunajson.lua
+  almd add https://github.com/grafi-tt/lunajson/raw/master/lunajson.lua
 ]])
 end
 

@@ -62,6 +62,13 @@
   - [x] Manual Verification: Add a dependency, verify it appears and is downloaded.
   - [x] Automated Test: Add, download, and verify real dependencies (Task 4.2, 2025-04-27)
 
+- [ ] **Task 4.2b: Make <dep_name> optional for `add` command (2025-04-28)**
+  - [x] Allow `almd add <source>` (GitHub raw URL) with no explicit dependency name; infer name from filename in URL.
+  - [x] If <dep_name> is omitted, use <FILENAME>.lua as the manifest key and output file.
+  - [x] Continue to support explicit <dep_name> as override.
+  - [x] Update help text and documentation for new usage.
+  - [ ] Manual Verification: Add dependency by URL only, check manifest and file, verify correct behavior for both implicit and explicit names.
+
 - [x] **Task 4.3: Implement `remove`/`rm`/`uninstall`/`un` command**
   - [x] Remove dependencies from `project.lua` and project files.
   - [x] Manual Verification: Remove a dependency, verify it is deleted.

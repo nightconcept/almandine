@@ -18,7 +18,6 @@ if not string.find(package.path, src_path, 1, true) then
 end
 
 local add_mod = require("modules.add")
-local utils = require("utils")
 
 local function make_fake_manifest()
   return {
@@ -50,7 +49,14 @@ local function test_add_simple()
   end
   local downloader_called = false
   local downloader_args = {}
-  local downloader = utils.downloader
+  local downloader = {
+    download = function(url, out_path)
+      downloader_called = true
+      downloader_args.url = url
+      downloader_args.out_path = out_path
+      return true, nil
+    end
+  }
   local dep_name = "foo"
   local dep_url = "https://example.com/foo.lua"
   add_mod.add_dependency(dep_name, dep_url, load_manifest, save_manifest, ensure_lib_dir, downloader)
@@ -76,7 +82,13 @@ local function test_add_table_source()
   end
   local ensure_lib_dir = function() end
   local downloader_args = {}
-  local downloader = utils.downloader
+  local downloader = {
+    download = function(url, out_path)
+      downloader_args.url = url
+      downloader_args.out_path = out_path
+      return true, nil
+    end
+  }
   local dep_name = "bar"
   local dep_source = { url = "https://example.com/bar.lua", path = "custom/bar.lua" }
   add_mod.add_dependency(dep_name, dep_source, load_manifest, save_manifest, ensure_lib_dir, downloader)
@@ -91,15 +103,56 @@ local function test_add_no_dep()
   local function load_manifest() return manifest, nil end
   local save_manifest = function() error("Should not be called") end
   local ensure_lib_dir = function() end
-  local downloader = utils.downloader
+  local downloader = {
+    download = function() return true, nil end
+  }
   add_mod.add_dependency(nil, nil, load_manifest, save_manifest, ensure_lib_dir, downloader)
   print("[PASS] test_add_no_dep (no error)")
+end
+
+local function test_add_infer_name_from_url()
+  local manifest = make_fake_manifest()
+  local saved_manifest = nil
+  local save_called = false
+  local function load_manifest()
+    return manifest, nil
+  end
+  local function save_manifest(m)
+    saved_manifest = m
+    save_called = true
+    return true, nil
+  end
+  local ensure_lib_dir_called = false
+  local function ensure_lib_dir()
+    ensure_lib_dir_called = true
+  end
+  local downloader_called = false
+  local downloader_args = {}
+  local downloader = {
+    download = function(url, out_path)
+      downloader_called = true
+      downloader_args.url = url
+      downloader_args.out_path = out_path
+      return true, nil
+    end
+  }
+  local dep_url = "https://raw.githubusercontent.com/owner/repo/branch/path/to/baz.lua"
+  add_mod.add_dependency(nil, dep_url, load_manifest, save_manifest, ensure_lib_dir, downloader)
+
+  assert(save_called, "save_manifest was not called (infer name)")
+  assert(saved_manifest.dependencies["baz"] == dep_url, "Dependency not added with inferred name")
+  assert(ensure_lib_dir_called, "ensure_lib_dir was not called (infer name)")
+  assert(downloader_called, "downloader.download was not called (infer name)")
+  assert(downloader_args.url == dep_url, "downloader.download url arg incorrect (infer name)")
+  assert(downloader_args.out_path == "src/lib/baz.lua", "downloader.download out_path arg incorrect (infer name)")
+  print("[PASS] test_add_infer_name_from_url")
 end
 
 local function run_all()
   test_add_simple()
   test_add_table_source()
   test_add_no_dep()
+  test_add_infer_name_from_url()
   print("[TEST RESULT] All add_module tests passed.")
 end
 

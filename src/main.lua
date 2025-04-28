@@ -92,11 +92,14 @@ For help with a command: almd help <command> or almd <command> --help
     init_module.init_project()
     return
   elseif args[1] == "add" or args[1] == "i" then
-    -- Usage: almandine add <dep_name> <source>
+    -- Usage: almd add <dep_name> <source> OR almd add <source>
     if args[2] and args[3] then
       add_module.add_dependency(args[2], args[3], load_manifest, install_module.save_manifest, filesystem_utils.ensure_lib_dir, downloader)
+    elseif args[2] and not args[3] then
+      -- Only one argument: treat as source, dep_name=nil
+      add_module.add_dependency(nil, args[2], load_manifest, install_module.save_manifest, filesystem_utils.ensure_lib_dir, downloader)
     else
-      print("Usage: almandine add <dep_name> <source>")
+      print("Usage: almd add <dep_name> <source>\n       almd add <source>")
     end
     return
   elseif args[1] == "install" or args[1] == "in" or args[1] == "ins" then
