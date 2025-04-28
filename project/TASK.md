@@ -93,6 +93,10 @@
   - When initializing a new project, automatically include a 'run' script in the scripts table ("run = 'lua src/main.lua'") unless the user defines it interactively.
   - Manual Verification: Run `almd init`, inspect project.lua, confirm 'run' script is present and correct.
 
+- [ ] **Task 4.8: Improve test coverage for src/modules/list.lua (2025-04-28)**
+  - [ ] Add comprehensive tests for all code paths and edge cases in list_dependencies and help_info (lockfile/manifest not a table, missing dependencies, dependencies as strings, missing version/hash, help output, etc).
+  - [ ] Manual Verification: Run all tests, confirm all branches are covered in luacov.stats.
+
 - [ ] **Update all usage/help text to refer to the CLI tool as `almd` (not `almandine`).**
 
 ## Milestone 5: Installer and Wrapper Scripts

@@ -31,7 +31,17 @@ local function list_dependencies(load_manifest, load_lockfile)
   end
   print("Installed dependencies:")
   for name, dep in pairs(dependencies) do
-    local version = dep.version or (dep.hash and "#" .. dep.hash) or "(unknown)"
+    local version
+    if type(dep) == "table" then
+      version = dep.version or (dep.hash and "#" .. dep.hash)
+      if not version or version == "" then
+        version = "(unknown)"
+      end
+    elseif type(dep) == "string" then
+      version = dep
+    else
+      version = "(unknown)"
+    end
     print(string.format("  %s\t%s", name, version))
   end
 end
