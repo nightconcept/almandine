@@ -16,14 +16,24 @@
 --
 -- @class MainEntrypoint
 
--- Add both src/ and src/lib/ to package.path for require
-local src_path = "src/?.lua"
-local lib_path = "src/lib/?.lua"
-if not string.find(package.path, src_path, 1, true) then
-  package.path = src_path .. ";" .. package.path
+-- Robustly set package.path relative to this script's directory (cross-platform)
+local function script_dir()
+  local info = debug.getinfo(1, "S").source
+  local path = info:sub(1, 1) == "@" and info:sub(2) or info
+  -- Normalize path separators for Windows
+  path = path:gsub("\\", "/")
+  return path:match("(.*/)") or "./"
 end
-if not string.find(package.path, lib_path, 1, true) then
-  package.path = lib_path .. ";" .. package.path
+
+local dir = script_dir()
+if not package.path:find(dir .. "?.lua", 1, true) then
+  package.path = dir .. "?.lua;" .. package.path
+end
+if not package.path:find(dir .. "?/init.lua", 1, true) then
+  package.path = dir .. "?/init.lua;" .. package.path
+end
+if not package.path:find(dir .. "lib/?.lua", 1, true) then
+  package.path = dir .. "lib/?.lua;" .. package.path
 end
 
 local unpack = table.unpack or unpack
