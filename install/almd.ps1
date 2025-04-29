@@ -1,6 +1,55 @@
 # PowerShell wrapper for launching the almd Lua application
 # Finds a suitable Lua interpreter and runs src/main.lua with all arguments.
 
+# Deferred self-update logic (Windows PowerShell)
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$InstallRoot = Join-Path $ScriptDir 'install'
+$UpdatePending = Join-Path $InstallRoot 'update_pending'
+$NextDir = Join-Path $InstallRoot 'next'
+if ((Test-Path $UpdatePending -PathType Leaf) -and (Test-Path $NextDir -PathType Container)) {
+  $srcPath = Join-Path $NextDir 'src'
+  Remove-Item -Recurse -Force (Join-Path $ScriptDir 'src')
+  Copy-Item -Recurse -Force $srcPath $ScriptDir
+  $almdPath = Join-Path $NextDir 'install/almd'
+  $almdPs1Path = Join-Path $NextDir 'install/almd.ps1'
+  if (Test-Path $almdPath) {
+    if (Test-Path (Join-Path $ScriptDir 'almd')) {
+      Remove-Item -Force (Join-Path $ScriptDir 'almd')
+    }
+    Copy-Item -Force $almdPath $ScriptDir
+  }
+  if (Test-Path $almdPs1Path) {
+    if (Test-Path (Join-Path $ScriptDir 'almd.ps1')) {
+      Remove-Item -Force (Join-Path $ScriptDir 'almd.ps1')
+    }
+    Copy-Item -Force $almdPs1Path $ScriptDir
+  }
+  Remove-Item -Recurse -Force $NextDir
+  Remove-Item -Force $UpdatePending
+  # Print update success and new version
+  $Main = Join-Path $ScriptDir 'src/main.lua'
+  $LUA_BIN = $null
+  function Find-Lua {
+    $candidates = @('lua.exe', 'lua5.4.exe', 'lua5.3.exe', 'lua5.2.exe', 'lua5.1.exe', 'luajit.exe')
+    foreach ($cmd in $candidates) {
+      $path = (Get-Command $cmd -ErrorAction SilentlyContinue)?.Source
+      if ($path) { return $cmd }
+    }
+    return $null
+  }
+  $LUA_BIN = Find-Lua
+  if ($LUA_BIN) {
+    $version = & $LUA_BIN -e "local v=require('almd_version') print(v and v.VERSION or _VERSION)" 2>$null
+    if ($version) {
+      Write-Host "Almandine CLI updated successfully! New version: $version"
+    } else {
+      Write-Host "Almandine CLI updated successfully! (version unknown)"
+    }
+  } else {
+    Write-Host "Almandine CLI updated successfully! (Lua not found to check version)"
+  }
+}
+
 function Find-Lua {
   $candidates = @('lua.exe', 'lua5.4.exe', 'lua5.3.exe', 'lua5.2.exe', 'lua5.1.exe', 'luajit.exe')
   foreach ($cmd in $candidates) {

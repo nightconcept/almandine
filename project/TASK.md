@@ -141,35 +141,19 @@
 
 - [ ] **Task 6.3: Implement `self update` command for atomic CLI self-upgrade (2025-04-28)**
   - [ ] Add `almd self update` to check GitHub for the latest release, download, and atomically replace the CLI install tree.
-  - [ ] Make a backup of the current install tree before replacing; only delete backup if the new version is fully extracted and ready.
-  - [ ] Ensure the running process is not disrupted during update (atomic move, careful file ops, etc.).
-  - [ ] Manual Verification: Run `almd self update` from an active shell, confirm seamless upgrade and CLI remains usable if update fails or is interrupted.
+  - [ ] Ensure all path handling and shell commands are cross-platform (Windows: use backslashes and no leading slashes; POSIX: use forward slashes).
+  - [ ] On Windows, guard against updating files that are in use (e.g., running scripts/executables). Abort or defer update if locked.
+  - [ ] Refactor updater to only print "Success" if all operations succeed; print clear error messages otherwise.
+  - [ ] Add/expand tests for Windows path handling, file-in-use, and error propagation in `src/spec/modules/self_spec.lua`.
+  - [ ] Manual Verification: Run `almd self update` on Linux, macOS, and Windows. Confirm correct update, correct error reporting, and no invalid parameter/file-in-use errors.
 
----
-
-## Lessons Learned (2025-04-28)
-
-- **Never overwrite or assign to read-only global fields (e.g., `os.execute`) in tests or implementation code.**
-  - This practice is flagged by luacheck and can cause subtle bugs or incompatibilities across Lua versions and environments.
-  - **Preferred approach:** Refactor code to allow dependency injection (e.g., pass an executor function as a parameter), so tests can inject mocks or stubs without touching global state.
-  - If output capture is required in tests, prefer dependency injection or local overrides. Directly overriding global functions like `print` or redirecting `io.output` may not work reliably in all environments (especially with Busted or other test runners).
-  - Always verify that any test workaround is both cross-platform and compliant with project linting and style rules.
-
----
-
-## Active Work
-
-- [ ] **Task 6.2: Migrate all src/spec tests to Busted framework (2025-04-28)**
-  - [ ] For each test file in `src/spec` named `*_test.lua`, create a corresponding `*_spec.lua` using the Busted test library and idioms (`describe`, `it`, `assert`).
-  - [ ] Preserve all test logic, grouping, and documentation; follow project Lua and LDoc standards.
-  - [ ] Do not delete or move original files unless explicitly approved.
-  - [ ] Manual Verification: Run all new specs with Busted, confirm all tests pass and logic is preserved.
-
-## Backlog / Discovered Tasks
-
-- (Add any new features, bugs, or improvements discovered during development)
-
----
+- [ ] **Task 6.3: Implement `self update` command for atomic CLI self-upgrade (2025-04-28)**
+  - [ ] Add `almd self update` to check GitHub for the latest release, download, and atomically replace the CLI install tree.
+  - [ ] Ensure all path handling and shell commands are cross-platform (Windows: use backslashes and no leading slashes; POSIX: use forward slashes).
+  - [ ] On Windows, guard against updating files that are in use (e.g., running scripts/executables). Abort or defer update if locked.
+  - [ ] Refactor updater to only print "Success" if all operations succeed; print clear error messages otherwise.
+  - [ ] Add/expand tests for Windows path handling, file-in-use, and error propagation in `src/spec/modules/self_spec.lua`.
+  - [ ] Manual Verification: Run `almd self update` on Linux, macOS, and Windows. Confirm correct update, correct error reporting, and no invalid parameter/file-in-use errors.
 
 ## Milestone 7: CI/CD Improvements
 
@@ -215,5 +199,7 @@
 - [ ] **Task 8.2: Print pnpm-style usage/help when running `almd` with no arguments (2025-04-28)**
   - [ ] Update CLI entrypoint so that running `almd` (with no arguments) prints a detailed usage/help message similar to pnpm, listing version, usage, command groups, and options, with formatting and descriptions matching the pnpm example.
   - [ ] Manual Verification: Run `almd` (no arguments), confirm output matches the pnpm-style usage/help format, includes all commands, aliases, and options.
+
+- [BUGFIX] Self-update now always targets the CLI's install directory, never the working directory. All update/backup/validation steps use absolute paths based on the detected install root. (2025-04-28)
 
 *Last updated: 2025-04-29*
