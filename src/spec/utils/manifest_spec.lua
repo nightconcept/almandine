@@ -11,30 +11,23 @@ if not package.path:find(src_path, 1, true) then
   package.path = src_path .. ";" .. package.path
 end
 
-local manifest = require("utils.manifest")
-local tmpfile = "_almd_test_project.lua"
-
-local function write_file(path, content)
-  local f = assert(io.open(path, "w"))
-  f:write(content)
-  f:flush() -- ensure content is written to disk
-  f:close()
-end
-
 local function remove_file(path)
   os.remove(path)
 end
 
 describe("manifest.safe_load_project_manifest", function()
   after_each(function()
-    remove_file(tmpfile)
+    remove_file("_almd_test_project.lua")
   end)
 
   --[[
   -- DISABLED: Fails on some platforms due to error message differences
   pending("loads a valid manifest table", function()
-    write_file(tmpfile, "return { name = 'test' }")
-    local tbl, err = manifest.safe_load_project_manifest(tmpfile)
+    local f = assert(io.open("_almd_test_project.lua", "w"))
+    f:write("return { name = 'test' }")
+    f:flush() -- ensure content is written to disk
+    f:close()
+    local tbl, err = require("utils.manifest").safe_load_project_manifest("_almd_test_project.lua")
     assert.is_table(tbl)
     assert.are.equal(tbl.name, "test")
     assert.is_nil(err)
@@ -42,7 +35,7 @@ describe("manifest.safe_load_project_manifest", function()
 
   -- DISABLED: Fails on some platforms due to error message differences
   pending("returns error if file does not exist", function()
-    local tbl, err = manifest.safe_load_project_manifest("nonexistent_file.lua")
+    local tbl, err = require("utils.manifest").safe_load_project_manifest("nonexistent_file.lua")
     assert.is_nil(tbl)
     assert.is_not_nil(err)
     assert.is_string(err)
@@ -51,8 +44,11 @@ describe("manifest.safe_load_project_manifest", function()
 
   -- DISABLED: Fails on some platforms due to error message differences
   pending("returns error if file has syntax error", function()
-    write_file(tmpfile, "return { name = 'test', } thisisnotlua")
-    local tbl, err = manifest.safe_load_project_manifest(tmpfile)
+    local f = assert(io.open("_almd_test_project.lua", "w"))
+    f:write("return { name = 'test', } thisisnotlua")
+    f:flush() -- ensure content is written to disk
+    f:close()
+    local tbl, err = require("utils.manifest").safe_load_project_manifest("_almd_test_project.lua")
     assert.is_nil(tbl)
     assert.is_not_nil(err)
     assert.is_string(err)
@@ -61,8 +57,11 @@ describe("manifest.safe_load_project_manifest", function()
 
   -- DISABLED: Fails on some platforms due to error message differences
   pending("returns error if file throws at runtime", function()
-    write_file(tmpfile, "error('fail on load')")
-    local tbl, err = manifest.safe_load_project_manifest(tmpfile)
+    local f = assert(io.open("_almd_test_project.lua", "w"))
+    f:write("error('fail on load')")
+    f:flush() -- ensure content is written to disk
+    f:close()
+    local tbl, err = require("utils.manifest").safe_load_project_manifest("_almd_test_project.lua")
     assert.is_nil(tbl)
     assert.is_not_nil(err)
     assert.is_string(err)
@@ -71,8 +70,11 @@ describe("manifest.safe_load_project_manifest", function()
 
   -- DISABLED: Fails on some platforms due to error message differences
   pending("returns error if manifest does not return a table", function()
-    write_file(tmpfile, "return 42")
-    local tbl, err = manifest.safe_load_project_manifest(tmpfile)
+    local f = assert(io.open("_almd_test_project.lua", "w"))
+    f:write("return 42")
+    f:flush() -- ensure content is written to disk
+    f:close()
+    local tbl, err = require("utils.manifest").safe_load_project_manifest("_almd_test_project.lua")
     assert.is_nil(tbl)
     assert.is_not_nil(err)
     assert.is_string(err)
