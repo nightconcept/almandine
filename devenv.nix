@@ -1,9 +1,6 @@
 { pkgs, inputs, ... }:
-let
-  pkgs-unstable = import inputs.nixpkgs-unstable { system = pkgs.stdenv.system; };
-in
 {
-  packages = with pkgs-unstable; [
+  packages = with pkgs; [
     lua51Packages.busted
     lua51Packages.luacheck
     lua51Packages.luacov
@@ -12,12 +9,12 @@ in
 
   languages.lua = {
     enable = true;
-    package = pkgs-unstable.lua5_1;
+    package = pkgs.lua5_1;
   };
 
   languages.javascript = {
     enable = true;
-    package = pkgs-unstable.nodejs_22;
+    package = pkgs.nodejs_22;
   };
 
   enterShell = ''
