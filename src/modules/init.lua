@@ -51,16 +51,27 @@ local function save_manifest(manifest)
   file:write(string.format('  description = "%s",\n', manifest.description or ""))
   file:write("  scripts = {\n")
   for k, v in pairs(manifest.scripts or {}) do
-    file:write(string.format('    %s = "%s",\n', k, v))
-  end
-  file:write("  },\n  dependencies = {\n")
-  for k, v in pairs(manifest.dependencies or {}) do
     file:write(string.format('    [%q] = "%s",\n', k, v))
+  end
+  file:write("  },\n")
+  file:write("  dependencies = {\n")
+  for k, v in pairs(manifest.dependencies or {}) do
+    if type(v) == "table" then
+      local url = v.url or ""
+      local path = v.path or ""
+      -- Escape backslashes in path for Lua syntax
+      path = path:gsub("\\", "\\\\")
+      file:write(string.format('    [%q] = { url = "%s", path = "%s" },\n', k, url, path))
+    else
+      file:write(string.format('    [%q] = "%s",\n', k, v))
+    end
   end
   file:write("  }\n}\n")
   file:close()
   return true, nil
 end
+
+M.save_manifest = save_manifest
 
 --- Prints usage/help information for the `init` command.
 -- Usage: almd init
@@ -109,7 +120,7 @@ function M.init_project()
   end
 
   -- Write manifest to project.lua
-  local ok, err = save_manifest(manifest)
+  local ok, err = M.save_manifest(manifest)
   if not ok then
     print("Error: Could not write project.lua - " .. tostring(err))
     os.exit(1)

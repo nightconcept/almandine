@@ -12,7 +12,8 @@
 -- @param save_manifest function Function to save the manifest.
 -- @param ensure_lib_dir function Function to ensure lib dir exists.
 -- @param downloader table utils.downloader module.
-local function add_dependency(dep_name, dep_source, load_manifest, save_manifest, ensure_lib_dir, downloader)
+-- @param dest_dir string|nil Optional destination directory for the installed file.
+local function add_dependency(dep_name, dep_source, load_manifest, save_manifest, ensure_lib_dir, downloader, dest_dir)
   ensure_lib_dir()
   local manifest, err = load_manifest()
   if not manifest then
@@ -35,7 +36,19 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
     -- Nothing to add, exit early
     return
   end
-  manifest.dependencies[dep_name] = dep_source
+
+  local dep_entry
+  local out_path
+  if dest_dir then
+    -- Store as table with url and path
+    dep_entry = { url = dep_source, path = dest_dir }
+    out_path = dest_dir
+  else
+    dep_entry = dep_source
+    local filesystem_utils = require("utils.filesystem")
+    out_path = filesystem_utils.join_path("src", "lib", dep_name .. ".lua")
+  end
+  manifest.dependencies[dep_name] = dep_entry
   local ok, err2 = save_manifest(manifest)
   if not ok then
     print(err2)
@@ -43,40 +56,30 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
   end
   print(string.format("Added dependency '%s' to project.lua.", dep_name))
 
-  local name, source = dep_name, dep_source
-  local out_path
-  local url
-  if type(source) == "table" and source.url and source.path then
-    url = source.url
-    out_path = source.path
-  else
-    url = source
-    local filesystem_utils = require("utils.filesystem")
-    out_path = filesystem_utils.join_path("src", "lib", name .. ".lua")
-  end
+  local url = (type(dep_entry) == "table" and dep_entry.url) or dep_entry
   local ok3, err3 = downloader.download(url, out_path)
   if ok3 then
-    print(string.format("Downloaded %s to %s", name, out_path))
+    print(string.format("Downloaded %s to %s", dep_name, out_path))
   else
-    print(string.format("Failed to download %s: %s", name, err3))
+    print(string.format("Failed to download %s: %s", dep_name, err3))
   end
 end
 
 ---
 -- Prints usage/help information for the `add` command.
--- Usage: almd add <dep_name> <source>
--- Adds a dependency to the project manifest and downloads it to the lib directory.
+-- Usage: almd add <source> [-d <dir>] [-n <dep_name>]
+-- Adds a dependency to the project manifest and downloads it to the lib directory or specified path.
 local function help_info()
-  print([[
-Usage: almd add <dep_name> <source>
-       almd add <source>
+  print([[\nUsage: almd add <source> [-d <dir>] [-n <dep_name>]
 
-Adds a dependency to your project. <dep_name> is the name (optional if source is a GitHub raw URL), <source> is a URL or
-version specifier.
-If <dep_name> is omitted, it will be inferred from the filename in the source URL.
+Adds a dependency to your project. <source> is a URL or version specifier.
+-d <dir> sets the install path (file, not just directory). If omitted, installs to src/lib/<dep_name>.lua.
+-n <dep_name> sets the dependency name. If omitted, it is inferred from the source filename.
+
 Examples:
-  almd add lunajson https://github.com/grafi-tt/lunajson/raw/master/lunajson.lua
   almd add https://github.com/grafi-tt/lunajson/raw/master/lunajson.lua
+  almd add https://github.com/grafi-tt/lunajson/raw/master/lunajson.lua -n lunajson
+  almd add https://example.com/foo.lua -n foo -d src/lib/custom/foo.lua
 ]])
 end
 

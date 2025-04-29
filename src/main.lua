@@ -51,6 +51,9 @@ local run_module = require("modules.run")
 local list_module = require("modules.list")
 local self_module = require("modules.self")
 
+-- Import save_manifest from init_module for use in add command
+local save_manifest = init_module.save_manifest or install_module.save_manifest
+
 local function load_manifest()
   local manifest, err = manifest_loader.safe_load_project_manifest("project.lua")
   if not manifest then
@@ -142,29 +145,35 @@ For help with a command: almd help <command> or almd <command> --help
     init_module.init_project()
     return
   elseif args[1] == "add" then
-    -- Usage: almd add <dep_name> <source> OR almd add <source>
-    if args[2] and args[3] then
-      add_module.add_dependency(
-        args[2],
-        args[3],
-        load_manifest,
-        install_module.save_manifest,
-        filesystem_utils.ensure_lib_dir,
-        downloader
-      )
-    elseif args[2] and not args[3] then
-      -- Only one argument: treat as source, dep_name=nil
-      add_module.add_dependency(
-        nil,
-        args[2],
-        load_manifest,
-        install_module.save_manifest,
-        filesystem_utils.ensure_lib_dir,
-        downloader
-      )
-    else
-      print("Usage: almd add <dep_name> <source>\n       almd add <source>")
+    -- Usage: almd add <source> [-d <dir>] [-n <dep_name>]
+    local source = args[2]
+    if not source then
+      print("Usage: almd add <source> [-d <dir>] [-n <dep_name>]")
+      return
     end
+    local dest_dir, dep_name
+    local i = 3
+    while i <= #args do
+      if args[i] == "-d" and args[i+1] then
+        dest_dir = args[i+1]
+        i = i + 2
+      elseif args[i] == "-n" and args[i+1] then
+        dep_name = args[i+1]
+        i = i + 2
+      else
+        print("Unknown or incomplete flag: " .. tostring(args[i]))
+        return
+      end
+    end
+    add_module.add_dependency(
+      dep_name,
+      source,
+      load_manifest,
+      save_manifest,
+      filesystem_utils.ensure_lib_dir,
+      downloader,
+      dest_dir
+    )
     return
   elseif args[1] == "install" or args[1] == "i" then
     -- Usage: almd install [<dep_name>]
@@ -176,7 +185,7 @@ For help with a command: almd help <command> or almd <command> --help
     return
   elseif args[1] == "remove" or args[1] == "rm" or args[1] == "uninstall" or args[1] == "un" then
     if args[2] then
-      remove_module.remove_dependency(args[2], load_manifest, install_module.save_manifest)
+      remove_module.remove_dependency(args[2], load_manifest, save_manifest)
     else
       print("Usage: almd remove <dep_name>")
     end
