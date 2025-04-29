@@ -12,13 +12,24 @@
 
 local downloader = {}
 
+-- Allow dependency injection for testability
+local _os_execute = os.execute
+local _package_config = package.config
+
+local function set_test_env(os_execute, package_config)
+  _os_execute = os_execute or os.execute
+  _package_config = package_config or package.config
+end
+
+downloader._set_test_env = set_test_env
+
 --- Check if a given command exists in the system PATH.
 -- @param cmd string Command name (e.g., "wget").
 -- @return boolean True if command exists, false otherwise.
 local function has_command(cmd)
-  local check = package.config:sub(1, 1) == "\\" and ("where " .. cmd .. ">NUL 2>NUL")
+  local check = (_package_config:sub(1, 1) == "\\") and ("where " .. cmd .. ">NUL 2>NUL")
     or ("command -v " .. cmd .. " >/dev/null 2>&1")
-  local ok = os.execute(check)
+  local ok = _os_execute(check)
   return ok == true or ok == 0
 end
 
@@ -29,7 +40,7 @@ end
 function downloader.download(url, out_path)
   if has_command("wget") then
     local cmd = string.format('wget -O "%s" "%s"', out_path, url)
-    local ok = os.execute(cmd)
+    local ok = _os_execute(cmd)
     if ok == 0 or ok == true then
       return true
     else
@@ -37,7 +48,7 @@ function downloader.download(url, out_path)
     end
   elseif has_command("curl") then
     local cmd = string.format('curl -fSL -o "%s" "%s"', out_path, url)
-    local ok = os.execute(cmd)
+    local ok = _os_execute(cmd)
     if ok == 0 or ok == true then
       return true
     else

@@ -97,6 +97,10 @@
   - [ ] Add comprehensive tests for all code paths and edge cases in list_dependencies and help_info (lockfile/manifest not a table, missing dependencies, dependencies as strings, missing version/hash, help output, etc).
   - [ ] Manual Verification: Run all tests, confirm all branches are covered in luacov.stats.
 
+- [ ] **Task 4.10: Refactor save_manifest to src/utils/manifest.lua** (2025-04-28)
+  - Move save_manifest() from src/modules/init.lua to src/utils/manifest.lua, update all imports/usages, and ensure modularity. No other modules currently use or require save_manifest; only init.lua calls it directly. All changes must follow PLANNING.md folder structure and Lua style guidelines.
+  - Manual Verification: Run almd init and verify manifest creation still works.
+
 - [ ] **Update all usage/help text to refer to the CLI tool as `almd` (not `almandine`).**
 
 ## Milestone 5: Installer and Wrapper Scripts
@@ -155,6 +159,34 @@
   - [ ] Add/expand tests for Windows path handling, file-in-use, and error propagation in `src/spec/modules/self_spec.lua`.
   - [ ] Manual Verification: Run `almd self update` on Linux, macOS, and Windows. Confirm correct update, correct error reporting, and no invalid parameter/file-in-use errors.
 
+## Milestone 6: Automated Release Workflow & Changelog
+
+- [x] **Task 6.1: Automated Release Workflow & Changelog (2025-04-28)**
+  - [x] Add a GitHub Action in `.github/workflows` to:
+    - Build a distributable release zip containing the CLI and all required files (for use by `almd self update`).
+    - Automatically generate a changelog listing all changes since the previous release (using commit messages or PR titles).
+    - Attach the zip and changelog to a new GitHub Release.
+    - Ensure the workflow is professional and cross-platform aware.
+  - [ ] Manual Verification: Trigger release, verify zip contents, changelog accuracy, and release quality.
+
+- [ ] **Task 6.2: Migrate all src/spec tests to Busted framework (2025-04-28)**
+  - [ ] For each test file in `src/spec` named `*_test.lua`, create a corresponding `*_spec.lua` using the Busted test library and idioms (`describe`, `it`, `assert`).
+  - [ ] Preserve all test logic, grouping, and documentation; follow project Lua and LDoc standards.
+  - [ ] Do not delete or move original files unless explicitly approved.
+  - [ ] Manual Verification: Run all new specs with Busted, confirm all tests pass and logic is preserved.
+
+- [ ] **Task 6.3: Implement `self update` command for atomic CLI self-upgrade (2025-04-28)**
+  - [ ] Add `almd self update` to check GitHub for the latest release, download, and atomically replace the CLI install tree.
+  - [ ] Ensure all path handling and shell commands are cross-platform (Windows: use backslashes and no leading slashes; POSIX: use forward slashes).
+  - [ ] On Windows, guard against updating files that are in use (e.g., running scripts/executables). Abort or defer update if locked.
+  - [ ] Refactor updater to only print "Success" if all operations succeed; print clear error messages otherwise.
+  - [ ] Add/expand tests for Windows path handling, file-in-use, and error propagation in `src/spec/modules/self_spec.lua`.
+  - [ ] Manual Verification: Run `almd self update` on Linux, macOS, and Windows. Confirm correct update, correct error reporting, and no invalid parameter/file-in-use errors.
+
+- [ ] **Task 6.4: Redo spec for self module (2025-04-28)**
+  - [ ] Completely rewrite src/spec/modules/self_spec.lua to cover all logic, edge cases, and error handling in src/modules/self.lua. Ensure cross-platform, error, and output scenarios are tested. Remove all old code and replace with a new, style-compliant, and comprehensive test suite.
+  - [ ] Manual Verification: Run all specs with Busted, confirm all code paths and error branches are exercised and passing.
+
 ## Milestone 7: CI/CD Improvements
 
 - [ ] **Task 7.1: Add CI workflow for lint, test, and coverage (2025-04-28)**
@@ -199,6 +231,20 @@
 - [ ] **Task 8.2: Print pnpm-style usage/help when running `almd` with no arguments (2025-04-28)**
   - [ ] Update CLI entrypoint so that running `almd` (with no arguments) prints a detailed usage/help message similar to pnpm, listing version, usage, command groups, and options, with formatting and descriptions matching the pnpm example.
   - [ ] Manual Verification: Run `almd` (no arguments), confirm output matches the pnpm-style usage/help format, includes all commands, aliases, and options.
+
+- [ ] **Task 8.3: Add comprehensive spec for src/modules/init.lua (2025-04-28)**
+  - [ ] Create src/spec/modules/init_spec.lua to test all interactive and error paths in project initialization.
+  - [ ] Mock user input and file system side effects for deterministic, non-interactive tests.
+  - [ ] Manual Verification: Run all specs with Busted, confirm all branches and error cases are covered.
+
+- [ ] **Task 8.4: Add comprehensive spec for src/utils/version.lua** (2025-04-28)
+  - [ ] Create src/spec/utils/version_spec.lua to test all public and edge-case behaviors of the version utility module.
+  - [ ] Manual Verification: Run all specs with Busted, confirm all branches and error cases are covered.
+
+- [ ] **Task 8.5: Pretty-print dependencies in project.lua for manual editing** (2025-04-28)
+  - [ ] Refactor manifest.save_manifest() so that dependencies are serialized in a human-friendly, well-indented, and easy-to-edit format.
+  - [ ] Ensure output uses 2-space indentation, double quotes, and puts each dependency and its fields on their own lines.
+  - [ ] Manual Verification: Run almd init/add, inspect project.lua, and confirm dependencies section is pretty-printed for user editing.
 
 - [BUGFIX] Self-update now always targets the CLI's install directory, never the working directory. All update/backup/validation steps use absolute paths based on the detected install root. (2025-04-28)
 

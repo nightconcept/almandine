@@ -39,7 +39,7 @@ end
 local unpack = table.unpack or unpack
 
 local downloader = require("utils.downloader")
-local manifest_loader = require("utils.manifest")
+local manifest_utils = require("utils.manifest")
 local init_module = require("modules.init")
 local add_module = require("modules.add")
 local install_module = require("modules.install")
@@ -52,11 +52,44 @@ local list_module = require("modules.list")
 local self_module = require("modules.self")
 
 local function load_manifest()
-  local manifest, err = manifest_loader.safe_load_project_manifest("project.lua")
+  local manifest, err = manifest_utils.safe_load_project_manifest("project.lua")
   if not manifest then
     return nil, err
   end
   return manifest, nil
+end
+
+local function print_help()
+  local version = version_utils.get_version and version_utils.get_version() or "(unknown)"
+  print(([[
+Almandine CLI v%s
+
+Usage: almd [command] [options]
+     almd [ -h | --help | -v | --version ]
+
+Project Management:
+ init                  Initialize a new Lua project in the current directory
+
+Dependency Management:
+ add                   Add a dependency to the project
+ install               Install all dependencies listed in project.lua (aliases: i)
+ remove                Remove a dependency from the project (aliases: rm, uninstall, un)
+ update                Update dependencies to latest allowed version (aliases: up)
+ list                  List installed dependencies and their versions (aliases: ls)
+
+Scripts:
+ run                   Run a script defined in project.lua scripts table
+
+Self-management:
+ self uninstall        Remove the almd CLI
+ self update           Update the almd CLI
+
+Options:
+-h, --help             Show this help message
+-v, --version          Show version
+
+For help with a command: almd help <command> or almd <command> --help
+]]):format(version))
 end
 
 local function main(...)
@@ -67,36 +100,7 @@ local function main(...)
   local args = { ... }
   -- pnpm-style usage/help if no arguments
   if not args[1] or args[1] == "--help" or args[1] == "help" or (args[2] and args[2] == "--help") then
-    local version = version_utils.get_version and version_utils.get_version() or "(unknown)"
-    print(([[
-Almandine CLI v%s
-
-Usage: almd [command] [options]
-       almd [ -h | --help | -v | --version ]
-
-Project Management:
-   init                  Initialize a new Lua project in the current directory
-
-Dependency Management:
-   add                   Add a dependency to the project
-   install               Install all dependencies listed in project.lua (aliases: i)
-   remove                Remove a dependency from the project (aliases: rm, uninstall, un)
-   update                Update dependencies to latest allowed version (aliases: up)
-   list                  List installed dependencies and their versions (aliases: ls)
-
-Scripts:
-   run                   Run a script defined in project.lua scripts table
-
-Self-management:
-   self uninstall        Remove the almd CLI
-   self update           Update the almd CLI
-
-Options:
-  -h, --help             Show this help message
-  -v, --version          Show version
-
-For help with a command: almd help <command> or almd <command> --help
-]]):format(version))
+    print_help()
     return
   end
   -- Modular help delegation
@@ -142,29 +146,35 @@ For help with a command: almd help <command> or almd <command> --help
     init_module.init_project()
     return
   elseif args[1] == "add" then
-    -- Usage: almd add <dep_name> <source> OR almd add <source>
-    if args[2] and args[3] then
-      add_module.add_dependency(
-        args[2],
-        args[3],
-        load_manifest,
-        install_module.save_manifest,
-        filesystem_utils.ensure_lib_dir,
-        downloader
-      )
-    elseif args[2] and not args[3] then
-      -- Only one argument: treat as source, dep_name=nil
-      add_module.add_dependency(
-        nil,
-        args[2],
-        load_manifest,
-        install_module.save_manifest,
-        filesystem_utils.ensure_lib_dir,
-        downloader
-      )
-    else
-      print("Usage: almd add <dep_name> <source>\n       almd add <source>")
+    -- Usage: almd add <source> [-d <dir>] [-n <dep_name>]
+    local source = args[2]
+    if not source then
+      print("Usage: almd add <source> [-d <dir>] [-n <dep_name>]")
+      return
     end
+    local dest_dir, dep_name
+    local i = 3
+    while i <= #args do
+      if args[i] == "-d" and args[i + 1] then
+        dest_dir = args[i + 1]
+        i = i + 2
+      elseif args[i] == "-n" and args[i + 1] then
+        dep_name = args[i + 1]
+        i = i + 2
+      else
+        print("Unknown or incomplete flag: " .. tostring(args[i]))
+        return
+      end
+    end
+    add_module.add_dependency(
+      dep_name,
+      source,
+      manifest_utils.safe_load_project_manifest,
+      manifest_utils.save_manifest,
+      filesystem_utils.ensure_lib_dir,
+      downloader,
+      dest_dir
+    )
     return
   elseif args[1] == "install" or args[1] == "i" then
     -- Usage: almd install [<dep_name>]
@@ -176,7 +186,7 @@ For help with a command: almd help <command> or almd <command> --help
     return
   elseif args[1] == "remove" or args[1] == "rm" or args[1] == "uninstall" or args[1] == "un" then
     if args[2] then
-      remove_module.remove_dependency(args[2], load_manifest, install_module.save_manifest)
+      remove_module.remove_dependency(args[2], load_manifest, manifest_utils.save_manifest)
     else
       print("Usage: almd remove <dep_name>")
     end
@@ -191,7 +201,7 @@ For help with a command: almd help <command> or almd <command> --help
     end
     update_module.update_dependencies(
       load_manifest,
-      install_module.save_manifest,
+      manifest_utils.save_manifest,
       filesystem_utils.ensure_lib_dir,
       { downloader = downloader },
       add_module.resolve_latest_version,
@@ -203,7 +213,7 @@ For help with a command: almd help <command> or almd <command> --help
       print("Usage: almd run <script_name>")
       return
     end
-    local ok, err = run_module.run_script(args[2], manifest_loader)
+    local ok, err = run_module.run_script(args[2], manifest_utils.safe_load_project_manifest)
     if not ok then
       print(err)
     end
@@ -231,17 +241,16 @@ For help with a command: almd help <command> or almd <command> --help
     return
   elseif not run_module.is_reserved_command(args[1]) then
     -- If not a reserved command, check if it's an unambiguous script name
-    local script_name = run_module.get_unambiguous_script(args[1], manifest_loader)
+    local script_name = run_module.get_unambiguous_script(args[1], manifest_utils.safe_load_project_manifest)
     if script_name then
-      local ok, err = run_module.run_script(script_name, manifest_loader)
+      local ok, err = run_module.run_script(script_name, manifest_utils.safe_load_project_manifest)
       if not ok then
         print(err)
       end
       return
     end
   end
-  print("Almandine Package Manager: main entrypoint initialized.")
-  -- TODO: Parse CLI arguments and dispatch to subcommands/modules
+  print_help()
 end
 
 main(unpack(arg, 1))
