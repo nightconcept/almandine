@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Almandine CLI wrapper script
-# Finds a suitable Lua interpreter and runs src/main.lua with all arguments.
+# Finds a suitable Lua interpreter and runs ~/.almd/src/main.lua with all arguments.
 # Compatible with macOS and Linux.
 
 # Deferred self-update logic (POSIX)
@@ -55,10 +55,11 @@ if [ -z "$LUA_BIN" ]; then
   exit 1
 fi
 
-SCRIPT_DIR="$(dirname "$0")"
-MAIN="$SCRIPT_DIR/src/main.lua"
-LUA_PATH_PREFIX="$SCRIPT_DIR/src/?.lua;$SCRIPT_DIR/src/lib/?.lua;"
-LUA_CPATH_PREFIX="$SCRIPT_DIR/src/?.so;$SCRIPT_DIR/src/lib/?.so;"
+# Always use ~/.almd as the app home
+APP_HOME="$HOME/.almd"
+MAIN="$APP_HOME/src/main.lua"
+LUA_PATH_PREFIX="$APP_HOME/src/?.lua;$APP_HOME/src/lib/?.lua;"
+LUA_CPATH_PREFIX="$APP_HOME/src/?.so;$APP_HOME/src/lib/?.so;"
 
 if [ -n "$LUA_PATH" ]; then
   export LUA_PATH="$LUA_PATH_PREFIX$LUA_PATH"
