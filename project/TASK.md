@@ -204,6 +204,11 @@
   - [ ] Update CLI entrypoint so that running `almd` (with no arguments) prints a detailed usage/help message similar to pnpm, listing version, usage, command groups, and options, with formatting and descriptions matching the pnpm example.
   - [ ] Manual Verification: Run `almd` (no arguments), confirm output matches the pnpm-style usage/help format, includes all commands, aliases, and options.
 
+- [ ] **Task 8.3: Add comprehensive spec for src/modules/init.lua (2025-04-28)**
+  - [ ] Create src/spec/modules/init_spec.lua to test all interactive and error paths in project initialization.
+  - [ ] Mock user input and file system side effects for deterministic, non-interactive tests.
+  - [ ] Manual Verification: Run all specs with Busted, confirm all branches and error cases are covered.
+
 - [BUGFIX] Self-update now always targets the CLI's install directory, never the working directory. All update/backup/validation steps use absolute paths based on the detected install root. (2025-04-28)
 
 *Last updated: 2025-04-29*

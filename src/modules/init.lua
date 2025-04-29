@@ -69,7 +69,9 @@ function M.init_project()
     manifest.scripts[script_name] = script_cmd
   end
   -- Ensure a default 'run' script is present if not set
-  manifest.scripts["run"] = "lua src/main.lua"
+  if not manifest.scripts["run"] or manifest.scripts["run"] == "" then
+    manifest.scripts["run"] = "lua src/main.lua"
+  end
 
   -- Dependencies
   manifest.dependencies = {}
