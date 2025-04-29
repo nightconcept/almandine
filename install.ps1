@@ -104,7 +104,7 @@ if (Test-Path $WrapperDir) {
 }
 New-Item -ItemType Directory -Path $WrapperDir -Force | Out-Null
 Copy-Item -Path (Join-Path $ExtractedDir 'src') -Destination (Join-Path $WrapperDir 'src') -Recurse -Force
-Copy-Item -Path (Join-Path $ExtractedDir 'install/almd.ps1') -Destination (Join-Path $WrapperDir 'almd.ps1') -Force
+Copy-Item -Path (Join-Path $ExtractedDir 'src/install/almd.ps1') -Destination (Join-Path $WrapperDir 'almd.ps1') -Force
 
 Write-Host "\nInstallation complete!"
 Write-Host "Make sure $WrapperDir is in your Path environment variable. You may need to restart your terminal or system."

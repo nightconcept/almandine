@@ -13,8 +13,9 @@ if [ -f "$UPDATE_PENDING" ] && [ -d "$NEXT_DIR" ]; then
   [ -f "$SCRIPT_DIR/almd" ] && rm -f "$SCRIPT_DIR/almd"
   [ -f "$SCRIPT_DIR/almd.ps1" ] && rm -f "$SCRIPT_DIR/almd.ps1"
   cp -r "$NEXT_DIR/src" "$SCRIPT_DIR/"
-  cp "$NEXT_DIR/install/almd" "$SCRIPT_DIR/" 2>/dev/null || true
-  cp "$NEXT_DIR/install/almd.ps1" "$SCRIPT_DIR/" 2>/dev/null || true
+  # The release zip contains install scripts under src/install/, not install/ at root
+  cp "$NEXT_DIR/src/install/almd" "$SCRIPT_DIR/" 2>/dev/null || true
+  cp "$NEXT_DIR/src/install/almd.ps1" "$SCRIPT_DIR/" 2>/dev/null || true
   rm -rf "$NEXT_DIR" "$UPDATE_PENDING"
   # Print update success and new version
   LUA_BIN=""
