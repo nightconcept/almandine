@@ -39,7 +39,7 @@ end
 local unpack = table.unpack or unpack
 
 local downloader = require("utils.downloader")
-local manifest_loader = require("utils.manifest")
+local manifest_utils = require("utils.manifest")
 local init_module = require("modules.init")
 local add_module = require("modules.add")
 local install_module = require("modules.install")
@@ -51,11 +51,8 @@ local run_module = require("modules.run")
 local list_module = require("modules.list")
 local self_module = require("modules.self")
 
--- Import save_manifest from init_module for use in add command
-local save_manifest = init_module.save_manifest or install_module.save_manifest
-
 local function load_manifest()
-  local manifest, err = manifest_loader.safe_load_project_manifest("project.lua")
+  local manifest, err = manifest_utils.safe_load_project_manifest("project.lua")
   if not manifest then
     return nil, err
   end
@@ -172,8 +169,8 @@ For help with a command: almd help <command> or almd <command> --help
     add_module.add_dependency(
       dep_name,
       source,
-      load_manifest,
-      save_manifest,
+      manifest_utils.safe_load_project_manifest,
+      manifest_utils.save_manifest,
       filesystem_utils.ensure_lib_dir,
       downloader,
       dest_dir
@@ -189,7 +186,7 @@ For help with a command: almd help <command> or almd <command> --help
     return
   elseif args[1] == "remove" or args[1] == "rm" or args[1] == "uninstall" or args[1] == "un" then
     if args[2] then
-      remove_module.remove_dependency(args[2], load_manifest, save_manifest)
+      remove_module.remove_dependency(args[2], load_manifest, manifest_utils.save_manifest)
     else
       print("Usage: almd remove <dep_name>")
     end
@@ -204,7 +201,7 @@ For help with a command: almd help <command> or almd <command> --help
     end
     update_module.update_dependencies(
       load_manifest,
-      install_module.save_manifest,
+      manifest_utils.save_manifest,
       filesystem_utils.ensure_lib_dir,
       { downloader = downloader },
       add_module.resolve_latest_version,
@@ -216,7 +213,7 @@ For help with a command: almd help <command> or almd <command> --help
       print("Usage: almd run <script_name>")
       return
     end
-    local ok, err = run_module.run_script(args[2], manifest_loader)
+    local ok, err = run_module.run_script(args[2], manifest_utils.safe_load_project_manifest)
     if not ok then
       print(err)
     end
@@ -244,9 +241,9 @@ For help with a command: almd help <command> or almd <command> --help
     return
   elseif not run_module.is_reserved_command(args[1]) then
     -- If not a reserved command, check if it's an unambiguous script name
-    local script_name = run_module.get_unambiguous_script(args[1], manifest_loader)
+    local script_name = run_module.get_unambiguous_script(args[1], manifest_utils.safe_load_project_manifest)
     if script_name then
-      local ok, err = run_module.run_script(script_name, manifest_loader)
+      local ok, err = run_module.run_script(script_name, manifest_utils.safe_load_project_manifest)
       if not ok then
         print(err)
       end
