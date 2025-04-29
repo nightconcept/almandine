@@ -4,7 +4,8 @@
   Comprehensive tests for interactive project initialization and manifest creation logic.
   All user input, file system, and process side effects are stubbed for deterministic, non-interactive tests.
   Follows project LDoc and style guidelines.
-]]--
+]]
+--
 
 local init = require("modules.init")
 local manifest_utils = require("utils.manifest")
@@ -23,7 +24,9 @@ local function with_mocked_io_read(answers, fn)
   end)
   local ok, err = pcall(fn)
   io_read_stub:revert()
-  if not ok then error(err) end
+  if not ok then
+    error(err)
+  end
 end
 
 --- Spec for modules.init
@@ -41,16 +44,16 @@ describe("modules.init", function()
   --- Test happy path: all prompts, 1 script, 1 dependency
   it("initializes project and writes manifest (happy path)", function()
     local answers = {
-      "MyProj",          -- name
-      "2.0.0",           -- version
-      "BSD-3",           -- license
-      "desc",            -- description
-      "build",           -- script name
-      "make build",      -- script cmd
-      "",                -- end scripts
-      "dep1",            -- dep name
-      "^1.0.0",          -- dep version
-      ""                 -- end deps
+      "MyProj", -- name
+      "2.0.0", -- version
+      "BSD-3", -- license
+      "desc", -- description
+      "build", -- script name
+      "make build", -- script cmd
+      "", -- end scripts
+      "dep1", -- dep name
+      "^1.0.0", -- dep version
+      "", -- end deps
     }
     local saved_manifest
     local save_manifest_stub = stub(manifest_utils, "save_manifest", function(m)
@@ -77,9 +80,13 @@ describe("modules.init", function()
   --- Test: manifest write failure triggers error and exit
   it("handles manifest write failure", function()
     local answers = { "X", "", "", "", "", "", "" }
-    local save_manifest_stub = stub(manifest_utils, "save_manifest", function() return false, "write error" end)
+    local save_manifest_stub = stub(manifest_utils, "save_manifest", function()
+      return false, "write error"
+    end)
     local print_spy = spy.on(_G, "print")
-    local exit_stub = stub(os, "exit", function(code) _G.exit_called = code end)
+    local exit_stub = stub(os, "exit", function(code)
+      _G.exit_called = code
+    end)
     with_mocked_io_read(answers, function()
       init.init_project()
     end)
@@ -158,9 +165,13 @@ describe("modules.init", function()
   --- Test: manifest_utils.save_manifest returns unexpected non-boolean
   it("handles manifest_utils returning non-boolean", function()
     local answers = { "A", "", "", "", "", "", "", "" }
-    local save_manifest_stub = stub(manifest_utils, "save_manifest", function() return nil, "bad" end)
+    local save_manifest_stub = stub(manifest_utils, "save_manifest", function()
+      return nil, "bad"
+    end)
     local print_spy = spy.on(_G, "print")
-    local exit_stub = stub(os, "exit", function(code) _G.exit_called = code end)
+    local exit_stub = stub(os, "exit", function(code)
+      _G.exit_called = code
+    end)
     with_mocked_io_read(answers, function()
       init.init_project()
     end)

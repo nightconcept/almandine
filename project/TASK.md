@@ -159,6 +159,34 @@
   - [ ] Add/expand tests for Windows path handling, file-in-use, and error propagation in `src/spec/modules/self_spec.lua`.
   - [ ] Manual Verification: Run `almd self update` on Linux, macOS, and Windows. Confirm correct update, correct error reporting, and no invalid parameter/file-in-use errors.
 
+## Milestone 6: Automated Release Workflow & Changelog
+
+- [x] **Task 6.1: Automated Release Workflow & Changelog (2025-04-28)**
+  - [x] Add a GitHub Action in `.github/workflows` to:
+    - Build a distributable release zip containing the CLI and all required files (for use by `almd self update`).
+    - Automatically generate a changelog listing all changes since the previous release (using commit messages or PR titles).
+    - Attach the zip and changelog to a new GitHub Release.
+    - Ensure the workflow is professional and cross-platform aware.
+  - [ ] Manual Verification: Trigger release, verify zip contents, changelog accuracy, and release quality.
+
+- [ ] **Task 6.2: Migrate all src/spec tests to Busted framework (2025-04-28)**
+  - [ ] For each test file in `src/spec` named `*_test.lua`, create a corresponding `*_spec.lua` using the Busted test library and idioms (`describe`, `it`, `assert`).
+  - [ ] Preserve all test logic, grouping, and documentation; follow project Lua and LDoc standards.
+  - [ ] Do not delete or move original files unless explicitly approved.
+  - [ ] Manual Verification: Run all new specs with Busted, confirm all tests pass and logic is preserved.
+
+- [ ] **Task 6.3: Implement `self update` command for atomic CLI self-upgrade (2025-04-28)**
+  - [ ] Add `almd self update` to check GitHub for the latest release, download, and atomically replace the CLI install tree.
+  - [ ] Ensure all path handling and shell commands are cross-platform (Windows: use backslashes and no leading slashes; POSIX: use forward slashes).
+  - [ ] On Windows, guard against updating files that are in use (e.g., running scripts/executables). Abort or defer update if locked.
+  - [ ] Refactor updater to only print "Success" if all operations succeed; print clear error messages otherwise.
+  - [ ] Add/expand tests for Windows path handling, file-in-use, and error propagation in `src/spec/modules/self_spec.lua`.
+  - [ ] Manual Verification: Run `almd self update` on Linux, macOS, and Windows. Confirm correct update, correct error reporting, and no invalid parameter/file-in-use errors.
+
+- [ ] **Task 6.4: Redo spec for self module (2025-04-28)**
+  - [ ] Completely rewrite src/spec/modules/self_spec.lua to cover all logic, edge cases, and error handling in src/modules/self.lua. Ensure cross-platform, error, and output scenarios are tested. Remove all old code and replace with a new, style-compliant, and comprehensive test suite.
+  - [ ] Manual Verification: Run all specs with Busted, confirm all code paths and error branches are exercised and passing.
+
 ## Milestone 7: CI/CD Improvements
 
 - [ ] **Task 7.1: Add CI workflow for lint, test, and coverage (2025-04-28)**
