@@ -43,6 +43,9 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
     -- Store as table with url and path
     dep_entry = { url = dep_source, path = dest_dir }
     out_path = dest_dir
+  elseif type(dep_source) == "table" and dep_source.path then
+    dep_entry = dep_source
+    out_path = dep_source.path
   else
     dep_entry = dep_source
     local filesystem_utils = require("utils.filesystem")
