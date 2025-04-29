@@ -20,10 +20,10 @@ else
   WRAPPER_DIR="$FALLBACK_WRAPPER_DIR"
 fi
 
-# Usage: install.sh [-local] [version]
+# Usage: install.sh [--local] [version]
 while [ $# -gt 0 ]; do
   case "$1" in
-    -local|--local)
+    --local)
       LOCAL_MODE=1
       ;;
     *)
