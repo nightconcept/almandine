@@ -3,6 +3,20 @@
 # Finds a suitable Lua interpreter and runs src/main.lua with all arguments.
 # Compatible with macOS and Linux.
 
+# Deferred self-update logic (POSIX)
+SCRIPT_DIR="$(dirname "$0")"
+UPDATE_PENDING="$SCRIPT_DIR/update_pending"
+NEXT_DIR="$SCRIPT_DIR/next"
+if [ -f "$UPDATE_PENDING" ] && [ -d "$NEXT_DIR" ]; then
+  echo "Applying deferred update..."
+  rm -rf "$SCRIPT_DIR/src" "$SCRIPT_DIR/almd" "$SCRIPT_DIR/almd.ps1"
+  cp -r "$NEXT_DIR/src" "$SCRIPT_DIR/"
+  cp "$NEXT_DIR/install/almd" "$SCRIPT_DIR/" 2>/dev/null || true
+  cp "$NEXT_DIR/install/almd.ps1" "$SCRIPT_DIR/" 2>/dev/null || true
+  rm -rf "$NEXT_DIR" "$UPDATE_PENDING"
+  echo "Update applied."
+fi
+
 find_lua() {
   for cmd in lua lua5.4 lua5.3 lua5.2 lua5.1 luajit; do
     if command -v "$cmd" >/dev/null 2>&1; then

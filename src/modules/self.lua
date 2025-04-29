@@ -104,6 +104,16 @@ function M.self_update()
     return out
   end
 
+  -- Utility: check if file or directory exists
+  local function path_exists(path)
+    local f = io.open(path, "r")
+    if f then
+      f:close()
+      return true
+    end
+    return false
+  end
+
   -- Helper: download file (wget/curl)
   local downloader = require("utils.downloader")
   local function download(url, out)
@@ -116,6 +126,16 @@ function M.self_update()
     return ok == 0 or ok == true
   end
 
+  -- Set up copy commands for cross-platform compatibility
+  local cp, xcopy
+  if is_windows then
+    cp = "copy"
+    xcopy = "xcopy"
+  else
+    cp = "cp -f"
+    xcopy = "cp -r"
+  end
+
   -- Step 1: Fetch latest tag
   local tag_url = "https://api.github.com/repos/nightconcept/almandine/tags?per_page=1"
   local zip_url, tag
@@ -124,7 +144,9 @@ function M.self_update()
   local uuid = tostring(os.time()) .. tostring(math.random(10000, 99999))
   local work_dir = tmp_dir .. (is_windows and "\\almd_update_" or "/almd_update_") .. uuid
   local tag_file = work_dir .. (is_windows and "\\tag.json" or "/tag.json")
-  os.execute((is_windows and "mkdir " or "mkdir -p ") .. work_dir)
+  os.execute(
+    (is_windows and "mkdir " or "mkdir -p ") .. work_dir .. (is_windows and " >NUL 2>&1" or " >/dev/null 2>&1")
+  )
   local ok, err = download(tag_url, tag_file)
   if not ok then
     return false, "Failed to fetch latest release info: " .. (err or "unknown error")
@@ -147,10 +169,11 @@ function M.self_update()
   if not ok then
     return false, "Failed to download release zip: " .. (err or "unknown error")
   end
-
   -- Step 3: Extract zip
   local extract_dir = work_dir .. (is_windows and "\\extract" or "/extract")
-  os.execute((is_windows and "mkdir " or "mkdir -p ") .. extract_dir)
+  os.execute(
+    (is_windows and "mkdir " or "mkdir -p ") .. extract_dir .. (is_windows and " >NUL 2>&1" or " >/dev/null 2>&1")
+  )
   local unzip_cmd = is_windows
       and (
         "powershell -Command \"Add-Type -A 'System.IO.Compression.FileSystem'; "
@@ -161,10 +184,9 @@ function M.self_update()
         .. "')\""
       ) -- luacheck: ignore 121
     or ("unzip -q -o '" .. zip_path .. "' -d '" .. extract_dir .. "'")
-  if not shell(unzip_cmd) then
+  if not shell(unzip_cmd .. (is_windows and " >NUL 2>&1" or " >/dev/null 2>&1")) then
     return false, "Failed to extract release zip"
   end
-
   -- Step 4: Find extracted folder
   local extracted = extract_dir .. (is_windows and ("\\almandine-" .. tag) or ("/almandine-" .. tag))
   local extracted_v = extract_dir .. (is_windows and ("\\almandine-v" .. tag) or ("/almandine-v" .. tag))
@@ -184,19 +206,45 @@ function M.self_update()
 
   -- Step 5: Backup current install tree (wrapper scripts + src)
   local backup_dir = work_dir .. (is_windows and "\\backup" or "/backup")
-  os.execute((is_windows and "mkdir " or "mkdir -p ") .. backup_dir)
-  local cp = is_windows and "xcopy /E /I /Q /Y" or "cp -r"
-  -- Copy wrappers
+  os.execute(
+    (is_windows and "mkdir " or "mkdir -p ") .. backup_dir .. (is_windows and " >NUL 2>&1" or " >/dev/null 2>&1")
+  )
+  -- Copy wrappers (always files)
   local wrappers = {
     { from = join(install_root, "install", "almd.sh"), to = join(backup_dir, "almd.sh") },
     { from = join(install_root, "install", "almd.bat"), to = join(backup_dir, "almd.bat") },
     { from = join(install_root, "install", "almd.ps1"), to = join(backup_dir, "almd.ps1") },
   }
   for _, w in ipairs(wrappers) do
-    shell(cp .. " " .. w.from .. " " .. w.to)
+    if path_exists(w.from) then
+      if is_windows then
+        shell(
+          cp .. ' "' .. w.from .. '" "' .. w.to .. '"' .. (is_windows and " /Y /Q >NUL 2>&1" or " >/dev/null 2>&1")
+        )
+      else
+        shell(cp .. ' "' .. w.from .. '" "' .. w.to .. '"' .. (is_windows and "" or " >/dev/null 2>&1"))
+      end
+    end
   end
-  -- Copy src
-  shell(cp .. " " .. join(install_root, "src") .. " " .. join(backup_dir, "src"))
+  -- Copy src directory
+  local src_dir = join(install_root, "src")
+  if path_exists(src_dir) then
+    if is_windows then
+      shell(
+        xcopy
+          .. ' "'
+          .. src_dir
+          .. '" "'
+          .. join(backup_dir, "src")
+          .. '"'
+          .. (is_windows and " /E /I /Y /Q >NUL 2>&1" or " >/dev/null 2>&1")
+      )
+    else
+      shell(
+        xcopy .. ' "' .. src_dir .. '" "' .. join(backup_dir, "src") .. '"' .. (is_windows and "" or " >/dev/null 2>&1")
+      )
+    end
+  end
 
   -- Windows: Check if files are locked (in use) before proceeding
   if is_windows then
@@ -214,25 +262,61 @@ function M.self_update()
       join(install_root, "install", "almd.bat"),
       join(install_root, "install", "almd.ps1"),
     }
+    local function stage_update_for_next_run(staging_dir, extracted_dir)
+      -- Remove any existing staged update
+      if path_exists(staging_dir) then
+        if is_windows then
+          shell('rmdir /s /q "' .. staging_dir .. '" >NUL 2>&1')
+        else
+          shell('rm -rf "' .. staging_dir .. '" >/dev/null 2>&1')
+        end
+      end
+      -- Copy extracted_dir to staging_dir
+      if is_windows then
+        shell('xcopy "' .. extracted_dir .. '" "' .. staging_dir .. '" /E /I /Y /Q >NUL 2>&1')
+      else
+        shell('cp -r "' .. extracted_dir .. '" "' .. staging_dir .. '" >/dev/null 2>&1')
+      end
+      -- Write marker file
+      local marker = io.open(join(install_root, "install", "update_pending"), "w")
+      if marker then
+        marker:write(os.date("%Y-%m-%dT%H:%M:%S"))
+        marker:close()
+      end
+    end
+    local locked_file = nil
     for _, file in ipairs(files_to_check) do
       if is_file_locked(file) then
-        return false,
-          "Update aborted: File in use (locked): " .. file .. ". Please close all running instances and try again."
+        locked_file = file
+        break
       end
+    end
+    if locked_file then
+      local staging_dir = join(install_root, "install", "next")
+      stage_update_for_next_run(staging_dir, final_dir)
+      return false, "Update staged for next run."
     end
   end
 
   -- Step 6: Replace install tree with new version
   -- Remove old src and wrappers
   local rm = is_windows and "rmdir /s /q" or "rm -rf"
-  shell(rm .. " " .. join(install_root, "src"))
+  shell(rm .. " " .. join(install_root, "src") .. (is_windows and " >NUL 2>&1" or " >/dev/null 2>&1"))
   shell(
     is_windows
-      and ("del " .. join(install_root, "install", "almd.sh") .. " " .. join(install_root, "install", "almd.bat") .. " " .. join( -- luacheck: ignore 121
-        install_root,
-        "install",
-        "almd.ps1"
-      ))
+        and (
+          "del "
+          .. join(install_root, "install", "almd.sh")
+          .. " "
+          .. join(install_root, "install", "almd.bat")
+          .. " "
+          .. join( -- luacheck: ignore 121
+            install_root,
+            "install",
+            "almd.ps1"
+          )
+          .. " >NUL 2>&1"
+        )
       or (
         "rm -f "
         .. join(install_root, "install", "almd.sh")
@@ -240,52 +324,88 @@ function M.self_update()
         .. join(install_root, "install", "almd.bat")
         .. " "
         .. join(install_root, "install", "almd.ps1")
+        .. " >/dev/null 2>&1"
       )
   )
   -- Copy new src and wrappers
-  local src_cmd = cp .. " " .. final_dir .. (is_windows and "\\src" or "/src") .. " " .. join(install_root, "src")
-  local sh_cmd = cp
-    .. " "
-    .. final_dir
-    .. (is_windows and "\\install\\almd.sh" or "/install/almd.sh")
-    .. " "
-    .. join(install_root, "install", "almd.sh")
-  local bat_cmd = cp
-    .. " "
-    .. final_dir
-    .. (is_windows and "\\install\\almd.bat" or "/install/almd.bat")
-    .. " "
-    .. join(install_root, "install", "almd.bat")
-  local ps1_cmd = cp
-    .. " "
-    .. final_dir
-    .. (is_windows and "\\install\\almd.ps1" or "/install/almd.ps1")
-    .. " "
-    .. join(install_root, "install", "almd.ps1")
+  local src_cmd, sh_cmd, bat_cmd, ps1_cmd
+  if is_windows then
+    src_cmd = xcopy .. ' "' .. final_dir .. '\\src" "' .. join(install_root, "src") .. '" /E /I /Y /Q >NUL 2>&1'
+    sh_cmd = cp
+      .. ' "'
+      .. final_dir
+      .. '\\install\\almd.sh" "'
+      .. join(install_root, "install", "almd.sh")
+      .. '" /Y /Q >NUL 2>&1'
+    bat_cmd = cp
+      .. ' "'
+      .. final_dir
+      .. '\\install\\almd.bat" "'
+      .. join(install_root, "install", "almd.bat")
+      .. '" /Y /Q >NUL 2>&1'
+    ps1_cmd = cp
+      .. ' "'
+      .. final_dir
+      .. '\\install\\almd.ps1" "'
+      .. join(install_root, "install", "almd.ps1")
+      .. '" /Y /Q >NUL 2>&1'
+  else
+    src_cmd = xcopy .. ' "' .. final_dir .. '/src" "' .. join(install_root, "src") .. '" >/dev/null 2>&1'
+    sh_cmd = cp
+      .. ' "'
+      .. final_dir
+      .. '/install/almd.sh" "'
+      .. join(install_root, "install", "almd.sh")
+      .. '" >/dev/null 2>&1'
+    bat_cmd = cp
+      .. ' "'
+      .. final_dir
+      .. '/install/almd.bat" "'
+      .. join(install_root, "install", "almd.bat")
+      .. '" >/dev/null 2>&1'
+    ps1_cmd = cp
+      .. ' "'
+      .. final_dir
+      .. '/install/almd.ps1" "'
+      .. join(install_root, "install", "almd.ps1")
+      .. '" >/dev/null 2>&1'
+  end
+
   local ok_shell = shell(src_cmd) and shell(sh_cmd) and shell(bat_cmd) and shell(ps1_cmd)
   if not ok_shell then
     return false,
-      "Failed to copy new files during update. " .. "Please check permissions and available disk space, and retry."
+      "Failed to copy new files during update. Please check permissions and available disk space, and retry."
   end
 
   -- Step 7: Validate new install
   local ok_new = io.open(join(install_root, "src", "main.lua"), "r")
   if not ok_new then
     -- Rollback: restore from backup
-    shell(rm .. " " .. join(install_root, "src"))
-    shell(cp .. " " .. join(backup_dir, "src") .. " " .. join(install_root, "src"))
-    shell(cp .. " " .. join(backup_dir, "almd.sh") .. " " .. join(install_root, "install", "almd.sh"))
-    shell(cp .. " " .. join(backup_dir, "almd.bat") .. " " .. join(install_root, "install", "almd.bat"))
-    shell(cp .. " " .. join(backup_dir, "almd.ps1") .. " " .. join(install_root, "install", "almd.ps1"))
+    if is_windows then
+      local src_restore = join(backup_dir, "src")
+      if path_exists(src_restore) then
+        shell(xcopy .. ' "' .. src_restore .. '" "' .. join(install_root, "src") .. '" /E /I /Y /Q >NUL 2>&1')
+      end
+      for _, w in ipairs(wrappers) do
+        if path_exists(w.from) then
+          shell(cp .. ' "' .. join(backup_dir, w.to:match("([^/\\]+)$")) .. '" "' .. w.to .. '" /Y /Q >NUL 2>&1')
+        end
+      end
+    else
+      local src_restore = join(backup_dir, "src")
+      if path_exists(src_restore) then
+        shell(xcopy .. ' "' .. src_restore .. '" "' .. join(install_root, "src") .. '" >/dev/null 2>&1')
+      end
+    end
     return false, "Update failed: new version not found, rolled back to previous version."
   else
     ok_new:close()
   end
 
   -- Step 8: Delete backup and temp work dir
-  shell(rm .. " " .. backup_dir)
-  shell(rm .. " " .. work_dir)
-  return true
+  shell(rm .. " " .. backup_dir .. (is_windows and " >NUL 2>&1" or " >/dev/null 2>&1"))
+  shell(rm .. " " .. work_dir .. (is_windows and " >NUL 2>&1" or " >/dev/null 2>&1"))
+  return true, "Update staged for next run."
 end
 
 --- Prints usage/help information for the `self` command.

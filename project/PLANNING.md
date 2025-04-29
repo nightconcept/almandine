@@ -26,8 +26,8 @@ Sample minimal structure for an Almandine-managed project:
   * `lib/`               # (Optional) Internal reusable modules (e.g., downloader, lockfile)
   * `modules/`           # All CLI command modules (init, add, remove, etc.)
 * `install/`             # Cross-platform CLI wrapper scripts
-  * `almd.sh`            # Bash/sh wrapper for Linux/macOS (portable, finds Lua, runs from script dir)
-  * `almd.bat`           # Batch wrapper for Windows CMD (portable, finds Lua, runs from script dir, sets LUA_PATH)
+  * `almd`               # Bash/sh wrapper for Linux/macOS (portable, finds Lua, runs from script dir)
+  * `almd.ps1`           # Batch wrapper for Windows PowerShell (portable, finds Lua, runs from script dir, sets LUA_PATH)
 
 ## 4. File Descriptions
 

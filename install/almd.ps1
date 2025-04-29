@@ -1,6 +1,28 @@
 # PowerShell wrapper for launching the almd Lua application
 # Finds a suitable Lua interpreter and runs src/main.lua with all arguments.
 
+# Deferred self-update logic (Windows PowerShell)
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$UpdatePending = Join-Path $ScriptDir 'update_pending'
+$NextDir = Join-Path $ScriptDir 'next'
+if ((Test-Path $UpdatePending -PathType Leaf -ErrorAction SilentlyContinue) -and (Test-Path $NextDir -PathType Container -ErrorAction SilentlyContinue)) {
+  Remove-Item -Recurse -Force (Join-Path $ScriptDir 'src') -ErrorAction SilentlyContinue
+  $srcPath = Join-Path $NextDir 'src'
+  $almdPath = Join-Path $NextDir 'install/almd'
+  $almdPs1Path = Join-Path $NextDir 'install/almd.ps1'
+  Copy-Item -Recurse -Force $srcPath $ScriptDir -ErrorAction SilentlyContinue
+  if (Test-Path $almdPath) {
+    Remove-Item -Force (Join-Path $ScriptDir 'almd') -ErrorAction SilentlyContinue
+    Copy-Item -Force $almdPath $ScriptDir -ErrorAction SilentlyContinue
+  }
+  if (Test-Path $almdPs1Path) {
+    Remove-Item -Force (Join-Path $ScriptDir 'almd.ps1') -ErrorAction SilentlyContinue
+    Copy-Item -Force $almdPs1Path $ScriptDir -ErrorAction SilentlyContinue
+  }
+  Remove-Item -Recurse -Force $NextDir -ErrorAction SilentlyContinue
+  Remove-Item -Force $UpdatePending -ErrorAction SilentlyContinue
+}
+
 function Find-Lua {
   $candidates = @('lua.exe', 'lua5.4.exe', 'lua5.3.exe', 'lua5.2.exe', 'lua5.1.exe', 'luajit.exe')
   foreach ($cmd in $candidates) {

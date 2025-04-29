@@ -223,6 +223,8 @@ For help with a command: almd help <command> or almd <command> --help
     local ok, err = self_module.self_update()
     if ok then
       print("almd self update: Success.")
+    elseif err == "Update staged for next run." then
+      print(err)
     else
       print("almd self update: Failed.\n" .. (err or "Unknown error."))
     end
