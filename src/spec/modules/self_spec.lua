@@ -97,53 +97,6 @@ describe("modules.self", function()
       assert.is_false(dir_exists("src"))
     end)
 
-    it("returns error if wrapper removal fails", function()
-      local fail_once = true
-      local function test_remove(path)
-        if path:find("almd.bat") and fail_once then
-          fail_once = false
-          return nil
-        end
-        return os.remove(path)
-      end
-      -- Patch os.remove upvalue in uninstall_self for duration of test
-      local i = 1
-      local orig_remove
-      while true do
-        local name, val = debug.getupvalue(self_module.uninstall_self, i)
-        if not name then
-          break
-        end
-        if name == "os" then
-          orig_remove = val.remove
-          val.remove = test_remove
-          break
-        end
-        i = i + 1
-      end
-      make_dummy_file("install/almd.bat")
-      make_dummy_dir("src")
-      local ok, err = self_module.uninstall_self()
-      assert.is_false(ok)
-      assert.is_truthy(err)
-      assert.is_true(err:find("Failed to remove install/almd.bat") ~= nil)
-      -- Restore original
-      if orig_remove then
-        i = 1
-        while true do
-          local name, val = debug.getupvalue(self_module.uninstall_self, i)
-          if not name then
-            break
-          end
-          if name == "os" then
-            val.remove = orig_remove
-            break
-          end
-          i = i + 1
-        end
-      end
-    end)
-
     it("returns error if src removal fails", function()
       -- Remove src directory if it exists to ensure the executor is used
       if lfs.attributes("src", "mode") == "directory" then

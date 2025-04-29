@@ -218,9 +218,7 @@ function M.self_update()
   for _, w in ipairs(wrappers) do
     if path_exists(w.from) then
       if is_windows then
-        shell(
-          cp .. ' "' .. w.from .. '" "' .. w.to .. '"' .. (is_windows and " /Y /Q >NUL 2>&1" or " >/dev/null 2>&1")
-        )
+        shell(cp .. ' "' .. w.from .. '" "' .. w.to .. '"' .. (is_windows and " /Y /Q >NUL 2>&1" or " >/dev/null 2>&1"))
       else
         shell(cp .. ' "' .. w.from .. '" "' .. w.to .. '"' .. (is_windows and "" or " >/dev/null 2>&1"))
       end
