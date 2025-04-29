@@ -44,6 +44,15 @@ local function remove_dependency(dep_name, load_manifest, save_manifest)
   else
     print(string.format("Warning: Could not delete file %s (may not exist)", dep_path))
   end
+
+  -- Remove entry from lockfile (almd-lock.lua)
+  local lockfile_mod = require("utils.lockfile")
+  local ok_lock, err_lock = lockfile_mod.remove_dep_from_lockfile(dep_name)
+  if ok_lock then
+    print(string.format("Updated lockfile: almd-lock.lua (removed entry for '%s')", dep_name))
+  else
+    print("Failed to update lockfile: " .. tostring(err_lock))
+  end
 end
 
 ---

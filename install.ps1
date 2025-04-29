@@ -1,13 +1,19 @@
 # Installer script for almd on Windows (PowerShell)
-# Fetches and installs almd CLI from the latest (or specified) GitHub release
+# Fetches and installs almd CLI from the latest (or specified) GitHub release, or locally with -local
 
 $Repo = "nightconcept/almandine"
 $WrapperDir = "$env:LOCALAPPDATA\Programs\almd"
 $TmpDir = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), [System.Guid]::NewGuid().ToString())
 $Version = $null
+$LocalMode = $false
 
-if ($args.Count -gt 0) {
-  $Version = $args[0]
+# Usage: install.ps1 [-local] [version]
+foreach ($arg in $args) {
+  if ($arg -eq '-local' -or $arg -eq '--local') {
+    $LocalMode = $true
+  } elseif (-not $Version) {
+    $Version = $arg
+  }
 }
 
 function Download($url, $dest) {
@@ -36,6 +42,16 @@ function GithubApi($url) {
     Write-Error "Neither Invoke-RestMethod, curl, nor wget found. Please install one and re-run."
     exit 1
   }
+}
+
+if ($LocalMode) {
+  Write-Host "[DEV] Installing from local repository ..."
+  New-Item -ItemType Directory -Path $WrapperDir -Force | Out-Null
+  Copy-Item -Path ./src -Destination (Join-Path $WrapperDir 'src') -Recurse -Force
+  Copy-Item -Path ./install/almd.ps1 -Destination (Join-Path $WrapperDir 'almd.ps1') -Force
+  Write-Host "\n[DEV] Local installation complete!"
+  Write-Host "Make sure $WrapperDir is in your Path environment variable. You may need to restart your terminal or system."
+  exit 0
 }
 
 if (!(Test-Path $TmpDir)) { New-Item -ItemType Directory -Path $TmpDir | Out-Null }

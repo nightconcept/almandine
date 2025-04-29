@@ -65,6 +65,25 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
     print(string.format("Downloaded %s to %s", dep_name, out_path))
   else
     print(string.format("Failed to download %s: %s", dep_name, err3))
+    return
+  end
+
+  -- Generate and write lockfile after successful add
+  local lockfile_mod = require("utils.lockfile")
+  -- Build resolved_deps table for lockfile (minimal: name and hash)
+  local resolved_deps = {}
+  for name, dep in pairs(manifest.dependencies or {}) do
+    local lock_dep_entry = type(dep) == "table" and dep or { url = dep }
+    -- Compute hash (placeholder: use URL as hash; replace with real hash logic if available)
+    local hash = lock_dep_entry.url or tostring(dep)
+    resolved_deps[name] = { hash = hash, source = lock_dep_entry.url or tostring(dep) }
+  end
+  local lockfile_table = lockfile_mod.generate_lockfile_table(resolved_deps)
+  local ok_lock, err_lock = lockfile_mod.write_lockfile(lockfile_table)
+  if ok_lock then
+    print("Updated lockfile: almd-lock.lua")
+  else
+    print("Failed to update lockfile: " .. tostring(err_lock))
   end
 end
 

@@ -1,4 +1,4 @@
-# Almandine Package Manager – Task Checklist (TASK.md)
+# Task Checklist
 
 **Purpose:** Tracks all tasks, milestones, and backlog for the Almandine Lua package manager. Each task includes a manual verification step for running and inspecting all tests and code.
 
@@ -249,3 +249,11 @@
 - [BUGFIX] Self-update now always targets the CLI's install directory, never the working directory. All update/backup/validation steps use absolute paths based on the detected install root. (2025-04-28)
 
 *Last updated: 2025-04-29*
+
+- **2025-04-29**: Create a comprehensive Busted test suite for `src/utils/lockfile.lua` in `src/spec/utils/lockfile_spec.lua`. The test must cover all functions and edge cases, use dependency injection via a `deps` table for all external/file/OS interactions, and utilize spies/mocks as needed. All code and structure must follow project and Lua standards.
+
+- **2025-04-29**: **Add -local flag to install scripts for local developer testing**
+  - Enhance install.sh (Bash) and install.ps1 (PowerShell) to support a -local flag.
+  - When -local is provided, the scripts copy from the current repo instead of downloading from GitHub.
+  - Updated documentation in README.md.
+  - Manual Verification: Test both scripts with and without -local to ensure correct behavior on all platforms.

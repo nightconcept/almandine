@@ -1,6 +1,3 @@
-# Professional GitHub Action for Automated Release and Changelog
-# See TASK.md Milestone 6, Task 6.1
-
 name: Release and Generate Changelog
 
 on:

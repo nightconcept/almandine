@@ -1,19 +1,37 @@
 #!/bin/sh
 # Installer script for almd on Linux/macOS
-# Fetches and installs almd from GitHub Releases
+# Fetches and installs almd from GitHub Releases, or locally with -local
 # Requires: curl or wget, unzip, (jq optional for best experience)
 set -e
 
 REPO="nightconcept/almandine"
 APP_HOME="$HOME/.almd"
-WRAPPER_DIR="$HOME/.local/bin"
+PRIMARY_WRAPPER_DIR="/usr/local/bin"
+FALLBACK_WRAPPER_DIR="$HOME/.local/bin"
+WRAPPER_DIR=""
 TMP_DIR="$(mktemp -d)"
 VERSION=""
+LOCAL_MODE=0
 
-# Usage: install.sh [version]
-if [ $# -gt 0 ]; then
-  VERSION="$1"
+# Determine install location: /usr/local/bin (preferred), $HOME/.local/bin (fallback)
+if [ -w "$PRIMARY_WRAPPER_DIR" ]; then
+  WRAPPER_DIR="$PRIMARY_WRAPPER_DIR"
+else
+  WRAPPER_DIR="$FALLBACK_WRAPPER_DIR"
 fi
+
+# Usage: install.sh [-local] [version]
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -local|--local)
+      LOCAL_MODE=1
+      ;;
+    *)
+      VERSION="$1"
+      ;;
+  esac
+  shift
+done
 
 # Helper: download file (curl or wget)
 download() {
@@ -29,13 +47,25 @@ download() {
   fi
 }
 
+if [ "$LOCAL_MODE" -eq 1 ]; then
+  printf '%s\n' "[DEV] Installing from local repository ..."
+  mkdir -p "$APP_HOME"
+  cp -r ./src "$APP_HOME/"
+  mkdir -p "$WRAPPER_DIR"
+  cp ./install/almd "$WRAPPER_DIR/almd"
+  chmod +x "$WRAPPER_DIR/almd"
+  printf '\n[DEV] Local installation complete!\n'
+  printf 'Make sure %s is in your PATH. You may need to restart your shell.\n' "$WRAPPER_DIR"
+  exit 0
+fi
+
 # Determine tag to install
 if [ -n "$VERSION" ]; then
   TAG="$VERSION"
 else
   printf '%s\n' "Fetching latest tag ..."
   TAG=$(curl -sL "https://api.github.com/repos/$REPO/tags?per_page=1" | \
-    grep '"name"' | head -n1 | sed -E 's/ *\"name\": *\"([^"]+)\".*/\1/')
+    grep '"name"' | head -n1 | sed -E 's/ *\"name\": *\"([^\"]+)\".*/\1/')
   if [ -z "$TAG" ]; then
     printf '%s\n' "Error: Could not determine latest tag from GitHub." >&2
     exit 1
@@ -67,10 +97,27 @@ cp -r "$EXTRACTED_DIR/src" "$APP_HOME/"
 
 printf '%s\n' "Installing wrapper script to $WRAPPER_DIR ..."
 mkdir -p "$WRAPPER_DIR"
-cp "$EXTRACTED_DIR/install/almd.sh" "$WRAPPER_DIR/almd"
+cp "$EXTRACTED_DIR/install/almd" "$WRAPPER_DIR/almd"
 chmod +x "$WRAPPER_DIR/almd"
 
 printf '\nInstallation complete!\n'
 printf 'Make sure %s is in your PATH. You may need to restart your shell.\n' "$WRAPPER_DIR"
+
+# Check if $WRAPPER_DIR is in PATH, recommend adding if missing
+case ":$PATH:" in
+  *:"$WRAPPER_DIR":*)
+    # Already in PATH, nothing to do
+    ;;
+  *)
+    printf '\n[INFO] %s is not in your PATH.\n' "$WRAPPER_DIR"
+    if [ "$WRAPPER_DIR" = "$PRIMARY_WRAPPER_DIR" ]; then
+      printf 'You may want to add it to your PATH or check your shell configuration.\n'
+    else
+      printf 'To add it, run (for bash):\n  echo ''export PATH="$HOME/.local/bin:$PATH"'' >> ~/.bashrc && source ~/.bashrc\n'
+      printf 'Or for zsh:\n  echo ''export PATH="$HOME/.local/bin:$PATH"'' >> ~/.zshrc && source ~/.zshrc\n'
+      printf 'Then restart your terminal or run ''exec $SHELL'' to reload your PATH.\n'
+    fi
+    ;;
+esac
 
 rm -rf "$TMP_DIR"

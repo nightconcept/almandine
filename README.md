@@ -25,12 +25,16 @@ Easily manage, install, and update Lua dependencies with a single CLI: `almd`.
 
 ```sh
 curl -fsSL https://github.com/nightconcept/almandine/raw/main/install.sh | sh
+# For local development/testing (from repo root):
+sh install.sh -local
 ```
 
 ### Install via PowerShell (Windows)
 
 ```powershell
 irm https://github.com/nightconcept/almandine/raw/main/install.ps1 | iex
+# For local development/testing (from repo root):
+pwsh install.ps1 -local
 ```
 
 ---
