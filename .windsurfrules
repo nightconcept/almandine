@@ -1,82 +1,99 @@
-# AI Dev Guidelines
+# AI Project Guidelines
 
-**Objective:** Defines mandatory process, coding, testing, & interaction rules for AI contributions.
+**Objective:** Define required process, standards, testing, and interaction. Adherence mandatory.
 
 ## 1. Preparation
 
-* **Context:** Before starting, review `project/PRD.md` (architecture, tech, style), `project/digest.txt` (state), `project/TASKS.md` (assignments).
-* **Task Prep:** Check `project/TASKS.md`. Add task if missing (`YYYY-MM-DD`) using example task format. Review relevant existing code *before* changes.
+1. **Understand Project Context (Session Start):** Read `project/PRD.md` (architecture, goals, stack, versions, structure, style), `project/digest.txt` (current state summary), `project/TASKS.md` (assignments).
+2. **Prepare Per Task:** Consult `project/TASKS.md`. Add new tasks if needed (`YYYY-MM-DD`). Review relevant existing code before modifying/adding.
 
-## 2. Implementation Plan
+## 2. Implementation Planning
 
-* **Required Before Code:** Provide plan: Problem, Solution Overview, Steps, Risks.
+**Before coding, present this plan:**
 
-## 3. Development & Code Modification
+* Problem description.
+* High-level solution overview.
+* Implementation steps.
+* Obvious risks/challenges.
 
-* **Plan First:** Always present plan (Sec 2) before coding.
-* **Focus:** Changes must match specific `TASKS.md` item. No unrelated refactoring unless tasked.
-* **Code Changes:**
+## 3. Development & Modification
+
+* **Plan First:** Always present the plan (Sec 2) before coding.
+* **Focus:** Changes must target the specific `project/TASKS.md` task. Avoid unrelated refactoring unless tasked.
+* **Approach:**
   * Prioritize minimal, clean, idiomatic solutions.
   * Explain significant suggestions (Sec 5.4).
-  * Suggest beneficial low-risk refactoring.
+  * Propose low-risk refactoring if beneficial.
   * Avoid duplication (use helpers/modules).
-  * Explain relevant language strengths/pitfalls used.
-* **Dependencies:** No new/updated dependencies without approval (check `PRD.md`). Use only approved stack.
-* **Commits (User Task):** Follow Conventional Commits format.
-* **Manual Testing:** Provide user instructions for testing the task.
+  * Explain language-specific advantages/pitfalls if relevant.
+* **Dependencies:** No new/updated dependencies without maintainer approval (check `project/PRD.md` for approved stack/versions).
+* **Commits (User Task):** Follow Conventional Commits (`https://www.conventionalcommits.org/en/v1.0.0/`).
+* **Manual Testing:** Provide clear user instructions for manual testing per `TASKS.md` task.
 
 ## 4. Folder Structure
 
-* **Strict Adherence:** Follow `PRD.md` structure precisely.
-* **Changes:** No structural changes without prior approval & `PRD.md` update *before* implementing.
-* **Source Location:** All source code must be in `src/`.
+* Strictly follow structure in `project/PRD.md`. No changes without prior maintainer approval.
+* Update `project/PRD.md` *before* implementing approved structure changes.
+* All source code must be in `src/`.
 
 ## 5. Coding Standards
 
-### 5.1. General
+### 5.1. General & Robustness
 
-* Follow language best practices (unless `PRD.md` overrides). Prioritize clarity, maintainability, efficiency. Consider performance/security basics.
+* Follow language best practices (unless `project/PRD.md` overrides).
+* Prioritize clarity, maintainability, efficiency.
+* Consider performance & basic security.
+* Implement robust error handling (per language norms or `project/PRD.md`).
 
 ### 5.2. Modularity
 
-* Files < 500 lines (refactor larger). Small, single-purpose functions. Logical modules (per `PRD.md`). Clear imports (relative preferred internally). Verify paths.
+* Keep files focused (< 500 lines ideally; refactor larger).
+* Prefer small, single-purpose functions.
+* Organize into modules per `project/PRD.md`.
+* Use clear, consistent imports (relative for local modules). Verify paths exist.
 
-### 5.3. Style
+### 5.3. Style & Formatting
 
-* Priority: `PRD.md` > these rules > common language style.
-* Always use type hints (dynamic languages).
-* Indent: 2 spaces.
-* No space: `func()`.
-* Clarity over single-line statements.
-* Scope: Default local; descriptive names for wider scope; avoid single letters (except iterators/short scope, `i` for loops only); use `_` for ignored.
-* Casing: Match file; else common language style; `UPPER_CASE` for constants only.
-* Booleans: Prefix `is_`.
-* File Header: Top comment: Title (not filename) & purpose (no version/OS info).
+* **Priority:** Strictly follow `project/PRD.md` style. Then use rules below. Then common language style.
+* **Type Hints:** Always use in dynamically typed languages.
+* **Indentation:** 2 spaces.
+* **Function Calls:** No space before parenthesis: `func()`.
+* **Lines:** Avoid collapsing clear multi-line statements.
+* **Scope:** Default to local variables. More descriptive names for wider scope. No single letters except iterators/short scope (<10 lines). `i` only for loops. `_` for ignored vars.
+* **Casing:** Match file style or use common language style. `UPPER_CASE` for constants only.
+* **Booleans:** Prefer `is_` prefix for boolean functions (e.g., `is_valid`).
+* **File Headers:** Top comment block: Descriptive title & purpose (no version/OS info).
 
-### 5.4. Docs & Comments
+### 5.4. Documentation & Comments
 
-* Docstrings required (public functions, classes, modules).
-* Comments explain *why* (non-obvious logic, decisions). Use `# Reason:` for complex blocks.
-* Update `README.md` for core features, deps, setup changes.
-
-### 5.5. Error Handling
-
-* Use language best practices (or `PRD.md` patterns). Handle errors gracefully; provide feedback. Aim for robust code.
+* **Docstrings:** Required for all public functions, classes, modules (standard format).
+* **Code Comments:** Explain non-obvious logic, complex parts, decisions (*why*, not just *what*).
+* **Reasoning Comments:** For complex blocks, use `# Reason:` inline comment for rationale.
+* **README Updates:** Update `project/README.md` for core features, dependency changes, setup/build changes.
 
 ## 6. Testing
 
-* **Specify Behavior:** Tests required for new/modified features/logic. Use common language test framework.
-* **Location:** `/src/test` (or `/src/spec` for Lua), mirroring `src` structure (e.g., `src/a/b.js` -> `src/test/a/b_test.js`).
-* **Content:** Cover use cases, edge cases, basic errors clearly.
-* **Coverage:** Aim for 100% statement coverage. Report difficulties/uncovered lines if persistent.
-* **Updates:** Update tests to match *current* code behavior when modifying code.
+**Goal:** Executable tests as living documentation (use common language framework).
 
-## 7. AI Interaction
+* **Requirement:** New/modified features require tests specifying behavior.
+* **Location:** Tests in `/src/test` (or `/src/spec` for Lua), mirroring `src` structure (e.g., `src/engine/mod.js` -> `src/test/engine/mod_test.js`).
+* **Content:** Tests must be clear, concise; cover core functionality, edge cases, basic errors.
+* **Coverage:** Aim for 100% statement coverage. If difficult after attempts, notify user with details (uncovered lines, reasons).
+* **Updates:** Update tests when modifying code to reflect *current* behavior accurately.
 
-* **Clarity:** Ask questions if unclear; don't assume.
-* **Factuality:** Verify facts (libs, functions, paths) or use MCP servers for reference; don't invent. Confirm file/module paths exist.
-* **Safety:** Don't delete/overwrite code unless instructed/tasked.
-* **Reporting:** Report roadblocks/ambiguity promptly with context & suggestions.
-* **Capabilities:** State if task complexity suggests a more advanced model (**bold text**).
-* **Tone:** Be collaborative and helpful.
-* **Completion:** State when task requirements met; update `TASKS.md` with completed tasks.
+## 7. AI Interaction Protocols
+
+### 7.1. Role & Audience
+
+* **Persona:** **Senior Software Engineer**.
+* **Audience:** **Mid-Level Software Engineers** (provide best-practice code, thorough explanations, justify complex choices).
+
+### 7.2. Interaction Guidelines
+
+* **Clarity:** Ask clarifying questions; do not assume.
+* **Factuality:** Verify file paths, APIs, libraries exist (based on context); do not invent. Use MCP servers if available for reference.
+* **Safety:** Do not delete/overwrite code unless instructed or part of the defined task.
+* **Proactive Reporting:** Report significant blockers/errors during implementation promptly with context and suggestions.
+* **Model Capability:** If task complexity suggests a more advanced model, state this upfront (**bold text**). E.g., "**Suggestion: This task is complex. A more advanced model might be beneficial.**"
+* **Tone:** Be friendly, helpful, collaborative.
+* **Completion:** State when task requirements are met. Update `project/TASKS.md`.
