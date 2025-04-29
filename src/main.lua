@@ -62,6 +62,39 @@ local function load_manifest()
   return manifest, nil
 end
 
+local function print_help()
+  local version = version_utils.get_version and version_utils.get_version() or "(unknown)"
+  print(([[
+Almandine CLI v%s
+
+Usage: almd [command] [options]
+     almd [ -h | --help | -v | --version ]
+
+Project Management:
+ init                  Initialize a new Lua project in the current directory
+
+Dependency Management:
+ add                   Add a dependency to the project
+ install               Install all dependencies listed in project.lua (aliases: i)
+ remove                Remove a dependency from the project (aliases: rm, uninstall, un)
+ update                Update dependencies to latest allowed version (aliases: up)
+ list                  List installed dependencies and their versions (aliases: ls)
+
+Scripts:
+ run                   Run a script defined in project.lua scripts table
+
+Self-management:
+ self uninstall        Remove the almd CLI
+ self update           Update the almd CLI
+
+Options:
+-h, --help             Show this help message
+-v, --version          Show version
+
+For help with a command: almd help <command> or almd <command> --help
+]]):format(version))
+end
+
 local function main(...)
   --- The main entry point for the Almandine CLI application.
   --
@@ -70,36 +103,7 @@ local function main(...)
   local args = { ... }
   -- pnpm-style usage/help if no arguments
   if not args[1] or args[1] == "--help" or args[1] == "help" or (args[2] and args[2] == "--help") then
-    local version = version_utils.get_version and version_utils.get_version() or "(unknown)"
-    print(([[
-Almandine CLI v%s
-
-Usage: almd [command] [options]
-       almd [ -h | --help | -v | --version ]
-
-Project Management:
-   init                  Initialize a new Lua project in the current directory
-
-Dependency Management:
-   add                   Add a dependency to the project
-   install               Install all dependencies listed in project.lua (aliases: i)
-   remove                Remove a dependency from the project (aliases: rm, uninstall, un)
-   update                Update dependencies to latest allowed version (aliases: up)
-   list                  List installed dependencies and their versions (aliases: ls)
-
-Scripts:
-   run                   Run a script defined in project.lua scripts table
-
-Self-management:
-   self uninstall        Remove the almd CLI
-   self update           Update the almd CLI
-
-Options:
-  -h, --help             Show this help message
-  -v, --version          Show version
-
-For help with a command: almd help <command> or almd <command> --help
-]]):format(version))
+    print_help()
     return
   end
   -- Modular help delegation
@@ -249,8 +253,7 @@ For help with a command: almd help <command> or almd <command> --help
       return
     end
   end
-  print("Almandine Package Manager: main entrypoint initialized.")
-  -- TODO: Parse CLI arguments and dispatch to subcommands/modules
+  print_help()
 end
 
 main(unpack(arg, 1))
