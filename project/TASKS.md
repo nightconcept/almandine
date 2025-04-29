@@ -257,3 +257,9 @@
   - When -local is provided, the scripts copy from the current repo instead of downloading from GitHub.
   - Updated documentation in README.md.
   - Manual Verification: Test both scripts with and without -local to ensure correct behavior on all platforms.
+
+- **2025-04-29**: **Integrate pre-commit framework and enforce Lua code quality**
+  - Add pre-commit and nodejs to devenv.nix from unstable channel; ensure luacheck, busted, and stylua are available in the dev shell.
+  - Configure a shell hook in devenv.nix to auto-install/update the pre-commit hook on environment entry.
+  - Create .pre-commit-config.yaml to run npx @johnnymorganz/stylua-bin, luacheck, and busted on staged Lua files.
+  - Manual Verification: (1) Enter the dev environment and confirm the pre-commit hook is installed. (2) Stage a Lua file with style/lint/test issues and verify the hook blocks the commit. (3) Fix issues and confirm commit succeeds. (4) Confirm cross-platform compatibility.
