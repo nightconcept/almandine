@@ -6,7 +6,7 @@
 --
 
 -- Ensure test runner can find src/utils/manifest.lua
-local src_path = table.concat({"src", "?.lua"}, package.config:sub(1,1))
+local src_path = table.concat({ "src", "?.lua" }, package.config:sub(1, 1))
 if not package.path:find(src_path, 1, true) then
   package.path = src_path .. ";" .. package.path
 end

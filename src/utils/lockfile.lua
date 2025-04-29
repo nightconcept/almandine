@@ -3,7 +3,8 @@
 
   Centralizes all lockfile operations for Almandine. Provides functions to generate, serialize, write,
   and modify the lockfile (almd-lock.lua) in a consistent, reusable way.
-]]--
+]]
+--
 
 --- Lockfile schema version (increment if schema changes)
 local API_VERSION = "1"
@@ -26,8 +27,12 @@ function lockfile.generate_lockfile_table(resolved_deps)
     assert(type(dep) == "table", "Dependency entry must be a table")
     assert(dep.hash, "Dependency '" .. name .. "' must have a hash")
     local entry = { hash = dep.hash }
-    if dep.version then entry.version = dep.version end
-    if dep.source then entry.source = dep.source end
+    if dep.version then
+      entry.version = dep.version
+    end
+    if dep.source then
+      entry.source = dep.source
+    end
     pkgs[name] = entry
   end
   return {
@@ -73,7 +78,9 @@ function lockfile.write_lockfile(lockfile_table, path)
   path = path or "almd-lock.lua"
   local content = lockfile.serialize_lockfile(lockfile_table)
   local file, err = io.open(path, "w")
-  if not file then return false, err end
+  if not file then
+    return false, err
+  end
   file:write(content)
   file:close()
   return true, path
@@ -87,7 +94,9 @@ end
 function lockfile.remove_dep_from_lockfile(dep_name, path)
   path = path or "almd-lock.lua"
   local chunk = loadfile(path)
-  if not chunk then return false, "Lockfile not found" end
+  if not chunk then
+    return false, "Lockfile not found"
+  end
   local ok, lock = pcall(chunk)
   if not ok or type(lock) ~= "table" or type(lock.package) ~= "table" then
     return false, "Malformed lockfile"

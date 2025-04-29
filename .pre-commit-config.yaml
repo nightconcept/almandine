@@ -4,7 +4,7 @@ repos:
     hooks:
       - id: stylua
         name: Stylua (via npx @johnnymorganz/stylua-bin)
-        entry: npx @johnnymorganz/stylua-bin --check --color always
+        entry: npx @johnnymorganz/stylua-bin  --color always
         language: system
         types: [lua]
         files: \.(lua)$

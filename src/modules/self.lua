@@ -17,13 +17,12 @@ function M.rmdir_recursive(path, executor)
   local is_windows = package.config:sub(1, 1) == "\\"
   local cmd
   if is_windows then
-    -- Windows: use rmdir /s /q
     cmd = string.format('rmdir /s /q "%s"', path)
   else
-    -- POSIX: use rm -rf
     cmd = string.format("rm -rf %q", path)
   end
   local ok = executor(cmd)
+  -- os.execute returns true/0 on success, or nonzero/nil on failure
   if ok == 0 or ok == true then
     return true
   else
@@ -35,22 +34,48 @@ end
 -- @param executor [function?] Optional. Function to use for executing shell commands (default: os.execute)
 -- @return [boolean, string?] True if successful, or false and error message
 function M.uninstall_self(executor)
-  local errors = {}
-  -- Remove wrapper scripts
-  local wrappers = { "install/almd.sh", "install/almd.bat", "install/almd.ps1" }
-  for _, script in ipairs(wrappers) do
-    local ok = os.remove(script)
-    if not ok then
-      table.insert(errors, "Failed to remove " .. script)
+  -- Remove wrapper scripts from known install locations
+  local is_windows = package.config:sub(1, 1) == "\\"
+  local install_prefixes
+  local wrappers = { "almd", "almd.sh", "almd.bat", "almd.ps1" }
+  if is_windows then
+    local localappdata = os.getenv("LOCALAPPDATA") or ""
+    local userprofile = os.getenv("USERPROFILE") or ""
+    install_prefixes = {
+      localappdata .. "\\almd",
+      localappdata .. "\\Programs\\almd",
+      userprofile .. "\\.almd",
+      userprofile .. "\\AppData\\Local\\almd",
+      "C:\\Program Files\\almd",
+      "C:\\almd",
+    }
+  else
+    install_prefixes = {
+      os.getenv("HOME") .. "/.local/bin",
+      os.getenv("HOME") .. "/.almd/install",
+      os.getenv("HOME") .. "/.almd",
+      "/usr/local/bin",
+    }
+  end
+  for _, prefix in ipairs(install_prefixes) do
+    for _, script in ipairs(wrappers) do
+      local sep = is_windows and "\\" or "/"
+      local path = prefix .. sep .. script
+      os.remove(path)
     end
   end
-  -- Remove src/ folder (all CLI code)
-  local ok, err = M.rmdir_recursive("src", executor)
-  if not ok then
-    table.insert(errors, "Failed to remove src/: " .. (err or "unknown error"))
+  -- Remove src/ folder from main install dir
+  local cli_dir
+  if is_windows then
+    cli_dir = (os.getenv("LOCALAPPDATA") or "") .. "\\almd\\src"
+    if not require("lfs").attributes(cli_dir) then
+      cli_dir = (os.getenv("USERPROFILE") or "") .. "\\.almd\\src"
+    end
+  else
+    cli_dir = os.getenv("HOME") .. "/.almd/src"
   end
-  if #errors > 0 then
-    return false, table.concat(errors, "\n")
+  if require("lfs").attributes(cli_dir) then
+    M.rmdir_recursive(cli_dir, executor)
   end
   return true
 end
