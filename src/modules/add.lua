@@ -69,14 +69,14 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
   end
 
   -- Generate and write lockfile after successful add
-  local lockfile_mod = require("modules.install").lockfile
+  local lockfile_mod = require("utils.lockfile")
   -- Build resolved_deps table for lockfile (minimal: name and hash)
   local resolved_deps = {}
   for name, dep in pairs(manifest.dependencies or {}) do
-    local dep_entry = type(dep) == "table" and dep or { url = dep }
+    local lock_dep_entry = type(dep) == "table" and dep or { url = dep }
     -- Compute hash (placeholder: use URL as hash; replace with real hash logic if available)
-    local hash = dep_entry.url or tostring(dep)
-    resolved_deps[name] = { hash = hash, source = dep_entry.url or tostring(dep) }
+    local hash = lock_dep_entry.url or tostring(dep)
+    resolved_deps[name] = { hash = hash, source = lock_dep_entry.url or tostring(dep) }
   end
   local lockfile_table = lockfile_mod.generate_lockfile_table(resolved_deps)
   local ok_lock, err_lock = lockfile_mod.write_lockfile(lockfile_table)
