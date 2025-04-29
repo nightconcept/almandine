@@ -44,6 +44,45 @@ local function remove_dependency(dep_name, load_manifest, save_manifest)
   else
     print(string.format("Warning: Could not delete file %s (may not exist)", dep_path))
   end
+
+  -- Remove entry from lockfile (almd-lock.lua)
+  local lockfile_path = "almd-lock.lua"
+  local lockfile_chunk = loadfile(lockfile_path)
+  if lockfile_chunk then
+    local ok_lock, lockfile = pcall(lockfile_chunk)
+    if ok_lock and type(lockfile) == "table" and type(lockfile.package) == "table" then
+      if lockfile.package[dep_name] then
+        lockfile.package[dep_name] = nil
+        -- Write updated lockfile
+        local file, err = io.open(lockfile_path, "w")
+        if file then
+          file:write("return ")
+          local function serialize(tbl, indent)
+            indent = indent or 0
+            local pad = string.rep("  ", indent)
+            local lines = { "{" }
+            for k, v in pairs(tbl) do
+              local key = (type(k) == "string" and string.format("%s = ", k)) or ("[" .. tostring(k) .. "] = ")
+              if type(v) == "table" then
+                table.insert(lines, pad .. "  " .. key .. serialize(v, indent + 1) .. ",")
+              elseif type(v) == "string" then
+                table.insert(lines, pad .. "  " .. key .. string.format('"%s"', v) .. ",")
+              else
+                table.insert(lines, pad .. "  " .. key .. tostring(v) .. ",")
+              end
+            end
+            table.insert(lines, pad .. "}")
+            return table.concat(lines, "\n")
+          end
+          file:write(serialize(lockfile, 0) .. "\n")
+          file:close()
+          print("Updated lockfile: almd-lock.lua (removed entry for '" .. dep_name .. "')")
+        else
+          print("Failed to update lockfile: " .. tostring(err))
+        end
+      end
+    end
+  end
 end
 
 ---

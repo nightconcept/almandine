@@ -169,8 +169,40 @@ Example:
 ]])
 end
 
+-- After installing, update lockfile
+local function update_lockfile_after_install(load_manifest)
+  local manifest, err = load_manifest()
+  if not manifest then
+    print("[lockfile] Could not load manifest for lockfile update: " .. tostring(err))
+    return
+  end
+  local resolved_deps = {}
+  for name, dep in pairs(manifest.dependencies or {}) do
+    local dep_entry = type(dep) == "table" and dep or { url = dep }
+    -- Compute hash (placeholder: use URL as hash; replace with real hash logic if available)
+    local hash = dep_entry.url or tostring(dep)
+    resolved_deps[name] = { hash = hash, source = dep_entry.url or tostring(dep) }
+  end
+  local lockfile_table = lockfile.generate_lockfile_table(resolved_deps)
+  local ok_lock, err_lock = lockfile.write_lockfile(lockfile_table)
+  if ok_lock then
+    print("Updated lockfile: almd-lock.lua")
+  else
+    print("Failed to update lockfile: " .. tostring(err_lock))
+  end
+end
+
 return {
-  install_dependencies = install_dependencies,
+  install_dependencies = function(...)
+    local res = install_dependencies(...)
+    -- After install, update lockfile
+    local load_manifest = select(2, ...)
+    if type(load_manifest) == "function" then
+      update_lockfile_after_install(load_manifest)
+    end
+    return res
+  end,
   lockfile = lockfile,
   help_info = help_info,
+  update_lockfile_after_install = update_lockfile_after_install,
 }
