@@ -3,7 +3,8 @@
 
   Fully covers uninstall_self, self_update, help_info, and rmdir_recursive logic.
   Ensures cross-platform, error, and output scenarios are tested. All code follows project Lua and LDoc standards.
-]]--
+]]
+--
 
 local lfs = require("lfs")
 local self_module = require("modules.self")
@@ -28,7 +29,10 @@ end
 -- Utility: File/dir existence
 local function file_exists(path)
   local f = io.open(path, "r")
-  if f then f:close() return true end
+  if f then
+    f:close()
+    return true
+  end
   return false
 end
 local function dir_exists(path)
@@ -103,7 +107,9 @@ describe("modules.self", function()
     it("returns error if wrapper script removal fails", function()
       local orig_os_remove = os.remove
       rawset(os, "remove", function(path)
-        if path == "install/almd.sh" then return nil end
+        if path == "install/almd.sh" then
+          return nil
+        end
         return orig_os_remove(path)
       end)
       local ok = self_module.uninstall_self()
@@ -244,8 +250,12 @@ describe("modules.self", function()
       self_module.help_info(capture_print)
       local found_usage, found_uninstalls = false, false
       for _, s in pairs(output) do
-        if s:find("Usage: almd self uninstall") then found_usage = true end
-        if s:find("Uninstalls the Almandine CLI") then found_uninstalls = true end
+        if s:find("Usage: almd self uninstall") then
+          found_usage = true
+        end
+        if s:find("Uninstalls the Almandine CLI") then
+          found_uninstalls = true
+        end
       end
       assert.is_true(found_usage)
       assert.is_true(found_uninstalls)
