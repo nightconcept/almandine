@@ -6,10 +6,19 @@ set -e
 
 REPO="nightconcept/almandine"
 APP_HOME="$HOME/.almd"
-WRAPPER_DIR="$HOME/.local/bin"
+PRIMARY_WRAPPER_DIR="/usr/local/bin"
+FALLBACK_WRAPPER_DIR="$HOME/.local/bin"
+WRAPPER_DIR=""
 TMP_DIR="$(mktemp -d)"
 VERSION=""
 LOCAL_MODE=0
+
+# Determine install location: /usr/local/bin (preferred), $HOME/.local/bin (fallback)
+if [ -w "$PRIMARY_WRAPPER_DIR" ]; then
+  WRAPPER_DIR="$PRIMARY_WRAPPER_DIR"
+else
+  WRAPPER_DIR="$FALLBACK_WRAPPER_DIR"
+fi
 
 # Usage: install.sh [-local] [version]
 while [ $# -gt 0 ]; do
@@ -93,5 +102,22 @@ chmod +x "$WRAPPER_DIR/almd"
 
 printf '\nInstallation complete!\n'
 printf 'Make sure %s is in your PATH. You may need to restart your shell.\n' "$WRAPPER_DIR"
+
+# Check if $WRAPPER_DIR is in PATH, recommend adding if missing
+case ":$PATH:" in
+  *:"$WRAPPER_DIR":*)
+    # Already in PATH, nothing to do
+    ;;
+  *)
+    printf '\n[INFO] %s is not in your PATH.\n' "$WRAPPER_DIR"
+    if [ "$WRAPPER_DIR" = "$PRIMARY_WRAPPER_DIR" ]; then
+      printf 'You may want to add it to your PATH or check your shell configuration.\n'
+    else
+      printf 'To add it, run (for bash):\n  echo ''export PATH="$HOME/.local/bin:$PATH"'' >> ~/.bashrc && source ~/.bashrc\n'
+      printf 'Or for zsh:\n  echo ''export PATH="$HOME/.local/bin:$PATH"'' >> ~/.zshrc && source ~/.zshrc\n'
+      printf 'Then restart your terminal or run ''exec $SHELL'' to reload your PATH.\n'
+    fi
+    ;;
+esac
 
 rm -rf "$TMP_DIR"
