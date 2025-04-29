@@ -97,6 +97,10 @@
   - [ ] Add comprehensive tests for all code paths and edge cases in list_dependencies and help_info (lockfile/manifest not a table, missing dependencies, dependencies as strings, missing version/hash, help output, etc).
   - [ ] Manual Verification: Run all tests, confirm all branches are covered in luacov.stats.
 
+- [ ] **Task 4.10: Refactor save_manifest to src/utils/manifest.lua** (2025-04-28)
+  - Move save_manifest() from src/modules/init.lua to src/utils/manifest.lua, update all imports/usages, and ensure modularity. No other modules currently use or require save_manifest; only init.lua calls it directly. All changes must follow PLANNING.md folder structure and Lua style guidelines.
+  - Manual Verification: Run almd init and verify manifest creation still works.
+
 - [ ] **Update all usage/help text to refer to the CLI tool as `almd` (not `almandine`).**
 
 ## Milestone 5: Installer and Wrapper Scripts

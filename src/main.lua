@@ -154,11 +154,11 @@ For help with a command: almd help <command> or almd <command> --help
     local dest_dir, dep_name
     local i = 3
     while i <= #args do
-      if args[i] == "-d" and args[i+1] then
-        dest_dir = args[i+1]
+      if args[i] == "-d" and args[i + 1] then
+        dest_dir = args[i + 1]
         i = i + 2
-      elseif args[i] == "-n" and args[i+1] then
-        dep_name = args[i+1]
+      elseif args[i] == "-n" and args[i + 1] then
+        dep_name = args[i + 1]
         i = i + 2
       else
         print("Unknown or incomplete flag: " .. tostring(args[i]))
