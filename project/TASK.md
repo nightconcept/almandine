@@ -249,3 +249,5 @@
 - [BUGFIX] Self-update now always targets the CLI's install directory, never the working directory. All update/backup/validation steps use absolute paths based on the detected install root. (2025-04-28)
 
 *Last updated: 2025-04-29*
+
+- **2025-04-29**: Create a comprehensive Busted test suite for `src/utils/lockfile.lua` in `src/spec/utils/lockfile_spec.lua`. The test must cover all functions and edge cases, use dependency injection via a `deps` table for all external/file/OS interactions, and utilize spies/mocks as needed. All code and structure must follow project and Lua standards.

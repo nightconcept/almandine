@@ -10,7 +10,6 @@ local API_VERSION = "1"
 
 local lockfile = {}
 local io = io
-local table = table
 local tostring = tostring
 
 ---
@@ -50,7 +49,8 @@ function lockfile.serialize_lockfile(lockfile_table)
     for k, v in pairs(tbl) do
       local key = (type(k) == "string" and string.format("%s = ", k)) or ("[" .. tostring(k) .. "] = ")
       if type(v) == "table" then
-        table.insert(lines, pad .. "  " .. key .. serialize(v, indent + 1) .. ",")
+        local serialized = serialize(v, indent + 1)
+        table.insert(lines, pad .. "  " .. key .. serialized .. ",")
       elseif type(v) == "string" then
         table.insert(lines, pad .. "  " .. key .. string.format('"%s"', v) .. ",")
       else
@@ -60,7 +60,8 @@ function lockfile.serialize_lockfile(lockfile_table)
     table.insert(lines, pad .. "}")
     return table.concat(lines, "\n")
   end
-  return "return " .. serialize(lockfile_table, 0) .. "\n"
+  local result = "return " .. serialize(lockfile_table, 0) .. "\n"
+  return result
 end
 
 ---
