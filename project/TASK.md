@@ -237,6 +237,10 @@
   - [ ] Mock user input and file system side effects for deterministic, non-interactive tests.
   - [ ] Manual Verification: Run all specs with Busted, confirm all branches and error cases are covered.
 
+- [ ] **Task 8.4: Add comprehensive spec for src/utils/version.lua** (2025-04-28)
+  - [ ] Create src/spec/utils/version_spec.lua to test all public and edge-case behaviors of the version utility module.
+  - [ ] Manual Verification: Run all specs with Busted, confirm all branches and error cases are covered.
+
 - [BUGFIX] Self-update now always targets the CLI's install directory, never the working directory. All update/backup/validation steps use absolute paths based on the detected install root. (2025-04-28)
 
 *Last updated: 2025-04-29*
