@@ -1,108 +1,145 @@
 --[[
-  Add Command Module
+  add
+  @module add
 
-  Provides functionality to add a dependency to the project manifest and download it to the lib directory.
+  Provides functionality to add a dependency to the project manifest and download it to a designated directory.
 ]]
---
 
---- Adds a dependency to the project manifest and downloads it.
--- @param dep_name string|nil Dependency name to add. If nil, inferred from source URL.
--- @param dep_source string Dependency source string (URL or table with url/path).
--- @param load_manifest function Function to load the manifest.
--- @param save_manifest function Function to save the manifest.
--- @param ensure_lib_dir function Function to ensure lib dir exists.
--- @param downloader table utils.downloader module.
--- @param dest_dir string|nil Optional destination directory for the installed file.
-local function add_dependency(dep_name, dep_source, load_manifest, save_manifest, ensure_lib_dir, downloader, dest_dir)
-  ensure_lib_dir()
-  local manifest, err = load_manifest()
+-- local filesystem_utils = require("utils.filesystem")
+
+--- Normalize GitHub URLs by converting blob URLs to raw URLs.
+--- @param url string The URL to normalize
+--- @return string normalized_url The normalized URL
+--- @return string download_url The URL to use for downloading
+local function normalize_github_url(url)
+  -- Check if this is a GitHub blob URL
+  -- Correctly capture username, repo, commit, and path directly from the URL match
+  local username, repo, commit, path = url:match("^https://github%.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)$")
+  if username then -- Check if the match was successful and captured groups are not nil
+    -- Convert to raw URL
+    local raw_url = string.format("https://raw.githubusercontent.com/%s/%s/%s/%s", username, repo, commit, path)
+    return url, raw_url
+  end
+  -- If not a GitHub blob URL, use as-is
+  return url, url
+end
+
+---@class AddDeps
+---@field load_manifest fun(): table, string?
+---@field save_manifest fun(manifest: table): boolean, string?
+---@field ensure_lib_dir fun(): nil
+---@field downloader table
+---@field downloader.download fun(url: string, path: string): boolean, string?
+---@field hash_utils table
+---@field hash_utils.hash_dependency fun(dep: string|table): string, string?
+---@field lockfile table
+---@field lockfile.generate_lockfile_table fun(deps: table): table
+---@field lockfile.write_lockfile fun(table): boolean, string?
+
+---@param dep_name string|nil Dependency name to add. If nil, inferred from source URL.
+---@param dep_source string|table Dependency source string (URL) or table with url/path.
+---@param dest_dir string|nil Optional destination directory for the installed file.
+---@param deps AddDeps Table containing dependency injected functions.
+---@return boolean success True if operation completed successfully.
+---@return string? error Error message if operation failed.
+local function add_dependency(dep_name, dep_source, _dest_dir, deps)
+  deps.ensure_lib_dir()
+  local manifest, err = deps.load_manifest()
   if not manifest then
     print(err)
-    return
+    return false, err
   end
-  manifest.dependencies = manifest.dependencies or {}
 
-  -- If dep_name is missing, infer from URL (filename minus .lua)
-  if (not dep_name or dep_name == "") and type(dep_source) == "string" then
-    local fname = dep_source:match("([^/]+)$")
-    if fname then
-      dep_name = fname:gsub("%.lua$", "")
+  -- If no dep_name provided, try to infer from URL
+  if not dep_name then
+    if type(dep_source) == "string" then
+      local url = dep_source
+      -- Try to extract name from URL
+      local name = url:match("/([^/]+)%.lua$")
+      if name then
+        dep_name = name
+      else
+        return false, "Could not infer dependency name from URL"
+      end
     else
-      print("Could not infer dependency name from source URL.")
-      return
+      return false, "Dependency name must be provided when source is a table"
     end
   end
-  if not dep_name or not dep_source then
-    -- Nothing to add, exit early
-    return
+
+  -- If dep_source is a table, extract URL and path
+  local url, out_path
+  if type(dep_source) == "table" then
+    url = dep_source.url
+    out_path = dep_source.path or dep_name .. ".lua"
+  else
+    url = dep_source
+    out_path = dep_name .. ".lua"
   end
 
-  local dep_entry
-  local out_path
-  if dest_dir then
-    -- Store as table with url and path
-    dep_entry = { url = dep_source, path = dest_dir }
-    out_path = dest_dir
-  elseif type(dep_source) == "table" and dep_source.path then
-    dep_entry = dep_source
-    out_path = dep_source.path
-  else
-    dep_entry = dep_source
-    local filesystem_utils = require("utils.filesystem")
-    out_path = filesystem_utils.join_path("src", "lib", dep_name .. ".lua")
+  -- Normalize GitHub URLs
+  local source_url, download_url = normalize_github_url(url)
+  if not download_url then
+    return false, "Failed to normalize URL: " .. (source_url or "")
   end
-  manifest.dependencies[dep_name] = dep_entry
-  local ok, err2 = save_manifest(manifest)
+  manifest.dependencies[dep_name] = dep_source
+
+  local ok, err2 = deps.save_manifest(manifest)
   if not ok then
     print(err2)
-    return
+    return false, err2
   end
   print(string.format("Added dependency '%s' to project.lua.", dep_name))
 
-  local url = (type(dep_entry) == "table" and dep_entry.url) or dep_entry
-  local ok3, err3 = downloader.download(url, out_path)
+  -- Download using the raw URL
+  local ok3, err3 = deps.downloader.download(download_url, out_path)
   if ok3 then
     print(string.format("Downloaded %s to %s", dep_name, out_path))
   else
     print(string.format("Failed to download %s: %s", dep_name, err3))
-    return
+    return false, err3
   end
 
   -- Generate and write lockfile after successful add
-  local lockfile_mod = require("utils.lockfile")
-  -- Build resolved_deps table for lockfile (minimal: name and hash)
+  -- Build resolved_deps table for lockfile with proper hashes
   local resolved_deps = {}
   for name, dep in pairs(manifest.dependencies or {}) do
     local lock_dep_entry = type(dep) == "table" and dep or { url = dep }
-    -- Compute hash (placeholder: use URL as hash; replace with real hash logic if available)
-    local hash = lock_dep_entry.url or tostring(dep)
-    resolved_deps[name] = { hash = hash, source = lock_dep_entry.url or tostring(dep) }
+    local hash, hash_err = deps.hash_utils.hash_dependency(dep)
+    if not hash then
+      print("Warning: Could not generate hash for " .. name .. ": " .. tostring(hash_err))
+      hash = "unknown" -- Don't use URL as fallback anymore
+    end
+    resolved_deps[name] = {
+      hash = hash,
+      source = lock_dep_entry.url or tostring(dep),
+    }
   end
-  local lockfile_table = lockfile_mod.generate_lockfile_table(resolved_deps)
-  local ok_lock, err_lock = lockfile_mod.write_lockfile(lockfile_table)
+  local lockfile_table = deps.lockfile.generate_lockfile_table(resolved_deps)
+  local ok_lock, err_lock = deps.lockfile.write_lockfile(lockfile_table)
   if ok_lock then
     print("Updated lockfile: almd-lock.lua")
   else
     print("Failed to update lockfile: " .. tostring(err_lock))
   end
+  return true
 end
 
----
--- Prints usage/help information for the `add` command.
--- Usage: almd add <source> [-d <dir>] [-n <dep_name>]
--- Adds a dependency to the project manifest and downloads it to the lib directory or specified path.
+---Prints usage/help information for the `add` command.
+---Usage: almd add <source> [-d <dir>] [-n <dep_name>]
+---@return string Usage string for the add command.
 local function help_info()
-  print([[\nUsage: almd add <source> [-d <dir>] [-n <dep_name>]
+  return [[
+Usage: almd add <source> [-d <dir>] [-n <dep_name>]
 
-Adds a dependency to your project. <source> is a URL or version specifier.
--d <dir> sets the install path (file, not just directory). If omitted, installs to src/lib/<dep_name>.lua.
--n <dep_name> sets the dependency name. If omitted, it is inferred from the source filename.
+Options:
+  -d <dir>     Destination directory for the installed file
+  -n <name>    Name of the dependency (optional, inferred from URL if not provided)
 
-Examples:
-  almd add https://github.com/grafi-tt/lunajson/raw/master/lunajson.lua
-  almd add https://github.com/grafi-tt/lunajson/raw/master/lunajson.lua -n lunajson
-  almd add https://example.com/foo.lua -n foo -d src/lib/custom/foo.lua
-]])
+Example:
+  almd add https://example.com/lib.lua
+  almd add https://example.com/lib.lua -d src/lib/custom
+  almd add https://example.com/lib.lua -n mylib
+]]
 end
 
 return {
