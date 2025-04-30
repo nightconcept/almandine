@@ -152,6 +152,16 @@ For help with a command: almd help <command> or almd <command> --help
       print("Usage: almd add <source> [-d <dir>] [-n <dep_name>]")
       return
     end
+
+    -- Validate GitHub URL format and commit hash presence
+    local hash_utils = require("utils.hash")
+    local hash = hash_utils.extract_github_hash(source)
+    if not hash then
+      print("Error: GitHub URL must contain a commit hash")
+      print("Example: https://github.com/owner/repo/blob/COMMIT_HASH/file.lua")
+      return
+    end
+
     local dest_dir, dep_name
     local i = 3
     while i <= #args do
@@ -166,15 +176,15 @@ For help with a command: almd help <command> or almd <command> --help
         return
       end
     end
-    add_module.add_dependency(
-      dep_name,
-      source,
-      manifest_utils.safe_load_project_manifest,
-      manifest_utils.save_manifest,
-      filesystem_utils.ensure_lib_dir,
-      downloader,
-      dest_dir
-    )
+
+    add_module.add_dependency(dep_name, source, dest_dir, {
+      load_manifest = manifest_utils.safe_load_project_manifest,
+      save_manifest = manifest_utils.save_manifest,
+      ensure_lib_dir = filesystem_utils.ensure_lib_dir,
+      downloader = downloader,
+      hash_utils = hash_utils,
+      lockfile = require("utils.lockfile"),
+    })
     return
   elseif args[1] == "install" or args[1] == "i" then
     -- Usage: almd install [<dep_name>]
@@ -213,7 +223,8 @@ For help with a command: almd help <command> or almd <command> --help
       print("Usage: almd run <script_name>")
       return
     end
-    local ok, err = run_module.run_script(args[2], manifest_utils.safe_load_project_manifest)
+    local deps = { manifest_loader = manifest_utils.safe_load_project_manifest }
+    local ok, err = run_module.run_script(args[2], deps)
     if not ok then
       print(err)
     end
@@ -241,9 +252,10 @@ For help with a command: almd help <command> or almd <command> --help
     return
   elseif not run_module.is_reserved_command(args[1]) then
     -- If not a reserved command, check if it's an unambiguous script name
-    local script_name = run_module.get_unambiguous_script(args[1], manifest_utils.safe_load_project_manifest)
+    local deps = { manifest_loader = manifest_utils.safe_load_project_manifest }
+    local script_name = run_module.get_unambiguous_script(args[1], deps)
     if script_name then
-      local ok, err = run_module.run_script(script_name, manifest_utils.safe_load_project_manifest)
+      local ok, err = run_module.run_script(script_name, deps)
       if not ok then
         print(err)
       end

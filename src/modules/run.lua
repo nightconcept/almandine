@@ -7,14 +7,21 @@
 --
 
 ---
--- Executes a script by name from the project manifest.
--- @param script_name [string] The key of the script in the scripts table.
--- @param manifest_loader [table] The manifest loader module.
--- @param executor [function] (optional) Function to execute the command, defaults to os.execute.
--- @return [boolean, string] True and output if successful, false and error message otherwise.
-local function run_script(script_name, manifest_loader, executor)
-  executor = executor or os.execute
-  local manifest = manifest_loader.safe_load_project_manifest("project.lua")
+-- Executes a script by name from the project manifest using provided dependencies.
+-- @param script_name string The key of the script in the scripts table.
+-- @param deps table Dependencies: { manifest_loader, executor? }.
+--               `manifest_loader` is a function or module with safe_load_project_manifest.
+--               `executor` is an optional function for command execution (defaults to os.execute).
+-- @return boolean, string True and output if successful, false and error message otherwise.
+local function run_script(script_name, deps)
+  local manifest_loader = deps.manifest_loader
+  local executor = deps.executor or os.execute
+
+  -- Handle manifest_loader being either a function or a module
+  local load_manifest = type(manifest_loader) == "function" and manifest_loader
+    or manifest_loader.safe_load_project_manifest
+
+  local manifest = load_manifest("project.lua")
   if not manifest then
     return false, "Failed to load project manifest."
   end
@@ -46,8 +53,8 @@ end
 
 ---
 -- Determines if a string is a reserved command name.
--- @param name [string]
--- @return [boolean]
+-- @param name string
+-- @return boolean
 local function is_reserved_command(name)
   local reserved = {
     ["init"] = true,
@@ -70,12 +77,18 @@ local function is_reserved_command(name)
 end
 
 ---
--- Finds a matching script if the name is unambiguous.
--- @param name [string] The candidate script name.
--- @param manifest_loader [table]
--- @return [string|nil] The script name if unambiguous, or nil.
-local function get_unambiguous_script(name, manifest_loader)
-  local manifest = manifest_loader.safe_load_project_manifest("project.lua")
+-- Finds a matching script if the name is unambiguous using provided dependencies.
+-- @param name string The candidate script name.
+-- @param deps table Dependencies: { manifest_loader }.
+--               `manifest_loader` is a function or module with safe_load_project_manifest.
+-- @return string|nil The script name if unambiguous, or nil.
+local function get_unambiguous_script(name, deps)
+  local manifest_loader = deps.manifest_loader
+  -- Handle manifest_loader being either a function or a module
+  local load_manifest = type(manifest_loader) == "function" and manifest_loader
+    or manifest_loader.safe_load_project_manifest
+
+  local manifest = load_manifest("project.lua")
   if not manifest or not manifest.scripts then
     return nil
   end

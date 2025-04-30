@@ -1,21 +1,26 @@
 --[[
   Add Command Module
 
-  Provides functionality to add a dependency to the project manifest and download it to the lib directory.
+  Provides functionality to add a dependency to the project manifest and download it to a designated directory.
 ]]
 --
+
+local filesystem_utils = require("utils.filesystem")
 
 --- Adds a dependency to the project manifest and downloads it.
 -- @param dep_name string|nil Dependency name to add. If nil, inferred from source URL.
 -- @param dep_source string Dependency source string (URL or table with url/path).
--- @param load_manifest function Function to load the manifest.
--- @param save_manifest function Function to save the manifest.
--- @param ensure_lib_dir function Function to ensure lib dir exists.
--- @param downloader table utils.downloader module.
 -- @param dest_dir string|nil Optional destination directory for the installed file.
-local function add_dependency(dep_name, dep_source, load_manifest, save_manifest, ensure_lib_dir, downloader, dest_dir)
-  ensure_lib_dir()
-  local manifest, err = load_manifest()
+-- @param deps table Table containing dependency injected functions:
+--   - load_manifest: function() -> manifest, error
+--   - save_manifest: function(manifest) -> success, error
+--   - ensure_lib_dir: function() -> void
+--   - downloader: table with download(url, path) -> success, error
+--   - hash_utils: table with hash_dependency(dep) -> hash, error
+--   - lockfile: table with generate_lockfile_table(deps) and write_lockfile(table) -> success, error
+local function add_dependency(dep_name, dep_source, dest_dir, deps)
+  deps.ensure_lib_dir()
+  local manifest, err = deps.load_manifest()
   if not manifest then
     print(err)
     return
@@ -48,11 +53,10 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
     out_path = dep_source.path
   else
     dep_entry = dep_source
-    local filesystem_utils = require("utils.filesystem")
     out_path = filesystem_utils.join_path("src", "lib", dep_name .. ".lua")
   end
   manifest.dependencies[dep_name] = dep_entry
-  local ok, err2 = save_manifest(manifest)
+  local ok, err2 = deps.save_manifest(manifest)
   if not ok then
     print(err2)
     return
@@ -60,7 +64,7 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
   print(string.format("Added dependency '%s' to project.lua.", dep_name))
 
   local url = (type(dep_entry) == "table" and dep_entry.url) or dep_entry
-  local ok3, err3 = downloader.download(url, out_path)
+  local ok3, err3 = deps.downloader.download(url, out_path)
   if ok3 then
     print(string.format("Downloaded %s to %s", dep_name, out_path))
   else
@@ -69,17 +73,22 @@ local function add_dependency(dep_name, dep_source, load_manifest, save_manifest
   end
 
   -- Generate and write lockfile after successful add
-  local lockfile_mod = require("utils.lockfile")
-  -- Build resolved_deps table for lockfile (minimal: name and hash)
+  -- Build resolved_deps table for lockfile with proper hashes
   local resolved_deps = {}
   for name, dep in pairs(manifest.dependencies or {}) do
     local lock_dep_entry = type(dep) == "table" and dep or { url = dep }
-    -- Compute hash (placeholder: use URL as hash; replace with real hash logic if available)
-    local hash = lock_dep_entry.url or tostring(dep)
-    resolved_deps[name] = { hash = hash, source = lock_dep_entry.url or tostring(dep) }
+    local hash, hash_err = deps.hash_utils.hash_dependency(dep)
+    if not hash then
+      print("Warning: Could not generate hash for " .. name .. ": " .. tostring(hash_err))
+      hash = "unknown" -- Don't use URL as fallback anymore
+    end
+    resolved_deps[name] = {
+      hash = hash,
+      source = lock_dep_entry.url or tostring(dep),
+    }
   end
-  local lockfile_table = lockfile_mod.generate_lockfile_table(resolved_deps)
-  local ok_lock, err_lock = lockfile_mod.write_lockfile(lockfile_table)
+  local lockfile_table = deps.lockfile.generate_lockfile_table(resolved_deps)
+  local ok_lock, err_lock = deps.lockfile.write_lockfile(lockfile_table)
   if ok_lock then
     print("Updated lockfile: almd-lock.lua")
   else

@@ -1,13 +1,9 @@
 --[[
   Add Module Specification
 
-  Busted test suite for add_dependency in src/modules/add.lua.
-  - Verifies dependency addition, manifest update, downloader call, and name inference.
-  - Uses only stubs/mocks and does not touch real files or network.
+  Tests src/modules/add.lua
 ]]
 --
-
--- luacheck: globals describe it assert
 
 --- Add module specification for Busted.
 -- @module add_spec
@@ -29,117 +25,143 @@ describe("add_module.add_dependency", function()
     }
   end
 
-  it("adds a simple dependency", function()
-    local manifest = make_fake_manifest()
+  local function make_test_deps(manifest, save_manifest_fn, downloader_fn)
     local saved_manifest, save_called
-    local function load_manifest()
-      return manifest, nil
-    end
-    local function save_manifest(m)
-      saved_manifest = m
-      save_called = true
-      return true, nil
-    end
-    local ensure_lib_dir_called = false
-    local function ensure_lib_dir()
-      ensure_lib_dir_called = true
-    end
-    local downloader_called = false
-    local downloader_args = {}
-    local downloader = {
-      download = function(url, out_path)
-        downloader_called = true
-        downloader_args.url = url
-        downloader_args.out_path = out_path
+    local saved_lockfile
+    return {
+      load_manifest = function()
+        return manifest, nil
+      end,
+      save_manifest = save_manifest_fn or function(m)
+        saved_manifest = m
+        save_called = true
         return true, nil
       end,
-    }
-    local dep_name = "foo"
-    local dep_url = "https://example.com/foo.lua"
-    add_mod.add_dependency(dep_name, dep_url, load_manifest, save_manifest, ensure_lib_dir, downloader)
-    assert.is_true(save_called)
-    assert.are.equal(saved_manifest.dependencies[dep_name], dep_url)
+      ensure_lib_dir = function() end,
+      downloader = {
+        download = downloader_fn or function(_, _)
+          return true, nil
+        end,
+      },
+      hash_utils = {
+        hash_dependency = function(dep)
+          -- Extract hash from GitHub URL if present
+          local url = type(dep) == "string" and dep or dep.url
+          if url:match("github.com") then
+            local hash = url:match("/blob/([0-9a-f]+)/")
+            if hash then
+              return hash, nil
+            end
+          end
+          return "no_hash_found", "URL does not contain a commit hash"
+        end,
+      },
+      lockfile = {
+        generate_lockfile_table = function(deps)
+          return { package = deps }
+        end,
+        write_lockfile = function(table)
+          saved_lockfile = table
+          return true, nil
+        end,
+      },
+    }, function()
+      return saved_manifest
+    end, function()
+      return save_called
+    end, function()
+      return saved_lockfile
+    end
+  end
+
+  it("adds a simple dependency and stores git hash in lockfile", function()
+    local manifest = make_fake_manifest()
+    local deps, get_saved_manifest, get_save_called, get_saved_lockfile = make_test_deps(manifest)
+    local ensure_lib_dir_called = false
+    local downloader_called = false
+    local downloader_args = {}
+    deps.downloader.download = function(url, out_path)
+      downloader_called = true
+      downloader_args.url = url
+      downloader_args.out_path = out_path
+      return true, nil
+    end
+    deps.ensure_lib_dir = function()
+      ensure_lib_dir_called = true
+    end
+
+    local dep_name = "shove"
+    local dep_url = "https://github.com/Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua"
+    add_mod.add_dependency(dep_name, dep_url, nil, deps)
+
+    -- Verify manifest updates
+    assert.is_true(get_save_called())
+    assert.are.equal(get_saved_manifest().dependencies[dep_name], dep_url)
     assert.is_true(ensure_lib_dir_called)
     assert.is_true(downloader_called)
     assert.are.equal(downloader_args.url, dep_url)
-    assert.are.equal(downloader_args.out_path, "src/lib/foo.lua")
+    assert.are.equal(downloader_args.out_path, "src/lib/shove.lua")
+
+    -- Verify lockfile updates
+    local lockfile = get_saved_lockfile()
+    assert.is_not_nil(lockfile)
+    assert.is_not_nil(lockfile.package)
+    assert.is_not_nil(lockfile.package[dep_name])
+    assert.are.equal(lockfile.package[dep_name].hash, "81f7f879a812e4479493a88e646831d0f0409560")
+    assert.are.equal(lockfile.package[dep_name].source, dep_url)
   end)
 
   it("adds a dependency from a table source", function()
     local manifest = make_fake_manifest()
-    local saved_manifest
-    local function load_manifest()
-      return manifest, nil
-    end
-    local function save_manifest(m)
-      saved_manifest = m
+    local deps, get_saved_manifest = make_test_deps(manifest)
+    local downloader_args = {}
+    deps.downloader.download = function(url, out_path)
+      downloader_args.url = url
+      downloader_args.out_path = out_path
       return true, nil
     end
-    local ensure_lib_dir = function() end
-    local downloader_args = {}
-    local downloader = {
-      download = function(url, out_path)
-        downloader_args.url = url
-        downloader_args.out_path = out_path
-        return true, nil
-      end,
-    }
+
     local dep_name = "bar"
-    local dep_source = { url = "https://example.com/bar.lua", path = "custom/bar.lua" }
-    add_mod.add_dependency(dep_name, dep_source, load_manifest, save_manifest, ensure_lib_dir, downloader)
-    assert.are.same(saved_manifest.dependencies[dep_name], dep_source)
+    local dep_source = { url = "https://github.com/owner/repo/blob/abcdef1234567890/bar.lua", path = "custom/bar.lua" }
+    add_mod.add_dependency(dep_name, dep_source, nil, deps)
+
+    assert.are.same(get_saved_manifest().dependencies[dep_name], dep_source)
     assert.are.equal(downloader_args.url, dep_source.url)
     assert.are.equal(downloader_args.out_path, dep_source.path)
   end)
 
   it("does not fail when no dependency is given", function()
     local manifest = make_fake_manifest()
-    local function load_manifest()
-      return manifest, nil
-    end
-    local save_manifest = function()
+    local deps = make_test_deps(manifest, function()
       error("Should not be called")
-    end
-    local ensure_lib_dir = function() end
-    local downloader = {
-      download = function()
-        return true, nil
-      end,
-    }
+    end)
+
     assert.has_no.errors(function()
-      add_mod.add_dependency(nil, nil, load_manifest, save_manifest, ensure_lib_dir, downloader)
+      add_mod.add_dependency(nil, nil, nil, deps)
     end)
   end)
 
   it("infers name from URL if not provided", function()
     local manifest = make_fake_manifest()
-    local saved_manifest, save_called
-    local function load_manifest()
-      return manifest, nil
-    end
-    local function save_manifest(m)
-      saved_manifest = m
-      save_called = true
-      return true, nil
-    end
+    local deps, get_saved_manifest, get_save_called = make_test_deps(manifest)
     local ensure_lib_dir_called = false
-    local function ensure_lib_dir()
-      ensure_lib_dir_called = true
-    end
     local downloader_called = false
     local downloader_args = {}
-    local downloader = {
-      download = function(url, out_path)
-        downloader_called = true
-        downloader_args.url = url
-        downloader_args.out_path = out_path
-        return true, nil
-      end,
-    }
-    local dep_url = "https://raw.githubusercontent.com/owner/repo/branch/path/to/baz.lua"
-    add_mod.add_dependency(nil, dep_url, load_manifest, save_manifest, ensure_lib_dir, downloader)
-    assert.is_true(save_called)
-    assert.are.equal(saved_manifest.dependencies["baz"], dep_url)
+    deps.downloader.download = function(url, out_path)
+      downloader_called = true
+      downloader_args.url = url
+      downloader_args.out_path = out_path
+      return true, nil
+    end
+    deps.ensure_lib_dir = function()
+      ensure_lib_dir_called = true
+    end
+
+    local dep_url = "https://github.com/owner/repo/blob/abcdef1234567890/baz.lua"
+    add_mod.add_dependency(nil, dep_url, nil, deps)
+
+    assert.is_true(get_save_called())
+    assert.are.equal(get_saved_manifest().dependencies["baz"], dep_url)
     assert.is_true(ensure_lib_dir_called)
     assert.is_true(downloader_called)
     assert.are.equal(downloader_args.url, dep_url)
@@ -147,54 +169,56 @@ describe("add_module.add_dependency", function()
   end)
 
   it("prints error and returns if manifest fails to load", function()
-    local function load_manifest()
-      return nil, "manifest load error"
-    end
-    local save_manifest = function() end
-    local ensure_lib_dir = function() end
-    local downloader = {
-      download = function()
-        return true, nil
+    local deps = {
+      load_manifest = function()
+        return nil, "manifest load error"
       end,
+      save_manifest = function() end,
+      ensure_lib_dir = function() end,
+      downloader = {
+        download = function()
+          return true, nil
+        end,
+      },
+      hash_utils = {
+        hash_dependency = function()
+          return "test_hash", nil
+        end,
+      },
+      lockfile = {
+        generate_lockfile_table = function(deps)
+          return { package = deps }
+        end,
+        write_lockfile = function()
+          return true, nil
+        end,
+      },
     }
+
     local printed = {}
     stub(_G, "print", function(msg)
       table.insert(printed, tostring(msg))
     end)
     assert.has_no.errors(function()
-      require("modules.add").add_dependency("foo", "url", load_manifest, save_manifest, ensure_lib_dir, downloader)
+      require("modules.add").add_dependency("foo", "url", nil, deps)
     end)
     assert.is_true(table.concat(printed, "\n"):match("manifest load error") ~= nil)
   end)
 
   it("prints error and returns if dep_name cannot be inferred from bad URL", function()
     local manifest = { dependencies = {} }
-    local function load_manifest()
-      return manifest, nil
-    end
+    local deps = make_test_deps(manifest)
     local save_manifest_called = false
-    local save_manifest = function()
+    deps.save_manifest = function()
       save_manifest_called = true
     end
-    local ensure_lib_dir = function() end
-    local downloader = {
-      download = function()
-        return true, nil
-      end,
-    }
+
     local printed = {}
     stub(_G, "print", function(msg)
       table.insert(printed, tostring(msg))
     end)
     assert.has_no.errors(function()
-      require("modules.add").add_dependency(
-        nil,
-        "https://example.com/",
-        load_manifest,
-        save_manifest,
-        ensure_lib_dir,
-        downloader
-      )
+      require("modules.add").add_dependency(nil, "https://example.com/", nil, deps)
     end)
     assert.is_true(table.concat(printed, "\n"):match("Could not infer dependency name") ~= nil)
     assert.is_false(save_manifest_called)
@@ -202,48 +226,32 @@ describe("add_module.add_dependency", function()
 
   it("prints error and returns if save_manifest fails", function()
     local manifest = { dependencies = {} }
-    local function load_manifest()
-      return manifest, nil
-    end
-    local function save_manifest()
+    local deps = make_test_deps(manifest, function()
       return false, "save failed"
-    end
-    local ensure_lib_dir = function() end
-    local downloader = {
-      download = function()
-        return true, nil
-      end,
-    }
+    end)
+
     local printed = {}
     stub(_G, "print", function(msg)
       table.insert(printed, tostring(msg))
     end)
     assert.has_no.errors(function()
-      require("modules.add").add_dependency("foo", "url", load_manifest, save_manifest, ensure_lib_dir, downloader)
+      require("modules.add").add_dependency("foo", "url", nil, deps)
     end)
     assert.is_true(table.concat(printed, "\n"):match("save failed") ~= nil)
   end)
 
   it("prints error if downloader fails", function()
     local manifest = { dependencies = {} }
-    local function load_manifest()
-      return manifest, nil
-    end
-    local function save_manifest()
-      return true, nil
-    end
-    local ensure_lib_dir = function() end
-    local downloader = {
-      download = function()
-        return false, "download failed"
-      end,
-    }
+    local deps = make_test_deps(manifest, nil, function()
+      return false, "download failed"
+    end)
+
     local printed = {}
     stub(_G, "print", function(msg)
       table.insert(printed, tostring(msg))
     end)
     assert.has_no.errors(function()
-      require("modules.add").add_dependency("foo", "url", load_manifest, save_manifest, ensure_lib_dir, downloader)
+      require("modules.add").add_dependency("foo", "url", nil, deps)
     end)
     local output = table.concat(printed, "\n")
     assert.is_true(output:match("Failed to download") ~= nil)

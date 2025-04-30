@@ -26,15 +26,15 @@ describe("run_module", function()
 
   it("runs a script successfully", function()
     local scripts = { hello = "echo hello world" }
-    local loader = fake_manifest_loader(scripts)
-    local ok, _ = run_module.run_script("hello", loader)
+    local deps = { manifest_loader = fake_manifest_loader(scripts) }
+    local ok, _ = run_module.run_script("hello", deps)
     assert.is_true(ok)
   end)
 
   it("returns error if script not found", function()
     local scripts = { hello = "echo hello world" }
-    local loader = fake_manifest_loader(scripts)
-    local ok, _ = run_module.run_script("nonexistent_script", loader)
+    local deps = { manifest_loader = fake_manifest_loader(scripts) }
+    local ok, _ = run_module.run_script("nonexistent_script", deps)
     assert.is_false(ok)
     assert.matches("not found", _)
   end)
@@ -46,18 +46,20 @@ describe("run_module", function()
 
   it("resolves unambiguous script", function()
     local scripts = { foo = "echo foo", bar = "echo bar" }
-    local loader = fake_manifest_loader(scripts)
-    assert.are.equal(run_module.get_unambiguous_script("foo", loader), "foo")
-    assert.is_nil(run_module.get_unambiguous_script("baz", loader))
+    local deps = { manifest_loader = fake_manifest_loader(scripts) }
+    assert.are.equal(run_module.get_unambiguous_script("foo", deps), "foo")
+    assert.is_nil(run_module.get_unambiguous_script("baz", deps))
   end)
 
   it("returns error if manifest fails to load", function()
-    local loader = {
-      safe_load_project_manifest = function()
-        return nil
-      end,
+    local deps = {
+      manifest_loader = {
+        safe_load_project_manifest = function()
+          return nil
+        end,
+      },
     }
-    local ok, err = run_module.run_script("hello", loader)
+    local ok, err = run_module.run_script("hello", deps)
     assert.is_false(ok)
     assert.matches("Failed to load project manifest", err)
   end)
@@ -66,25 +68,28 @@ describe("run_module", function()
     local scripts = {
       hello = { cmd = "echo", args = { "hello", "world" } },
     }
-    local loader = fake_manifest_loader(scripts)
-    local ok, _ = run_module.run_script("hello", loader)
+    local deps = { manifest_loader = fake_manifest_loader(scripts) }
+    local ok, _ = run_module.run_script("hello", deps)
     assert.is_true(ok)
   end)
 
   it("handles script execution failure", function()
     local scripts = { fail = "failing_cmd" }
-    local loader = fake_manifest_loader(scripts)
     local fake_executor = function()
       return false, "exit", 1
     end
-    local ok, err = run_module.run_script("fail", loader, fake_executor)
+    local deps = {
+      manifest_loader = fake_manifest_loader(scripts),
+      executor = fake_executor,
+    }
+    local ok, err = run_module.run_script("fail", deps)
     assert.is_false(ok)
     assert.matches("failed", err)
   end)
 
   it("handles empty scripts table", function()
-    local loader = fake_manifest_loader({})
-    local ok, err = run_module.run_script("anything", loader)
+    local deps = { manifest_loader = fake_manifest_loader({}) }
+    local ok, err = run_module.run_script("anything", deps)
     assert.is_false(ok)
     assert.matches("not found", err)
   end)
