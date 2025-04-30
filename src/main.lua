@@ -188,10 +188,20 @@ For help with a command: almd help <command> or almd <command> --help
     return
   elseif args[1] == "install" or args[1] == "i" then
     -- Usage: almd install [<dep_name>]
-    if args[2] then
-      install_module.install_dependencies(args[2], load_manifest, filesystem_utils.ensure_lib_dir, downloader)
-    else
-      install_module.install_dependencies(nil, load_manifest, filesystem_utils.ensure_lib_dir, downloader)
+    local dep_name = args[2]
+    local deps = {
+      load_manifest = load_manifest,
+      ensure_lib_dir = filesystem_utils.ensure_lib_dir,
+      downloader = downloader,
+      lockfile = require("utils.lockfile"), -- Pass the module
+      hash_utils = require("utils.hash"), -- Pass the module (needed for future checks)
+      filesystem = filesystem_utils, -- Pass the filesystem utils module
+      url_utils = require("utils.url"), -- Pass url utils needed for hash extraction
+    }
+    local ok, err = install_module.install_dependencies(dep_name, deps)
+    if not ok then
+      print("Installation failed: " .. tostring(err or "Unknown error"))
+      -- Potentially exit with error code here: os.exit(1)
     end
     return
   elseif args[1] == "remove" or args[1] == "rm" or args[1] == "uninstall" or args[1] == "un" then

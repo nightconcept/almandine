@@ -1,2 +1,2 @@
 -- Almandine CLI Version
-return "0.1.0-alpha.5"
+return "0.1.0-alpha.6"

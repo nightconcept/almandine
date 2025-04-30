@@ -52,7 +52,13 @@ function lockfile.serialize_lockfile(lockfile_table)
     local pad = string.rep("  ", indent)
     local lines = { "{" }
     for k, v in pairs(tbl) do
-      local key = (type(k) == "string" and string.format("%s = ", k)) or ("[" .. tostring(k) .. "] = ")
+      local key
+      -- Always format string keys as ["key"] = for consistency in lockfile
+      if type(k) == "string" then
+        key = string.format('["%s"] = ', k)
+      else
+        key = ("[" .. tostring(k) .. "] = ")
+      end
       if type(v) == "table" then
         local serialized = serialize(v, indent + 1)
         table.insert(lines, pad .. "  " .. key .. serialized .. ",")
@@ -84,6 +90,42 @@ function lockfile.write_lockfile(lockfile_table, path)
   file:write(content)
   file:close()
   return true, path
+end
+
+---
+-- Loads and parses the lockfile from disk.
+-- @param path string (optional) Path to lockfile (default: "almd-lock.lua")
+-- @return table|nil, string|nil Lockfile table if successful, nil and error message otherwise
+function lockfile.load_lockfile(path)
+  path = path or "almd-lock.lua"
+  -- Check existence first to give a clearer error
+  local file_check = io.open(path, "r")
+  if not file_check then
+    return nil, "Could not read lockfile: " .. path .. " (does not exist or permissions error)"
+  end
+  file_check:close()
+
+  -- Now attempt to load it as a Lua chunk
+  local chunk, load_err = loadfile(path)
+  if not chunk then
+    return nil, "Could not load lockfile chunk: " .. path .. " (" .. (load_err or "syntax error?") .. ")"
+  end
+
+  -- Execute the chunk in a protected call
+  local ok, lock_data = pcall(chunk)
+  if not ok then
+    return nil, "Error executing lockfile chunk: " .. path .. " (" .. tostring(lock_data) .. ")"
+  end
+
+  -- Validate basic structure
+  if type(lock_data) ~= "table" or type(lock_data.package) ~= "table" then
+    return nil, "Malformed lockfile: Invalid structure in " .. path
+  end
+
+  -- Return only the dependency package data for consistency with how it was used before
+  -- Or maybe return the full table? Let's return the full table for now.
+  -- return lock_data.package, nil
+  return lock_data, nil
 end
 
 ---
