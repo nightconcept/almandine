@@ -157,6 +157,7 @@ These standards refine the general coding standards for Lua development within t
     ```lua
     --[[
       math_utils
+      @module math_utils
 
       Provides utility functions for basic mathematical operations.
       Intended for use with LuaLS/EmmyLua tooling.
