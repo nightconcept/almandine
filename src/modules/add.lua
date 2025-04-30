@@ -13,10 +13,10 @@
 --- @return string download_url The URL to use for downloading
 local function normalize_github_url(url)
   -- Check if this is a GitHub blob URL
-  local blob_url = url:match("^https://github%.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)$")
-  if blob_url then
+  -- Correctly capture username, repo, commit, and path directly from the URL match
+  local username, repo, commit, path = url:match("^https://github%.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)$")
+  if username then -- Check if the match was successful and captured groups are not nil
     -- Convert to raw URL
-    local username, repo, commit, path = blob_url:match("^([^/]+)/([^/]+)/([^/]+)/(.+)$")
     local raw_url = string.format("https://raw.githubusercontent.com/%s/%s/%s/%s", username, repo, commit, path)
     return url, raw_url
   end
