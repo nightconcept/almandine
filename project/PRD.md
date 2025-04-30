@@ -18,11 +18,11 @@ Almandine (`almd` as the CLI command) is a lightweight package manager for Lua p
 
 Sample minimal structure for an Almandine-managed project:
 
-* `project.lua`          # Project manifest (metadata, scripts, dependencies)
-* `almd-lock.lua`   # Lockfile (exact versions/hashes of dependencies)
-* `scripts/`             # (Optional) Project scripts
-* `lib/`                 # (Optional) Downloaded packages/files
-* `src/`                 # (Optional) Project source code
+- `project.lua`          # Project manifest (metadata, scripts, dependencies)
+- `almd-lock.lua`   # Lockfile (exact versions/hashes of dependencies)
+- `scripts/`             # (Optional) Project scripts
+- `lib/`                 # (Optional) Downloaded packages/files
+- `src/`                 # (Optional) Project source code
   * `lib/`               # (Optional) Internal reusable modules (e.g., downloader, lockfile)
   * `modules/`           # All CLI command modules (init, add, remove, etc.)
 * `install/`             # Cross-platform CLI wrapper scripts
@@ -112,233 +112,117 @@ Almandine aims to provide a simple, robust, and reproducible workflow for Lua pr
 - Lua 5.1–5.4 / LuaJIT 2.1
 - Platform: Cross-platform (Linux, macOS, Windows)
 
-## Project Rules
+## Project-Specific Coding Rules
 
-### 0. Folder Structure Compliance (MANDATORY)
+These rules supplement the mandatory Global AI Project Guidelines. They define standards and practices unique to this specific project.
 
-- **NO files or directories may be added, removed, or relocated** outside of the structure defined in PLANNING.md without explicit prior approval.
-- **Any change to the folder structure requires:**
-  1. Approval from project maintainers.
-  2. Immediate update of PLANNING.md to reflect the change, BEFORE implementation.
-- **All source code goes into the `src` directory**.
+### 1. Language, Environment & Dependencies
 
-This rule is absolute and takes precedence over all other guidelines.
+* **Target Language:** Lua 5.1.
+* **Compatibility:** All code must be compatible with Lua versions 5.1 through 5.4 and LuaJIT.
+* **Dependencies:** **Strictly NO external dependencies** are permitted beyond standard Lua/LÖVE libraries specified in `PLANNING.md`.
 
-### 1. Mandatory Pre-computation & Context Assimilation
+### 2. Lua Coding Standards
 
-- **ACTION REQUIRED (Start of Session):** Read and internalize the contents of `PLANNING.md`. This document contains critical information about the project's architecture, goals, overall style guide, and constraints.
-- **ACTION REQUIRED (Before Each Task):**
-    1. Consult `TASK.md` to understand the current assignment.
-    2. If the specific task you are about to work on is not listed, **add it** to `TASK.md` with a concise description and the current date (`YYYY-MM-DD`).
-    3. **Develop an Implementation Plan:** Before writing or suggesting code, outline:
-        - A brief description of the problem being solved.
-        - A high-level overview of your proposed solution.
-        - A list of specific steps required for implementation.
-    4. **Analyze Existing Code:** Review relevant existing code files to understand the current implementation, context, and structure *before* suggesting modifications or additions. Read and internalize the contents of `digest.txt`. This document contains a digest of the current state of the project only up to the latest commit.
+These standards refine the general coding standards for Lua development within this project.
 
----
+#### 2.1. Style & Formatting
 
-### 2. Code Implementation Standards
-
-#### Lua Coding Standards (LDoc Compatible)
-
-##### 2.1. Language & Environment
-
-- **Primary Language:** Lua (specifically targeting Lua 5.1).
-- **Compatibility:** All code must be compatible with versions 5.1 through 5.4 and LuaJIT.
-
-##### 2.2. Modularity & Structure
-
-- **File Length Limit:** No single Lua file (`.lua`) should exceed 500 lines of code. Refactor larger files into smaller, focused modules or helper files.
-- **Organization:** Structure code into clearly separated modules, logically grouped by feature or responsibility. Follow the existing file structure patterns outlined in `PLANNING.md`.
-- **Imports:** Use clear and consistent import paths. Prefer relative imports for modules within the same logical package/feature area. Confirm module paths exist before using them.
-- **Dependencies:** Use no external dependencies.
-
-##### 2.3. Style & Formatting (Lua)
-
-- **Base Style:** Adhere to the Lua Standard Style guidelines.
-- **Type Hinting:** Use LDoc-style type annotations within documentation comments (`@type`, `@param name [type]`, `@return [type]`, `@class`, `@field`) where appropriate to clarify data structures and function signatures.
-- **Indentation:** Use 2 spaces for indentation (strictly enforce).
+- **Base Style:** Adhere primarily to the [Lua Standard Style](https://github.com/Olivine-Labs/lua-style-guide/blob/master/lua-style.md) guidelines, unless overridden below or in `PLANNING.md`.
 - **Strings:** Prefer double quotes (`"`) for string literals.
 - **Line Length:** Maximum line length is 120 characters.
-- **Function Calls:** Always use parentheses `()` for function calls, even if no arguments are passed.
-- **Spacing:** Do *not* add a space between a function name and its opening parenthesis (e.g., `my_function()` not `my_function ()`).
-- **Statements:** Do not collapse simple statements onto a single line if they would normally be separate.
-- **Variables:** Use `local` variables by default to avoid polluting the global namespace.
-  - Variable names with larger scope should be more descriptive than those with smaller scope. One-letter variable names should be avoided except for very small scopes (less than ten lines) or for iterators.
-  - `i` should be used only as a counter variable in for loops (either numeric `for` or `ipairs`).
-  - Prefer more descriptive names than `k` and `v` when iterating with `pairs`, unless you are writing a function that operates on generic tables.
-  - Use `_` for ignored variables (e.g. in for loops):
+- **Function Calls:** Always use parentheses `()` for function calls, even if no arguments are passed (e.g., `my_function()` not `my_function`).
+- **Naming Conventions:**
+  - Variables and function/method names use `snake_case`.
+  - Classes use `CamelCase`. Acronyms within class names only uppercase the first letter (e.g., `XmlDocument`).
+  - Prefer more descriptive names than `k` and `v` when iterating with `pairs`, unless writing a generic table function.
+- **Type Hinting:** Use **LuaLS/EmmyLua style annotations** (`---@tag`) for type hinting to provide rich information for language servers and static analysis. Use overlapping tags like `---@param name type` and `---@return type` which are compatible with both LuaLS and LDoc where possible.
+
+### 2.2. Documentation & Comments (LuaLS/EmmyLua Focus)
+
+- **Docstrings:** Every public function, class, module-level table, field, and type alias requires documentation comments using **LuaLS/EmmyLua format** (starting with `---@tag`).
+- **Common Tags:** Include descriptions and utilize common tags such as:
+  - `---@class Name [Parent]` for classes.
+  - `---@field name type [description]` for class or table fields.
+  - `---@param name type [description]` for function parameters.
+  - `---@return type [description]` for function return values.
+  - `---@type TypeName [description]` for complex table shapes or custom types.
+  - `---@alias Name Type` for defining type aliases.
+  - `---@see OtherSymbol` for references.
+  - `---@usage <example code>` for usage examples.
+- **Clarity:** Ensure descriptions clearly explain the purpose and behavior. Markdown within descriptions is permitted.
+- **Module Documentation:** Document modules by annotating the returned table or the main functions/classes within them using the standard tags. Avoid LDoc-specific `@module` tags.
+- **LuaLS/EmmyLua Example Format:**
 
     ```lua
-      for _, item in ipairs(items) do
-         do_something_with_item(item)
-      end
-      ```
+    --[[
+      math_utils
 
-      ```lua
-      for _, name in pairs(names) do
-         -- ...stuff...
-      end
-      ```
+      Provides utility functions for basic mathematical operations.
+      Intended for use with LuaLS/EmmyLua tooling.
+    ]]--
 
-  - Variables and function names should use `snake_case`.
-  - Classes should use `CamelCase`. Acronyms (e.g. XML) should only uppercase the first letter (`XmlDocument`).
-  - Class methods should use `snake_case` too.
-  - Prefer using `is_` when naming boolean functions:
+    --- Module containing mathematical utilities.
+    local M = {}
 
-      ```lua
-      -- bad
-      local function evil(alignment)
-         return alignment < 100
-      end
+    --- Represents a point in 2D space.
+    --- @alias Point { x: number, y: number }
 
-      -- good
-      local function is_evil(alignment)
-         return alignment < 100
-      end
-      ```
+    --- Adds two numbers together.
+    -- Can include **markdown** for *emphasis*.
+    --- @param num1 number The first number to add.
+    --- @param num2 number The second number to add.
+    --- @return number The sum of num1 and num2.
+    --- @usage local math = require('math_utils'); local sum = math.add(5, 3) -- sum is 8
+    function M.add(num1, num2)
+      -- LuaLS knows num1 and num2 are numbers
+      local result = num1 + num2
+      return result
+    end
 
-  - `UPPER_CASE` shall be used with "constants" only (variables intended not to be reassigned after initial definition).
-- **File Header:** Files should have a header and description using a block comment.
+    --- A simple class example using metatables, documented for LuaLS.
+    --- @class SimpleClass
+    --- @field name string The name associated with this instance. Default is "Default".
+    local SimpleClass = {}
+    SimpleClass.__index = SimpleClass
 
-  ```lua
-  --[[
-    File Purpose/Module Summary
+    --- Creates a new instance of SimpleClass.
+    --- @param initial_name string? The initial name (optional).
+    --- @return SimpleClass A new instance.
+    function SimpleClass:new(initial_name)
+      local self = setmetatable({}, SimpleClass)
+      self.name = initial_name or "Default" -- LuaLS knows self.name is a string field
+      return self
+    end
 
-    A more detailed description of what the file/module does, its responsibilities,
-    and perhaps how it fits into the larger system.
-  ]]--
-  ```
+    --- Gets the name of the instance.
+    --- @return string # The current name.
+    function SimpleClass:get_name()
+        return self.name
+    end
 
-- **DO NOT** include Lua/LuaJIT version compatibility info in the top file comment; this is covered by the overall project standard (Section 2.1).
+    -- Make the class available if needed by other modules
+    M.SimpleClass = SimpleClass
 
-##### 2.4. Documentation & Comments (LDoc)
+    return M
+    ```
 
-- **Docstrings:** Every public function, class, and module should have a documentation comment using the LDoc format (starting with `---`). Include descriptions for the element's purpose, parameters (`@param`), and return values (`@return`). Markdown within descriptions is permitted.
-- **Module Documentation:** Use a `---` comment block at the top of the file (after the file header block comment) to document the module itself, potentially using `@module ModuleName`.
-- **Example Format:**
+### 2.3. Implementation Notes
 
-  ```lua
-  --[[
-    math_utils
+- Leverage Lua's strengths (e.g., tables for structures, first-class functions).
+- Be aware of common Lua pitfalls (e.g., 1-based indexing vs. 0-based, global variable scope issues, closure behavior).
 
-    Provides utility functions for basic mathematical operations.
-  ]]--
+## 3. Testing & Behavior Specification (Busted)
 
-  --- Mathematical utilities module.
-  -- Provides simple arithmetic functions as examples.
-  -- @module math_utils
+These rules specify how testing and behavior specification, required by the global guidelines, are implemented in this project using the `busted` framework.
 
-  local M = {}
-
-  --- Adds two numbers together.
-  -- Can include **markdown** for *emphasis*.
-  -- @param num1 number The first number to add.
-  -- @param num2 number The second number to add.
-  -- @return number The sum of num1 and num2.
-  -- @usage local math = require('math_utils'); local sum = math.add(5, 3) -- sum is 8
-  function M.add(num1, num2)
-    -- Function implementation
-    local result = num1 + num2 -- Example logic
-    return result
-  end
-
-  --- Represents a point in 2D space.
-  -- @type Point {x: number, y: number}
-  local point_example -- just declaring a variable that uses the type
-
-  --- A simple class example.
-  -- @class SimpleClass
-  -- @field name string The name associated with this instance. Default is "Default".
-  SimpleClass = {}
-  SimpleClass.__index = SimpleClass
-
-  --- Creates a new instance of SimpleClass.
-  -- @param initial_name [string] The initial name (optional).
-  -- @return SimpleClass A new instance of SimpleClass.
-  function SimpleClass:new(initial_name)
-    local self = setmetatable({}, SimpleClass)
-    self.name = initial_name or "Default"
-    return self
-  end
-
-  --- Gets the name of the instance.
-  -- @return string The current name.
-  function SimpleClass:get_name()
-      return self.name
-  end
-
-  return M
-  ```
-
-- **Code Comments:** Add comments to explain non-obvious logic, complex algorithms, or important decisions. Focus on the *why*, not just the *what*.
-- **Reasoning Comments:** For complex or potentially confusing blocks of code, add an inline comment starting with `# Reason:` explaining the rationale behind the implementation choice.
-- **README Updates:** Update `README.md` if changes involve:
-  - Adding new core features.
-  - Changing dependencies.
-  - Modifying setup or build steps.
-
----
-
-### 3. Development Workflow & Modification Rules
-
-- **Implementation Plan:** Always create the plan outlined in Section 1 before coding.
-- **Read First:** Always read and understand existing code before modifying or adding to it.
-- **Focus:** Keep changes focused on the specific task. Do not refactor unrelated code unless it's part of the explicit task.
-- **Small Functions:** Prefer small, single-purpose functions.
-- **Code Modification Principles:**
-  - Aim for clean, elegant, and idiomatic Lua/LÖVE solutions.
-  - Explain the *rationale* behind significant suggestions or changes.
-  - Propose minimal, incremental changes that are easy to review.
-  - Prioritize low-risk refactoring.
-  - Avoid code duplication; promote reusability.
-  - Leverage Lua's strengths (tables, first-class functions).
-  - Be aware of common Lua pitfalls (e.g., table indexing, scope, closures).
-- **Dependencies:** Do not introduce new external dependencies unless absolutely necessary and explicitly discussed/approved.
-- **Commits:** Ensure commit messages follow the Conventional Commits specification (`https://www.conventionalcommits.org/en/v1.0.0/`). (AI will likely provide code/suggestions, user performs the commit).
-- **Manual Testing:** When developing a task for TASK.md, always allow user to manually test the changes and provide instructions.
-
----
-
-### 4. Specifying and Verifying Behavior
-
-- **Specify Behavior for New/Modified Components:** Any new feature (function, class, significant logic) or modification to existing logic requires corresponding specifications that describe its expected behavior. This ensures clarity and verifies *what* it's supposed to do from an external viewpoint.
-
-- **Specification Location:** Behavior specifications must reside in a top-level `/spec` directory. This directory's structure should mirror the source code being specified, making it easy to locate relevant specifications.
-  - *Example:* Specifications for `game/engine/my_module.lua` belong in `spec/engine/my_module_spec.lua`.
-
-- **Describe Key Behavioral Scenarios:** Each component's specification should describe its behavior under various conditions using `describe` and `it` blocks. At minimum, include scenarios covering:
-  - **Expected Behavior:** At least one example (`it` block) describing the typical, successful interaction or outcome (the "happy path").
-    - *Example:* `it("should return the correct sum for two positive numbers")`
-  - **Boundary Conditions:** At least one example exploring behavior at known or likely limits or edge cases.
-    - *Example:* `it("should handle empty input lists gracefully")`
-    - *Example:* `it("should clamp position at the maximum screen boundary")`
-  - **Handling Undesired Situations:** At least one example describing how the component behaves when encountering errors, invalid inputs, or exceptional conditions.
-    - *Example:* `it("should return nil when a required parameter is missing")`
-    - *Example:* `it("should error if division by zero is attempted")`
-
-- **Maintain Living Documentation:** Software evolves, and so must its specifications. When modifying existing logic, **review and update the corresponding specifications** to ensure they accurately reflect the component's *current* behavior. Outdated specifications are misleading.
-
-- **AI Collaboration in Specification:** When assisting with behavior specification:
-  - **DO** generate executable specification code using `busted` in `_spec.lua` files (aligning with Busted's convention).
-  - **DO** clearly summarize suggested specifications by describing the *behavior* being specified and its context. Frame suggestions around *what* should happen under certain conditions, suitable for `describe` or `it` blocks.
-  - *Example:* "Specify behavior when `my_function` receives `nil` input."
-  - *Example:* "Specify player collision behavior at the screen edge."
-  - *Example:* "Describe the outcome when saving data with an invalid format."
-  - Use the `busted` library for all specifications.
-  - Within specification files (`_spec.lua`), use full module paths for `require` statements (e.g., `require("game.engine.core.scene")`).
-
----
-
-### 5. AI Interaction Protocols
-
-- **Clarity:** Never assume missing context or requirements. If uncertain about the task, project state, or constraints, **ask clarifying questions** before proceeding.
-- **Factuality:** Do not "hallucinate" or invent libraries, functions, APIs, or file paths. Only use verified LÖVE APIs, standard Lua functions, and modules confirmed to exist within the project.
-- **Verification:** Always confirm file paths and module names exist (based on provided context or previous interactions) before referencing them in code examples, tests, or explanations.
-- **Code Modification Safety:** Never delete or overwrite existing code unless:
-  - Explicitly instructed to do so by the user.
-  - It is a defined part of the current task listed in `TASK.md`.
-- **Model Capability Awareness:** If you assess that a task is complex and might benefit significantly from a more advanced model's capabilities, state this clearly **at the beginning of your response** using **bold text**. Example: "**Suggestion: This refactoring task is complex and involves deep analysis of interactions. A more advanced model might provide a more robust solution.**"
-- **Collaboration Style:** Respond in a friendly, helpful, and collaborative tone, as if we are teammates working together.
-- **Task Completion:** Upon completing the implementation/suggestion for a task, explicitly state that the task requirements (as understood) have been met. Remind the user to mark the task as complete in `TASK.md`.
+- **Specification Location:** Behavior specifications must reside in the top-level `/spec` directory. This directory's structure must mirror the `/src` directory being specified.
+  - *Example:* Specifications for `src/game/engine/my_module.lua` belong in `spec/game/engine/my_module_spec.lua`.
+- **File Naming:** Specification files must end with `_spec.lua`.
+- **Framework:** Use the `busted` testing framework for all specifications.
+- **Test Doubles:** **Actively use test doubles** like spies, stubs, and mocks (e.g., via `require('luassert.spy')` or similar assertion library utilities) to isolate units under test, control dependencies, and verify interactions effectively.
+- **Scenario Coverage:** Each component's specification should describe its behavior under various conditions using `describe` and `it` blocks. Include scenarios covering, at minimum:
+  - **Expected Behavior:** Typical, successful interactions (the "happy path").
+  - **Boundary Conditions:** Behavior at known limits or edge cases.
+  - **Undesired Situations:** Behavior with errors, invalid inputs, or exceptional conditions.
+- **Require Paths:** Within specification files (`_spec.lua`), use full, project-relative module paths for `require` statements (e.g., `require("src.game.engine.core.scene")`). Do not use local relative paths.
