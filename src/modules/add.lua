@@ -6,23 +6,7 @@
 ]]
 
 -- local filesystem_utils = require("utils.filesystem")
-
---- Normalize GitHub URLs by converting blob URLs to raw URLs.
---- @param url string The URL to normalize
---- @return string normalized_url The normalized URL
---- @return string download_url The URL to use for downloading
-local function normalize_github_url(url)
-  -- Check if this is a GitHub blob URL
-  -- Correctly capture username, repo, commit, and path directly from the URL match
-  local username, repo, commit, path = url:match("^https://github%.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)$")
-  if username then -- Check if the match was successful and captured groups are not nil
-    -- Convert to raw URL
-    local raw_url = string.format("https://raw.githubusercontent.com/%s/%s/%s/%s", username, repo, commit, path)
-    return url, raw_url
-  end
-  -- If not a GitHub blob URL, use as-is
-  return url, url
-end
+local url_utils = require("utils.url") -- Require the new utility
 
 ---@class AddDeps
 ---@field load_manifest fun(): table, string?
@@ -35,6 +19,7 @@ end
 ---@field lockfile table
 ---@field lockfile.generate_lockfile_table fun(deps: table): table
 ---@field lockfile.write_lockfile fun(table): boolean, string?
+---@field lockfile.load_lockfile fun(): table?, string?
 
 ---@param dep_name string|nil Dependency name to add. If nil, inferred from source URL.
 ---@param dep_source string|table Dependency source string (URL) or table with url/path.
@@ -76,12 +61,17 @@ local function add_dependency(dep_name, dep_source, _dest_dir, deps)
     out_path = dep_name .. ".lua"
   end
 
-  -- Normalize GitHub URLs
-  local source_url, download_url = normalize_github_url(url)
-  if not download_url then
-    return false, "Failed to normalize URL: " .. (source_url or "")
+  -- Normalize GitHub URLs using the utility function
+  local source_url, download_url, norm_err = url_utils.normalize_github_url(url)
+  if norm_err then
+    return false, "Failed to normalize URL: " .. norm_err
   end
-  manifest.dependencies[dep_name] = dep_source
+  -- Store the original (or potentially normalized source) URL in the manifest
+  if type(dep_source) == "table" then
+    manifest.dependencies[dep_name] = { url = source_url, path = dep_source.path }
+  else
+    manifest.dependencies[dep_name] = source_url
+  end
 
   local ok, err2 = deps.save_manifest(manifest)
   if not ok then
@@ -90,7 +80,7 @@ local function add_dependency(dep_name, dep_source, _dest_dir, deps)
   end
   print(string.format("Added dependency '%s' to project.lua.", dep_name))
 
-  -- Download using the raw URL
+  -- Download using the potentially raw URL
   local ok3, err3 = deps.downloader.download(download_url, out_path)
   if ok3 then
     print(string.format("Downloaded %s to %s", dep_name, out_path))
@@ -99,29 +89,44 @@ local function add_dependency(dep_name, dep_source, _dest_dir, deps)
     return false, err3
   end
 
-  -- Generate and write lockfile after successful add
-  -- Build resolved_deps table for lockfile with proper hashes
-  local resolved_deps = {}
-  for name, dep in pairs(manifest.dependencies or {}) do
-    local lock_dep_entry = type(dep) == "table" and dep or { url = dep }
-    local hash, hash_err = deps.hash_utils.hash_dependency(dep)
-    if not hash then
-      print("Warning: Could not generate hash for " .. name .. ": " .. tostring(hash_err))
-      hash = "unknown" -- Don't use URL as fallback anymore
+  -- Load existing lockfile to check before updating
+  local existing_lockfile_data, load_err = deps.lockfile.load_lockfile()
+  if load_err and not load_err:match("Could not read lockfile") then -- Ignore "not found" error, treat as empty
+    print("Warning: Could not load existing lockfile to check for update: " .. tostring(load_err))
+    -- Proceed to update even if loading failed (except for 'not found')
+    existing_lockfile_data = nil -- Treat error as needing update check
+  end
+
+  -- Update lockfile only if it doesn't exist or the dependency isn't already in it
+  if not existing_lockfile_data or not existing_lockfile_data[dep_name] then
+    print("Updating lockfile...") -- Indicate action
+    -- Build resolved_deps table for lockfile with proper hashes
+    local resolved_deps = {}
+    for name, dep in pairs(manifest.dependencies or {}) do
+      local lock_dep_entry = type(dep) == "table" and dep or { url = dep }
+      local hash, hash_err = deps.hash_utils.hash_dependency(dep)
+      if not hash then
+        print("Warning: Could not generate hash for " .. name .. ": " .. tostring(hash_err))
+        hash = "unknown" -- Don't use URL as fallback anymore
+      end
+      resolved_deps[name] = {
+        hash = hash,
+        source = lock_dep_entry.url or tostring(dep),
+      }
     end
-    resolved_deps[name] = {
-      hash = hash,
-      source = lock_dep_entry.url or tostring(dep),
-    }
-  end
-  local lockfile_table = deps.lockfile.generate_lockfile_table(resolved_deps)
-  local ok_lock, err_lock = deps.lockfile.write_lockfile(lockfile_table)
-  if ok_lock then
-    print("Updated lockfile: almd-lock.lua")
+    local lockfile_table = deps.lockfile.generate_lockfile_table(resolved_deps)
+    local ok_lock, err_lock = deps.lockfile.write_lockfile(lockfile_table)
+    if ok_lock then
+      print("Updated lockfile: almd-lock.lua")
+    else
+      print("Failed to update lockfile: " .. tostring(err_lock))
+      -- Note: The add operation succeeded overall, but lockfile update failed.
+    end
   else
-    print("Failed to update lockfile: " .. tostring(err_lock))
+    print(string.format("Lockfile already contains entry for '%s', skipping update.", dep_name))
   end
-  return true
+
+  return true -- Return true because the dependency was added/downloaded successfully
 end
 
 ---Prints usage/help information for the `add` command.

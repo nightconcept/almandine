@@ -68,6 +68,10 @@ describe("add_module", function()
           saved_lockfile = table
           return true, nil
         end,
+        load_lockfile = function() -- Added mock
+          -- Default behavior: pretend lockfile doesn't exist or is empty
+          return nil, nil
+        end,
       },
     }
     return deps,
@@ -118,8 +122,8 @@ Example:
     assert.is_true(success)
     assert.are.same(err, nil)
     assert.is_true(get_save_called())
-    -- Expect 3 prints: Added, Downloaded, Updated lockfile (hash warning skipped)
-    assert.are.same(#printed, 3)
+    -- Expect 5 prints: Added, Downloaded, Updating lockfile, Hash warning, Updated lockfile
+    assert.are.same(#printed, 4)
     print_stub:revert()
   end)
 
