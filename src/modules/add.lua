@@ -154,6 +154,11 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     print("  URL: " .. download_url)
     print("  Reason: " .. (download_err or "Unknown error"))
     print("  Manifest and lockfile were NOT updated.")
+    -- Attempt to remove potentially partially downloaded file
+    local removed, remove_err = filesystem_utils.remove_file(target_path)
+    if not removed then
+      print(string.format("Warning: Could not remove partially downloaded file '%s': %s", target_path, remove_err or "unknown error"))
+    end
     return false, "Download failed: " .. (download_err or "Unknown error")
   end
 
