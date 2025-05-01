@@ -44,18 +44,74 @@ describe("E2E: `almd add` command", function()
     assert.is_true(exists, "project.lua should exist after setup")
   end)
 
+  -- Add via Commit Hash to a custom path with file name
+  -- Equivalent to:
+  -- almd add https://github.com/Oval-Tutu/shove/blob/(HASH)/shove.lua -d src/engine/lib
+  -- -n clove
+  it("should add a dependency from a specific commit URL to a custom path", function()
+    local test_url = "https://github.com/Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua"
+    local cmd_test_path = "src/engine/lib/"
+    local cmd_test_name = "clove"
+    local expected_dir = "src/engine/lib"
+    local expected_dep_name = "clove"
+    local expected_file_name = "clove.lua"
+    local expected_file_path_relative = expected_dir .. "/" .. expected_file_name
+    local expected_commit_hash = "81f7f879a812e4479493a88e646831d0f0409560"
+
+    -- Run the add command using the command path
+    local success, output = scaffold.run_almd(sandbox_path, { "add", test_url, "-d", cmd_test_path, "-n", cmd_test_name })
+    assert.is_true(success, "almd add command should exit successfully (exit code 0). Output:\n" .. output)
+
+    -- Verify file downloaded to the custom path
+    local expected_file_path_absolute = sandbox_path .. "/" .. expected_file_path_relative
+    local file_exists = scaffold.file_exists(expected_file_path_absolute)
+    assert.is_true(file_exists, "Expected file " .. expected_file_path_absolute .. " was not found.")
+
+    -- Verify project.lua content (expecting single-slash path)
+    local project_data, proj_err = scaffold.read_project_lua(sandbox_path)
+    assert.is_not_nil(project_data, "Failed to read project.lua: " .. tostring(proj_err))
+    assert.is_not_nil(project_data.dependencies, "Dependencies table missing in project.lua")
+    local actual_proj_dep_entry = project_data.dependencies and project_data.dependencies[expected_dep_name]
+    assert.is_table(actual_proj_dep_entry, "Project dependency entry should be a table.")
+
+    -- Calculate expected source identifier
+    local url_utils = require("utils.url")
+    local expected_source_identifier, id_err = url_utils.create_github_source_identifier(test_url)
+    assert.is_not_nil(expected_source_identifier, "Failed to create expected source identifier: " .. tostring(id_err))
+
+    assert.are.equal(
+      expected_source_identifier,
+      actual_proj_dep_entry.source,
+      "Dependency source identifier mismatch in project.lua"
+    )
+
+    assert.are.equal(expected_file_path_relative, actual_proj_dep_entry.path, "Dependency path mismatch in project.lua")
+
+    -- Verify almd-lock.lua content (expecting single-slash path)
+    local lock_data, lock_err = scaffold.read_lock_lua(sandbox_path)
+    assert.is_not_nil(lock_data, "Failed to read almd-lock.lua: " .. tostring(lock_err))
+    assert.is_not_nil(lock_data.package, "Package table missing in almd-lock.lua")
+    local dep_lock_info = lock_data.package and lock_data.package[expected_dep_name]
+    assert.is_not_nil(dep_lock_info, "Dependency entry missing in almd-lock.lua for " .. expected_dep_name)
+
+    assert.are.equal(expected_file_path_relative, dep_lock_info.path, "Lockfile path mismatch")
+
+    local expected_lock_source =
+      string.format("https://raw.githubusercontent.com/Oval-Tutu/shove/%s/shove.lua", expected_commit_hash)
+    assert.are.equal(expected_lock_source, dep_lock_info.source, "Lockfile source mismatch")
+    local expected_hash = "commit:" .. expected_commit_hash
+    assert.are.equal(expected_hash, dep_lock_info.hash, "Lockfile hash mismatch (should be commit hash)")
+  end)
+
   -- Add via Commit Hash to a custom path
   -- Equivalent to:
   -- almd add https://github.com/Oval-Tutu/shove/blob/(HASH)/shove.lua -d src/engine/lib
   it("should add a dependency from a specific commit URL to a custom path", function()
     local test_url = "https://github.com/Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua"
-    -- Path passed to command can have trailing slash, add.lua should handle it now
     local cmd_test_path = "src/engine/lib/"
-    -- Expected path for assertions should NOT have trailing slash before filename
     local expected_dir = "src/engine/lib"
     local expected_dep_name = "shove"
     local expected_file_name = "shove.lua"
-    -- Correct expected path with single slash
     local expected_file_path_relative = expected_dir .. "/" .. expected_file_name
     local expected_commit_hash = "81f7f879a812e4479493a88e646831d0f0409560"
 
@@ -66,11 +122,9 @@ describe("E2E: `almd add` command", function()
     -- Verify file downloaded to the custom path
     local expected_file_path_absolute = sandbox_path .. "/" .. expected_file_path_relative
     local file_exists = scaffold.file_exists(expected_file_path_absolute)
-    -- Restore debug print for absolute path
-    print("DEBUG: Expected file path absolute: " .. expected_file_path_absolute)
     assert.is_true(file_exists, "Expected file " .. expected_file_path_absolute .. " was not found.")
 
-    -- Verify project.lua content (expecting single-slash path)
+    -- Verify project.lua content
     local project_data, proj_err = scaffold.read_project_lua(sandbox_path)
     assert.is_not_nil(project_data, "Failed to read project.lua: " .. tostring(proj_err))
     assert.is_not_nil(project_data.dependencies, "Dependencies table missing in project.lua")
