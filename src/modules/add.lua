@@ -90,7 +90,13 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   -- 5. Create Source Identifier for Manifest
   local source_identifier, sid_err = url_utils.create_github_source_identifier(input_url)
   if not source_identifier then
-    print(string.format("Warning: Could not create specific GitHub identifier for '%s' (%s). Using original URL.", input_url, sid_err or "unknown error"))
+    print(
+      string.format(
+        "Warning: Could not create specific GitHub identifier for '%s' (%s). Using original URL.",
+        input_url,
+        sid_err or "unknown error"
+      )
+    )
     source_identifier = input_url -- Fallback to the original URL
     -- Note: commit_hash might still be known from normalization step even if identifier creation failed.
   end
@@ -99,7 +105,7 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   local target_path
   if cmd_dest_path_or_dir then
     -- User provided -d flag
-    local ends_with_sep = cmd_dest_path_or_dir:match("[/\]$")
+    local ends_with_sep = cmd_dest_path_or_dir:match("[/]$")
     local path_type = filesystem_utils.get_path_type(cmd_dest_path_or_dir)
 
     if path_type == "directory" or ends_with_sep then
@@ -116,7 +122,7 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   end
 
   -- 7. Ensure Target Directory Exists
-  local target_dir_path = target_path:match("(.+)[\/]")
+  local target_dir_path = target_path:match("(.+)[\\/]")
   if target_dir_path then
     local dir_ok, dir_err = filesystem_utils.ensure_dir_exists(target_dir_path)
     if not dir_ok then
@@ -133,7 +139,9 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     source = source_identifier,
     path = target_path,
   }
-  print(string.format("Preparing to add dependency '%s': source='%s', path='%s'", dep_name, source_identifier, target_path))
+  print(
+    string.format("Preparing to add dependency '%s': source='%s', path='%s'", dep_name, source_identifier, target_path)
+  )
 
   -- 9. Download Dependency
   print(string.format("Downloading '%s' from '%s' to '%s'...", dep_name, download_url, target_path))
@@ -152,7 +160,8 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   local ok_save, err_save = deps.save_manifest(manifest)
   if not ok_save then
     -- Critical error: downloaded file exists, but manifest doesn't reflect it.
-    local err_msg = "Critical Error: Failed to save project.lua after successful download: " .. (err_save or "Unknown error")
+    local err_msg = "Critical Error: Failed to save project.lua after successful download: "
+      .. (err_save or "Unknown error")
     print(err_msg)
     print("  The downloaded file exists at: " .. target_path)
     print("  The manifest (project.lua) may be inconsistent.")
@@ -189,8 +198,14 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
       print(string.format("Using content hash '%s' for lockfile entry '%s'.", content_hash, dep_name))
     else
       -- Non-critical warning: Lockfile entry will indicate hash failure.
-      lockfile_hash_string = "hash_error:" .. (hash_err or 'unknown')
-      print(string.format("Warning: Could not calculate sha256 hash for '%s': %s. Lockfile entry will reflect this.", target_path, hash_err or 'unknown error'))
+      lockfile_hash_string = "hash_error:" .. (hash_err or "unknown")
+      print(
+        string.format(
+          "Warning: Could not calculate sha256 hash for '%s': %s. Lockfile entry will reflect this.",
+          target_path,
+          hash_err or "unknown error"
+        )
+      )
     end
   end
 

@@ -40,11 +40,10 @@ end
 -- @return boolean, string|nil True if success, or false and error message.
 function downloader.download(url, out_path, verbose)
   verbose = verbose or false
-  local tool = ""
   local os_type = _package_config:sub(1, 1) == "\\" and "windows" or "unix"
 
   if has_command("wget") then
-    tool = "wget"
+    local tool = "wget"
     local quiet_flag = ""
     local stderr_redirect = ""
     if not verbose then
@@ -58,11 +57,13 @@ function downloader.download(url, out_path, verbose)
     if ok == 0 or ok == true then
       return true
     else
-      local exit_code = type(ok) == 'number' and ok or '?'
-      return false, string.format("%s download failed (Exit Code: %s). Run with --verbose for details.", tool, exit_code)
+      local exit_code = type(ok) == "number" and ok or "?"
+      local error_msg =
+        string.format("%s download failed (Exit Code: %s). Run with --verbose for details.", tool, exit_code)
+      return false, error_msg
     end
   elseif has_command("curl") then
-    tool = "curl"
+    local tool = "curl"
     local silent_flags = "-fL"
     if not verbose then
       -- -s (silent) -S (show error) -f (fail on server error) -L (follow redirects)
@@ -75,8 +76,10 @@ function downloader.download(url, out_path, verbose)
     if ok == 0 or ok == true then
       return true
     else
-      local exit_code = type(ok) == 'number' and ok or '?'
-      return false, string.format("%s download failed (Exit Code: %s). Run with --verbose for details.", tool, exit_code)
+      local exit_code = type(ok) == "number" and ok or "?"
+      local error_msg =
+        string.format("%s download failed (Exit Code: %s). Run with --verbose for details.", tool, exit_code)
+      return false, error_msg
     end
   else
     return false, "Neither wget nor curl is available on this system. Please install one to enable downloads."

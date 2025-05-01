@@ -172,7 +172,7 @@ For help with a command: almd help <command> or almd <command> --help
       end
     end
 
-    local ok, err = add_module.add_dependency(dep_name, source, dest_dir, {
+    local ok, _ = add_module.add_dependency(dep_name, source, dest_dir, {
       load_manifest = manifest_utils.safe_load_project_manifest,
       save_manifest = manifest_utils.save_manifest,
       ensure_lib_dir = filesystem_utils.ensure_lib_dir,
@@ -182,7 +182,7 @@ For help with a command: almd help <command> or almd <command> --help
       verbose = verbose,
     })
     if not ok then
-      -- print("[Debug main.lua] add_dependency returned not ok. Error:", err) -- Remove Debug
+      -- print("[Debug main.lua] add_dependency returned not ok. Error:", _) -- Remove Debug
       -- Error message already printed by add_dependency
       os.exit(1)
     end
@@ -199,15 +199,15 @@ For help with a command: almd help <command> or almd <command> --help
       filesystem = filesystem_utils, -- Pass the filesystem utils module
       url_utils = require("utils.url"), -- Pass url utils needed for hash extraction
     }
-    local ok, err = install_module.install_dependencies(dep_name, deps)
+    local ok, _ = install_module.install_dependencies(dep_name, deps)
     if not ok then
-      print("Installation failed: " .. tostring(err or "Unknown error"))
+      print("Installation failed: " .. tostring(_ or "Unknown error"))
       os.exit(1) -- Exit with error code
     end
     return -- Success
   elseif args[1] == "remove" or args[1] == "rm" or args[1] == "uninstall" or args[1] == "un" then
     if args[2] then
-      local ok, err = remove_module.remove_dependency(args[2], load_manifest, manifest_utils.save_manifest)
+      local ok, _ = remove_module.remove_dependency(args[2], load_manifest, manifest_utils.save_manifest)
       if not ok then
         -- Error message likely printed by remove_dependency
         os.exit(1)
