@@ -50,9 +50,18 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   end
 
   -- Determine the filename part (e.g., "shove.lua")
-  local filename = input_url:match("/([^/]+)$") or dep_name .. ".lua" -- Fallback using dep_name
-  if not filename or filename == "" then
-    return false, "Could not determine filename from URL: " .. input_url
+  -- Prioritize the name provided by -n if available.
+  local filename
+  if dep_name then
+    -- If -n was used, construct filename from that name
+    filename = dep_name .. ".lua"
+  else
+    -- If -n was not used, try to extract from URL
+    filename = input_url:match("/([^/]+)$")
+    if not filename or filename == "" then
+      -- If -n not used AND filename extraction failed, error out
+      return false, "Could not determine filename from URL: " .. input_url .. ". Try using the -n flag."
+    end
   end
 
   -- If no dep_name provided, try to infer from filename
@@ -136,21 +145,14 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   end
   manifest.dependencies[dep_name] = manifest_entry
   ]]
-  -- New structure based on PRD:
-  if is_default_path then
-    -- Store only the source identifier string if using the default path
-    manifest.dependencies[dep_name] = source_identifier
-    print(string.format("Adding dependency '%s' with source '%s' to project.lua.", dep_name, source_identifier))
-  else
-    -- Store table with source and path if path is non-default
-    manifest.dependencies[dep_name] = {
-      source = source_identifier,
-      path = target_path,
-    }
-    print(string.format("Adding dependency '%s' with source '%s' and path '%s' to project.lua.", dep_name, source_identifier, target_path))
-  end
+  -- New structure based on PRD (modified to always use table format):
+  manifest.dependencies[dep_name] = {
+    source = source_identifier,
+    path = target_path,
+  }
+  print(string.format("Adding dependency '%s' with source '%s' and path '%s' to project.lua.", dep_name, source_identifier, target_path))
 
-  -- Code below should be AFTER the if/else block
+  -- Code below should be AFTER the dependency storage logic
   local ok, err2 = deps.save_manifest(manifest)
   if not ok then
     print(err2)
@@ -222,7 +224,8 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
 
     -- Add/Update the entry for the new dependency
     current_lock_packages[dep_name] = {
-      source = new_source_id,
+      -- Use the raw download_url for the lockfile source, not the pretty identifier
+      source = download_url, -- Changed from new_source_id
       path = new_target_path, -- Added path field
       hash = lockfile_hash_string, -- Using determined commit or sha256 hash
     }
