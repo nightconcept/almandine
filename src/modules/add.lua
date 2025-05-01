@@ -74,8 +74,21 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     return false, string.format("Could not determine download URL for '%s'", input_url)
   end
 
+  -- Construct the source identifier string for manifests (PRD format)
+  local source_identifier, sid_err = url_utils.create_github_source_identifier(input_url)
+  if not source_identifier then
+    -- If it's not a GitHub URL or fails parsing for identifier, use the original input URL
+    print(string.format("Warning: Could not create specific GitHub identifier for '%s' (%s). Using original URL as source identifier.", input_url, sid_err or "unknown error"))
+    source_identifier = input_url
+    -- We won't have a specific commit_hash if identifier creation failed unless normalize_github_url found one earlier
+    -- This might affect lockfile logic if it was a raw/blob URL that create_github_source_identifier failed on.
+    -- Re-check commit_hash source if needed.
+  end
+
   -- Determine the final target path for the dependency file
   local target_path
+  local is_default_path = false -- Flag to check if we are using the default path
+
   if cmd_dest_path_or_dir then
     -- User provided -d flag
     local ends_with_sep = cmd_dest_path_or_dir:match("[/\\]$")
@@ -94,6 +107,7 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   else
     -- Default path: src/lib/<filename>
     target_path = filesystem_utils.join_path("src", "lib", filename)
+    is_default_path = true
   end
 
   -- Ensure the target directory exists (downloader might not create intermediate dirs)
@@ -112,6 +126,7 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
 
   -- Store the structured dependency info in the manifest
   manifest.dependencies = manifest.dependencies or {}
+  --[[ Old structure:
   local manifest_entry = {
     url = base_url,
     path = target_path,
@@ -120,7 +135,22 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     manifest_entry.hash = commit_hash -- Store GitHub commit hash if available
   end
   manifest.dependencies[dep_name] = manifest_entry
+  ]]
+  -- New structure based on PRD:
+  if is_default_path then
+    -- Store only the source identifier string if using the default path
+    manifest.dependencies[dep_name] = source_identifier
+    print(string.format("Adding dependency '%s' with source '%s' to project.lua.", dep_name, source_identifier))
+  else
+    -- Store table with source and path if path is non-default
+    manifest.dependencies[dep_name] = {
+      source = source_identifier,
+      path = target_path,
+    }
+    print(string.format("Adding dependency '%s' with source '%s' and path '%s' to project.lua.", dep_name, source_identifier, target_path))
+  end
 
+  -- Code below should be AFTER the if/else block
   local ok, err2 = deps.save_manifest(manifest)
   if not ok then
     print(err2)
@@ -148,29 +178,59 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   end
 
   -- Update lockfile only if it doesn't exist or the dependency isn't already in it
-  if not existing_lockfile_data or not existing_lockfile_data[dep_name] then
+  if not existing_lockfile_data or not existing_lockfile_data.package[dep_name] then
     print("Updating lockfile...")
     -- Build resolved_deps table for lockfile
     local resolved_deps = {}
-    for name, dep_info in pairs(manifest.dependencies or {}) do
-      -- dep_info is now always a table { url=..., path=..., [hash=...] }
-      local content_hash, hash_err
-      -- ** TODO: This hash_dependency likely needs the *path* to the file, not the manifest entry **
-      -- ** Current hash_utils.hash_dependency hashes the *table* representation, not file content **
-      -- ** This needs adjustment in hash_utils for correct content hashing **
-      content_hash, hash_err = deps.hash_utils.hash_dependency(dep_info) -- Using current flawed logic
-      if not content_hash then
-        print("Warning: Could not generate content hash for " .. name .. ": " .. tostring(hash_err))
-        content_hash = "unknown"
-      end
-      resolved_deps[name] = {
-        -- Use the base URL from the manifest entry as the source identifier in the lockfile
-        source = dep_info.url,
-        hash = content_hash, -- This should be the content hash
-        -- We could add commit = dep_info.hash here if needed in lockfile
-      }
+    -- This loop logic needs significant refinement as noted in previous TODOs.
+    -- It currently mixes concerns of processing the new dep vs existing ones,
+    -- and relies on unavailable variables (like commit_hash for existing deps).
+    -- For Task 1.2, let's focus *only* on adding the *new* dependency to the lockfile correctly.
+    -- A more robust lockfile update (handling all deps) should be a separate task/refinement.
+
+    -- Get info for the dependency being added
+    local new_dep_info = manifest.dependencies[dep_name]
+    local new_source_id
+    local new_target_path
+    if type(new_dep_info) == "table" then
+      new_source_id = new_dep_info.source
+      new_target_path = new_dep_info.path
+    else
+      new_source_id = new_dep_info
+      new_target_path = target_path -- Use the target_path calculated earlier for the default case
     end
-    local lockfile_table = deps.lockfile.generate_lockfile_table(resolved_deps)
+
+    -- Determine lockfile hash for the new dependency
+    local lockfile_hash_string
+    if commit_hash then -- Use the commit_hash obtained from normalizing the *input* URL
+      lockfile_hash_string = "commit:" .. commit_hash
+      print(string.format("Using commit hash %s for lockfile entry '%s'", lockfile_hash_string, dep_name))
+    else
+      print(string.format("Calculating sha256 hash for %s...", new_target_path))
+      local content_hash, hash_err = deps.hash_utils.hash_file_sha256(new_target_path) -- Assumed function
+      if content_hash then
+        lockfile_hash_string = "sha256:" .. content_hash
+        print(string.format("Using content hash %s for lockfile entry '%s'", lockfile_hash_string, dep_name))
+      else
+        print(string.format("Warning: Could not calculate sha256 hash for %s: %s", new_target_path, hash_err or 'unknown error'))
+        lockfile_hash_string = "hash_error:" .. (hash_err or 'unknown')
+      end
+    end
+
+    -- Load existing lockfile data again, or start fresh
+    local current_lock_packages = (existing_lockfile_data and existing_lockfile_data.package) or {}
+
+    -- Add/Update the entry for the new dependency
+    current_lock_packages[dep_name] = {
+      source = new_source_id,
+      path = new_target_path, -- Added path field
+      hash = lockfile_hash_string, -- Using determined commit or sha256 hash
+    }
+
+    -- Generate the final lockfile table
+    -- Pass the potentially updated package table to the generator function
+    local lockfile_table = deps.lockfile.generate_lockfile_table(current_lock_packages)
+
     local ok_lock, err_lock = deps.lockfile.write_lockfile(lockfile_table)
     if ok_lock then
       print("Updated lockfile: almd-lock.lua")

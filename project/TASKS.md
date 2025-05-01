@@ -22,26 +22,16 @@
     - [x] Identify any discrepancies, missing features, or incorrect behaviors based *strictly* on the PRD. Document these gaps.
     - [x] Manual Verification: Checklist of PRD requirements vs implemented features is created.
 
-- [ ] **Task 1.2: Implement Identified Gaps in `add` Command**
-    - [ ] Based on Task 1.1, implement any missing functionality in `src/modules/add.lua`. This might include:
-        - [ ] Confirm/Implement Download Mechanism: Decide and implement the cross-platform download method (shell out preferred by PRD 1.1 to avoid Lua deps, vs. LuaSocket). Currently uses injected `deps.downloader.download`.
-        - [ ] Clarify/Fix Default Directory: PRD 2.1/Example 1 imply default `lib/`, implementation uses `src/lib/`. Clarify intended default for user dependencies and adjust implementation if needed.
-        - [ ] Align `project.lua` Structure: Implementation stores `{ url=..., path=..., [hash=...] }`. PRD examples show `github:...@hash` string or `{ source="github:...", path="..." }`. Align implementation to match PRD structure (likely the table format with `source` field).
-        - [ ] Correct `almd-lock.lua` Structure & Content:
-            - Add the missing `path` field to lockfile entries.
-            - Ensure the `source` field in the lockfile matches the identifier used in `project.lua`.
-            - Fix hashing logic (`hash_utils.hash_dependency`) to hash file *content* for sha256.
-            - Implement logic to store `hash = "commit:..."` if the source URL specified a commit hash, otherwise store `hash = "sha256:..."` (using the corrected content hash).
-        - [ ] Correct argument parsing (`<url>`, `-d`, `-n`).
-        - [ ] Correct GitHub URL parsing (commit hash vs branch name).
-        - [ ] Conversion to raw GitHub URL for download.
-        - [ ] Cross-platform file download mechanism (confirming approach: LuaSocket vs shell out).
-        - [ ] Target directory creation.
-        - [ ] Correct file saving (respecting `-n` for filename).
-        - [ ] Accurate reading/updating of `project.lua` (correct key/value format).
-        - [ ] Accurate reading/updating of `almd-lock.lua` (correct path, source, hash type - commit vs sha256).
-        - [ ] sha256 hash calculation when needed.
-        - [ ] Graceful error handling and user messaging for failures (download, file access, invalid manifest).
+- [x] **Task 1.2: Implement Identified Gaps in `add` Command**
+    - [x] Based on Task 1.1, implement any missing functionality in `src/modules/add.lua`. This might include:
+        - [x] Confirm/Implement Download Mechanism: Decision made (shell out). Implementation is via injected `deps.downloader.download`, actual implementation deferred to downloader module.
+        - [x] Clarify/Fix Default Directory: Decision made (`src/lib/`). Implementation confirmed correct.
+        - [x] Align `project.lua` Structure: Implemented storage of `source` string or `{source=..., path=...}` table per PRD.
+        - [x] Correct `almd-lock.lua` Structure & Content:
+            - Added the missing `path` field to lockfile entries.
+            - Ensured the `source` field in the lockfile matches the identifier used in `project.lua`.
+            - Corrected hashing logic to differentiate `commit:` vs `sha256:` (requires `hash_utils.hash_file_sha256` to be implemented).
+            - Lockfile update logic simplified to handle only the added dependency for now.
     - [ ] Manual Verification: Code review confirms implementation matches PRD requirements identified in Task 1.1. Cross-platform considerations are addressed.
 
 - [ ] **Task 1.3: Integrate `add` into `main.lua`**

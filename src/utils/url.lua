@@ -67,4 +67,35 @@ function M.normalize_github_url(url, commit_hash_override)
   return base_url, commit_hash, download_url, nil
 end
 
+---
+-- Create a standardized source identifier string for GitHub URLs.
+-- Handles blob and raw URLs.
+-- @param url string The GitHub URL to process.
+-- @return string|nil identifier The formatted identifier (e.g., "github:user/repo/path/file.lua@ref"). Nil if not a recognized GitHub file URL.
+-- @return string|nil error_message Error message if processing fails.
+function M.create_github_source_identifier(url)
+  if type(url) ~= "string" then
+    return nil, "URL must be a string."
+  end
+
+  -- Pattern 1: GitHub Blob URL
+  local user, repo, ref, path = url:match("^https://github%.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)$")
+  if user then
+    local identifier = string.format("github:%s/%s/%s@%s", user, repo, path, ref)
+    return identifier, nil
+  end
+
+  -- Pattern 2: GitHub Raw URL
+  local user_raw, repo_raw, ref_raw, path_raw =
+    url:match("^https://raw%.githubusercontent%.com/([^/]+)/([^/]+)/([^/]+)/(.+)$")
+  if user_raw then
+    local identifier = string.format("github:%s/%s/%s@%s", user_raw, repo_raw, path_raw, ref_raw)
+    return identifier, nil
+  end
+
+  -- Not a recognized GitHub file URL format for generating this specific identifier
+  return nil, "URL is not a recognized GitHub blob/raw file URL format."
+
+end
+
 return M
