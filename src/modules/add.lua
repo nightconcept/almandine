@@ -25,9 +25,12 @@ local url_utils = require("utils.url") -- Require the new utility
 ---@param dep_source string|table Dependency source string (URL) or table with url/path.
 ---@param dest_dir string|nil Optional destination directory for the installed file.
 ---@param deps AddDeps Table containing dependency injected functions.
+---@field deps.verbose boolean|nil Whether to run downloader in verbose mode.
 ---@return boolean success True if operation completed successfully.
 ---@return string? error Error message if operation failed.
 local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
+  local verbose = deps.verbose or false
+
   deps.ensure_lib_dir()
   local manifest, err = deps.load_manifest()
   if not manifest then
@@ -153,94 +156,86 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   }
   print(string.format("Adding dependency '%s' with source '%s' and path '%s' to project.lua.", dep_name, source_identifier, target_path))
 
-  -- Code below should be AFTER the dependency storage logic
-  local ok, err2 = deps.save_manifest(manifest)
-  if not ok then
-    print(err2)
-    return false, err2
-  end
-  print(string.format("Added dependency '%s' to project.lua.", dep_name))
+  -- ** Manifest will be saved only AFTER successful download **
 
   -- Download directly to the target path
   print(string.format("Downloading %s from %s to %s...", dep_name, download_url, target_path))
-  local ok3, err3 = deps.downloader.download(download_url, target_path)
-  if ok3 then
+  local download_ok, download_err = deps.downloader.download(download_url, target_path, verbose) -- Pass verbose flag
+
+  if not download_ok then
+    -- Download failed
+    print(string.format("Error: Failed to download %s from %s.", dep_name, download_url))
+    print("  Reason: " .. (download_err or "Unknown error"))
+    print("  Please check the URL or run with --verbose for more details.")
+    -- Do NOT save manifest or update lockfile
+    return false, download_err
+  else
+    -- Download succeeded
     print(string.format("Downloaded %s to %s", dep_name, target_path))
-  else
-    print(string.format("Failed to download %s: %s", dep_name, err3))
-    -- Attempt to revert manifest change on download failure?
-    -- For now, we leave the manifest updated but report the error.
-    return false, err3
-  end
 
-  -- Load existing lockfile to check before updating
-  local existing_lockfile_data, load_err = deps.lockfile.load_lockfile()
-  if load_err and not load_err:match("Could not read lockfile") then
-    print("Warning: Could not load existing lockfile to check for update: " .. tostring(load_err))
-    existing_lockfile_data = nil
-  end
-
-  -- Notify user if overwriting/updating
-  if existing_lockfile_data and existing_lockfile_data.package[dep_name] then
-    print(string.format("Updating existing dependency '%s' in lockfile.", dep_name))
-  else
-    print("Updating lockfile...") -- Keep original message for new entries
-  end
-
-  -- Get info for the dependency being added
-  local new_dep_info = manifest.dependencies[dep_name]
-  local new_source_id
-  local new_target_path
-  if type(new_dep_info) == "table" then
-    new_source_id = new_dep_info.source
-    new_target_path = new_dep_info.path
-  else
-    new_source_id = new_dep_info
-    new_target_path = target_path -- Use the target_path calculated earlier for the default case
-  end
-
-  -- Determine lockfile hash for the new dependency
-  local lockfile_hash_string
-  -- Check if normalize_github_url returned a non-nil commit_hash
-  if commit_hash then
-    -- Use commit hash if it was part of the original URL and IS a commit hash
-    lockfile_hash_string = "commit:" .. commit_hash
-    print(string.format("Using commit hash %s for lockfile entry '%s'", lockfile_hash_string, dep_name))
-  else
-    -- Otherwise (branch, tag, or non-GitHub URL), calculate sha256 hash of the downloaded file content
-    print(string.format("Calculating sha256 hash for %s...", new_target_path))
-    -- Assumes hash_utils provides this function now:
-    local content_hash, hash_err = deps.hash_utils.hash_file_sha256(new_target_path)
-    if content_hash then
-      lockfile_hash_string = "sha256:" .. content_hash
-      print(string.format("Using content hash %s for lockfile entry '%s'", lockfile_hash_string, dep_name))
-    else
-      print(string.format("Warning: Could not calculate sha256 hash for %s: %s", new_target_path, hash_err or 'unknown error'))
-      lockfile_hash_string = "hash_error:" .. (hash_err or 'unknown')
+    -- Now save the manifest since download was successful
+    local ok_save, err_save = deps.save_manifest(manifest)
+    if not ok_save then
+      print("Error saving manifest: " .. (err_save or "Unknown error"))
+      -- We downloaded the file but failed to save the manifest. Should we proceed?
+      -- Let's return an error for now, leaving the downloaded file but possibly inconsistent state.
+      return false, "Failed to save project.lua after download: " .. (err_save or "Unknown error")
     end
-  end
+    print(string.format("Updated project.lua for dependency '%s'.", dep_name))
 
-  -- Load existing lockfile data again, or start fresh
-  local current_lock_packages = (existing_lockfile_data and existing_lockfile_data.package) or {}
+    -- Proceed to update the lockfile
+    local existing_lockfile_data, load_err = deps.lockfile.load_lockfile()
+    if load_err and not load_err:match("Could not read lockfile") then
+      print("Warning: Could not load existing lockfile to check for update: " .. tostring(load_err))
+      existing_lockfile_data = nil
+    end
 
-  -- Add/Update the entry for the new dependency
-  current_lock_packages[dep_name] = {
-    -- Use the raw download_url for the lockfile source, not the pretty identifier
-    source = download_url, -- Changed from new_source_id
-    path = new_target_path, -- Added path field
-    hash = lockfile_hash_string, -- Using determined commit or sha256 hash
-  }
+    -- Notify user if overwriting/updating
+    if existing_lockfile_data and existing_lockfile_data.package[dep_name] then
+      print(string.format("Updating existing dependency '%s' in lockfile.", dep_name))
+    else
+      print("Updating lockfile...") -- Keep original message for new entries
+    end
 
-  -- Generate the final lockfile table
-  -- Pass the potentially updated package table to the generator function
-  local lockfile_table = deps.lockfile.generate_lockfile_table(current_lock_packages)
+    -- Determine lockfile hash for the new dependency
+    local lockfile_hash_string
+    if commit_hash then
+      lockfile_hash_string = "commit:" .. commit_hash
+      print(string.format("Using commit hash %s for lockfile entry '%s'", lockfile_hash_string, dep_name))
+    else
+      print(string.format("Calculating sha256 hash for %s...", target_path))
+      local content_hash, hash_err = deps.hash_utils.hash_file_sha256(target_path)
+      if content_hash then
+        lockfile_hash_string = "sha256:" .. content_hash
+        print(string.format("Using content hash %s for lockfile entry '%s'", lockfile_hash_string, dep_name))
+      else
+        print(string.format("Warning: Could not calculate sha256 hash for %s: %s", target_path, hash_err or 'unknown error'))
+        lockfile_hash_string = "hash_error:" .. (hash_err or 'unknown')
+      end
+    end
 
-  local ok_lock, err_lock = deps.lockfile.write_lockfile(lockfile_table)
-  if ok_lock then
-    print("Updated lockfile: almd-lock.lua")
-  else
-    print("Failed to update lockfile: " .. tostring(err_lock))
-  end
+    -- Load existing lockfile data again, or start fresh
+    local current_lock_packages = (existing_lockfile_data and existing_lockfile_data.package) or {}
+
+    -- Add/Update the entry for the new dependency
+    current_lock_packages[dep_name] = {
+      source = download_url, -- Use the raw download_url for the lockfile source
+      path = target_path,
+      hash = lockfile_hash_string,
+    }
+
+    -- Generate the final lockfile table
+    local lockfile_table = deps.lockfile.generate_lockfile_table(current_lock_packages)
+
+    local ok_lock, err_lock = deps.lockfile.write_lockfile(lockfile_table)
+    if ok_lock then
+      print("Updated lockfile: almd-lock.lua")
+    else
+      print("Failed to update lockfile: " .. tostring(err_lock))
+      -- Return error? Lockfile update failed after successful download and manifest save.
+      return false, "Failed to write lockfile: " .. tostring(err_lock)
+    end
+  end -- End of if download_ok
 
   return true
 end

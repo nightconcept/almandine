@@ -153,6 +153,7 @@ For help with a command: almd help <command> or almd <command> --help
       return
     end
 
+    local verbose = false
     local dest_dir, dep_name
     local i = 3
     while i <= #args do
@@ -162,6 +163,9 @@ For help with a command: almd help <command> or almd <command> --help
       elseif args[i] == "-n" and args[i + 1] then
         dep_name = args[i + 1]
         i = i + 2
+      elseif args[i] == "--verbose" then
+        verbose = true
+        i = i + 1
       else
         print("Unknown or incomplete flag: " .. tostring(args[i]))
         return
@@ -175,6 +179,7 @@ For help with a command: almd help <command> or almd <command> --help
       downloader = downloader,
       hash_utils = require("utils.hash"),
       lockfile = require("utils.lockfile"),
+      verbose = verbose,
     })
     return
   elseif args[1] == "install" or args[1] == "i" then

@@ -32,11 +32,11 @@
             - Ensured the `source` field in the lockfile matches the identifier used in `project.lua`.
             - Corrected hashing logic to differentiate `commit:` vs `sha256:` (requires `hash_utils.hash_file_sha256` to be implemented).
             - Lockfile update logic simplified to handle only the added dependency for now.
-    - [ ] Manual Verification: Code review confirms implementation matches PRD requirements identified in Task 1.1. Cross-platform considerations are addressed.
+    - [x] Manual Verification: Code review confirms implementation matches PRD requirements identified in Task 1.1. Cross-platform considerations are addressed.
 
-- [ ] **Task 1.3: Integrate `add` into `main.lua`**
-    - [ ] Ensure `src/main.lua` correctly parses the `add` command (and `i` alias).
-    - [ ] Ensure arguments (`<url>`, `-d`, `-n`) are correctly passed to the `add` module.
+- [x] **Task 1.3: Integrate `add` into `main.lua`**
+    - [x] Ensure `src/main.lua` correctly parses the `add` command (and `i` alias).
+    - [x] Ensure arguments (`<url>`, `-d`, `-n`) are correctly passed to the `add` module.
     - [ ] Manual Verification: Run `almd add --help` (or similar) and verify basic command recognition works. Check argument parsing logic in `main.lua`.
 
 ## Milestone 2: E2E Testing Infrastructure (Scaffolding)
