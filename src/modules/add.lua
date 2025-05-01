@@ -109,7 +109,9 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     local path_type = filesystem_utils.get_path_type(cmd_dest_path_or_dir)
 
     if path_type == "directory" or ends_with_sep then
-      target_path = filesystem_utils.join_path(cmd_dest_path_or_dir, filename)
+      -- Remove trailing slash from dir path before joining to prevent double slashes
+      local dir_to_join = cmd_dest_path_or_dir:gsub("[/\\]$", "") -- Remove trailing / or \
+      target_path = filesystem_utils.join_path(dir_to_join, filename)
     else
       target_path = cmd_dest_path_or_dir -- Treat as full path
     end

@@ -49,28 +49,28 @@ describe("E2E: `almd add` command", function()
   -- almd add https://github.com/Oval-Tutu/shove/blob/(HASH)/shove.lua -d src/engine/lib
   it("should add a dependency from a specific commit URL to a custom path", function()
     local test_url = "https://github.com/Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua"
-    local cmd_test_path = "src/engine/lib/" -- Path passed to the command (needs trailing slash)
-    -- Note: Keep expected_dir separate for file existence check
-    local expected_dir = "src/engine/lib" 
+    -- Path passed to command can have trailing slash, add.lua should handle it now
+    local cmd_test_path = "src/engine/lib/"
+    -- Expected path for assertions should NOT have trailing slash before filename
+    local expected_dir = "src/engine/lib"
     local expected_dep_name = "shove"
     local expected_file_name = "shove.lua"
-    -- Path expected in project.lua/lockfile reflects the add command's behavior (double slash)
-    local expected_manifest_path_relative = cmd_test_path .. expected_file_name
-    -- Path expected for file existence check (single slash, OS usually handles this)
-    local expected_fs_path_relative = expected_dir .. "/" .. expected_file_name 
+    -- Correct expected path with single slash
+    local expected_file_path_relative = expected_dir .. "/" .. expected_file_name
     local expected_commit_hash = "81f7f879a812e4479493a88e646831d0f0409560"
 
     -- Run the add command using the command path
     local success, output = scaffold.run_almd(sandbox_path, { "add", test_url, "-d", cmd_test_path })
     assert.is_true(success, "almd add command should exit successfully (exit code 0). Output:\n" .. output)
 
-    -- Verify file downloaded to the custom path (using the filesystem-friendly path)
-    local expected_file_path_absolute = sandbox_path .. "/" .. expected_fs_path_relative
+    -- Verify file downloaded to the custom path
+    local expected_file_path_absolute = sandbox_path .. "/" .. expected_file_path_relative
     local file_exists = scaffold.file_exists(expected_file_path_absolute)
+    -- Restore debug print for absolute path
     print("DEBUG: Expected file path absolute: " .. expected_file_path_absolute)
     assert.is_true(file_exists, "Expected file " .. expected_file_path_absolute .. " was not found.")
 
-    -- Verify project.lua content (expecting the double-slash path)
+    -- Verify project.lua content (expecting single-slash path)
     local project_data, proj_err = scaffold.read_project_lua(sandbox_path)
     assert.is_not_nil(project_data, "Failed to read project.lua: " .. tostring(proj_err))
     assert.is_not_nil(project_data.dependencies, "Dependencies table missing in project.lua")
@@ -88,18 +88,18 @@ describe("E2E: `almd add` command", function()
       "Dependency source identifier mismatch in project.lua"
     )
 
-    -- Assert against the path with the double slash, as produced by add.lua
-    assert.are.equal(expected_manifest_path_relative, actual_proj_dep_entry.path, "Dependency path mismatch in project.lua")
+    -- Assert against the correct single-slash path
+    assert.are.equal(expected_file_path_relative, actual_proj_dep_entry.path, "Dependency path mismatch in project.lua")
 
-    -- Verify almd-lock.lua content (expecting the double-slash path)
+    -- Verify almd-lock.lua content (expecting single-slash path)
     local lock_data, lock_err = scaffold.read_lock_lua(sandbox_path)
     assert.is_not_nil(lock_data, "Failed to read almd-lock.lua: " .. tostring(lock_err))
     assert.is_not_nil(lock_data.package, "Package table missing in almd-lock.lua")
     local dep_lock_info = lock_data.package and lock_data.package[expected_dep_name]
     assert.is_not_nil(dep_lock_info, "Dependency entry missing in almd-lock.lua for " .. expected_dep_name)
 
-    -- Assert against the path with the double slash, as produced by add.lua
-    assert.are.equal(expected_manifest_path_relative, dep_lock_info.path, "Lockfile path mismatch")
+    -- Assert against the correct single-slash path
+    assert.are.equal(expected_file_path_relative, dep_lock_info.path, "Lockfile path mismatch")
 
     local expected_lock_source =
       string.format("https://raw.githubusercontent.com/Oval-Tutu/shove/%s/shove.lua", expected_commit_hash)
