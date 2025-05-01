@@ -102,8 +102,65 @@ local function calculate_sha512(file_path)
   end
 end
 
+--- Calculates the SHA256 hash of a file using external command.
+-- NOTE: Requires 'shasum' (with -a 256) or 'sha256sum' (Linux/macOS) or 'CertUtil' (Windows) to be in the PATH.
+-- @param file_path string Path to the file.
+-- @return string|nil The hex-encoded SHA256 hash, or nil on error.
+-- @return string|nil Error message if calculation failed.
+local function hash_file_sha256(file_path)
+  local command
+  local os_type = package.config:sub(1, 1) == "\\" and "windows" or "unix"
+
+  if os_type == "unix" then
+    -- Use shasum -a 256 (more common) or sha256sum
+    -- We need to check which one exists, or just try shasum first
+    -- For simplicity, let's assume shasum is available
+    command = string.format("shasum -a 256 '%s'", file_path)
+  else -- windows
+    -- Use CertUtil with SHA256
+    command = string.format('CertUtil -hashfile "%s" SHA256', file_path)
+  end
+
+  local handle = io.popen(command)
+  if not handle then
+    return nil, "Failed to execute hash command: " .. command
+  end
+
+  local result = handle:read("*a")
+  local success, exit_code, term_signal = handle:close()
+
+  if not success or (exit_code and exit_code ~= 0) then
+     local err_msg = string.format("Hash command failed (Exit: %s, Signal: %s): %s\nOutput: %s",
+         tostring(exit_code), tostring(term_signal), command, result or "")
+     return nil, err_msg
+  end
+
+  if not result or result == "" then
+    return nil, "Hash command produced no output."
+  end
+
+  local hash
+  if os_type == "unix" then
+    -- Extract hash from shasum/sha256sum output (hash first, then filename)
+    hash = result:match("^(%x+)")
+  else -- windows
+    -- CertUtil output is multi-line, hash is usually on the second line
+    hash = result:match("\n(%x+)%s*\n")
+    if hash then
+      hash = hash:gsub("%s", "") -- Remove spaces if any
+    end
+  end
+
+  if hash then
+    return hash:lower()
+  else
+    return nil, "Could not parse hash from command output: " .. result
+  end
+end
+
 return {
   extract_github_hash = extract_github_hash,
   hash_dependency = hash_dependency,
   calculate_sha512 = calculate_sha512,
+  hash_file_sha256 = hash_file_sha256,
 }

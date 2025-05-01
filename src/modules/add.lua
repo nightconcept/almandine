@@ -75,7 +75,8 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   end
 
   -- Normalize the input URL
-  local base_url, commit_hash, download_url, norm_err = url_utils.normalize_github_url(input_url)
+  -- Now returns: base_url, ref, commit_hash (only if ref is hash), download_url, error
+  local base_url, ref, commit_hash, download_url, norm_err = url_utils.normalize_github_url(input_url)
   if norm_err then
     return false, string.format("Failed to process URL '%s': %s", input_url, norm_err)
   end
@@ -179,69 +180,66 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     existing_lockfile_data = nil
   end
 
-  -- Update lockfile only if it doesn't exist or the dependency isn't already in it
-  if not existing_lockfile_data or not existing_lockfile_data.package[dep_name] then
-    print("Updating lockfile...")
-    -- Build resolved_deps table for lockfile
-    local resolved_deps = {}
-    -- This loop logic needs significant refinement as noted in previous TODOs.
-    -- It currently mixes concerns of processing the new dep vs existing ones,
-    -- and relies on unavailable variables (like commit_hash for existing deps).
-    -- For Task 1.2, let's focus *only* on adding the *new* dependency to the lockfile correctly.
-    -- A more robust lockfile update (handling all deps) should be a separate task/refinement.
-
-    -- Get info for the dependency being added
-    local new_dep_info = manifest.dependencies[dep_name]
-    local new_source_id
-    local new_target_path
-    if type(new_dep_info) == "table" then
-      new_source_id = new_dep_info.source
-      new_target_path = new_dep_info.path
-    else
-      new_source_id = new_dep_info
-      new_target_path = target_path -- Use the target_path calculated earlier for the default case
-    end
-
-    -- Determine lockfile hash for the new dependency
-    local lockfile_hash_string
-    if commit_hash then -- Use the commit_hash obtained from normalizing the *input* URL
-      lockfile_hash_string = "commit:" .. commit_hash
-      print(string.format("Using commit hash %s for lockfile entry '%s'", lockfile_hash_string, dep_name))
-    else
-      print(string.format("Calculating sha256 hash for %s...", new_target_path))
-      local content_hash, hash_err = deps.hash_utils.hash_file_sha256(new_target_path) -- Assumed function
-      if content_hash then
-        lockfile_hash_string = "sha256:" .. content_hash
-        print(string.format("Using content hash %s for lockfile entry '%s'", lockfile_hash_string, dep_name))
-      else
-        print(string.format("Warning: Could not calculate sha256 hash for %s: %s", new_target_path, hash_err or 'unknown error'))
-        lockfile_hash_string = "hash_error:" .. (hash_err or 'unknown')
-      end
-    end
-
-    -- Load existing lockfile data again, or start fresh
-    local current_lock_packages = (existing_lockfile_data and existing_lockfile_data.package) or {}
-
-    -- Add/Update the entry for the new dependency
-    current_lock_packages[dep_name] = {
-      -- Use the raw download_url for the lockfile source, not the pretty identifier
-      source = download_url, -- Changed from new_source_id
-      path = new_target_path, -- Added path field
-      hash = lockfile_hash_string, -- Using determined commit or sha256 hash
-    }
-
-    -- Generate the final lockfile table
-    -- Pass the potentially updated package table to the generator function
-    local lockfile_table = deps.lockfile.generate_lockfile_table(current_lock_packages)
-
-    local ok_lock, err_lock = deps.lockfile.write_lockfile(lockfile_table)
-    if ok_lock then
-      print("Updated lockfile: almd-lock.lua")
-    else
-      print("Failed to update lockfile: " .. tostring(err_lock))
-    end
+  -- Notify user if overwriting/updating
+  if existing_lockfile_data and existing_lockfile_data.package[dep_name] then
+    print(string.format("Updating existing dependency '%s' in lockfile.", dep_name))
   else
-    print(string.format("Lockfile already contains entry for '%s', skipping update.", dep_name))
+    print("Updating lockfile...") -- Keep original message for new entries
+  end
+
+  -- Get info for the dependency being added
+  local new_dep_info = manifest.dependencies[dep_name]
+  local new_source_id
+  local new_target_path
+  if type(new_dep_info) == "table" then
+    new_source_id = new_dep_info.source
+    new_target_path = new_dep_info.path
+  else
+    new_source_id = new_dep_info
+    new_target_path = target_path -- Use the target_path calculated earlier for the default case
+  end
+
+  -- Determine lockfile hash for the new dependency
+  local lockfile_hash_string
+  -- Check if normalize_github_url returned a non-nil commit_hash
+  if commit_hash then
+    -- Use commit hash if it was part of the original URL and IS a commit hash
+    lockfile_hash_string = "commit:" .. commit_hash
+    print(string.format("Using commit hash %s for lockfile entry '%s'", lockfile_hash_string, dep_name))
+  else
+    -- Otherwise (branch, tag, or non-GitHub URL), calculate sha256 hash of the downloaded file content
+    print(string.format("Calculating sha256 hash for %s...", new_target_path))
+    -- Assumes hash_utils provides this function now:
+    local content_hash, hash_err = deps.hash_utils.hash_file_sha256(new_target_path)
+    if content_hash then
+      lockfile_hash_string = "sha256:" .. content_hash
+      print(string.format("Using content hash %s for lockfile entry '%s'", lockfile_hash_string, dep_name))
+    else
+      print(string.format("Warning: Could not calculate sha256 hash for %s: %s", new_target_path, hash_err or 'unknown error'))
+      lockfile_hash_string = "hash_error:" .. (hash_err or 'unknown')
+    end
+  end
+
+  -- Load existing lockfile data again, or start fresh
+  local current_lock_packages = (existing_lockfile_data and existing_lockfile_data.package) or {}
+
+  -- Add/Update the entry for the new dependency
+  current_lock_packages[dep_name] = {
+    -- Use the raw download_url for the lockfile source, not the pretty identifier
+    source = download_url, -- Changed from new_source_id
+    path = new_target_path, -- Added path field
+    hash = lockfile_hash_string, -- Using determined commit or sha256 hash
+  }
+
+  -- Generate the final lockfile table
+  -- Pass the potentially updated package table to the generator function
+  local lockfile_table = deps.lockfile.generate_lockfile_table(current_lock_packages)
+
+  local ok_lock, err_lock = deps.lockfile.write_lockfile(lockfile_table)
+  if ok_lock then
+    print("Updated lockfile: almd-lock.lua")
+  else
+    print("Failed to update lockfile: " .. tostring(err_lock))
   end
 
   return true

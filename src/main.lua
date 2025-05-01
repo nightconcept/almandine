@@ -153,15 +153,6 @@ For help with a command: almd help <command> or almd <command> --help
       return
     end
 
-    -- Validate GitHub URL format and commit hash presence
-    local hash_utils = require("utils.hash")
-    local hash = hash_utils.extract_github_hash(source)
-    if not hash then
-      print("Error: GitHub URL must contain a commit hash")
-      print("Example: https://github.com/owner/repo/blob/COMMIT_HASH/file.lua")
-      return
-    end
-
     local dest_dir, dep_name
     local i = 3
     while i <= #args do
@@ -182,7 +173,7 @@ For help with a command: almd help <command> or almd <command> --help
       save_manifest = manifest_utils.save_manifest,
       ensure_lib_dir = filesystem_utils.ensure_lib_dir,
       downloader = downloader,
-      hash_utils = hash_utils,
+      hash_utils = require("utils.hash"),
       lockfile = require("utils.lockfile"),
     })
     return
