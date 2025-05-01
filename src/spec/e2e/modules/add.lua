@@ -159,6 +159,41 @@ describe("almd add command (E2E)", function()
     assert.is_nil(lock_data or lock_data.package or lock_data.package["non_existent_file"])
   end)
 
+  it("should add a file from a Gist URL, generating a sha256 hash", function()
+    -- Arrange
+    -- Example: Use a real raw Gist URL if possible for testing, replace placeholders otherwise
+    local gist_raw_url = "https://gist.githubusercontent.com/anonymous/somegistid/raw/somecommithash/my_gist_lib.lua"
+    local expected_dep_name = "my_gist_lib" -- Inferred from filename
+    local expected_file_path = sandbox_path .. "/lib/" .. expected_dep_name .. ".lua"
+    -- Based on current logic, project source will be the raw URL itself
+    local expected_proj_dep_val = { source = gist_raw_url, path = "lib/" .. expected_dep_name .. ".lua" }
+    local expected_lock_path = "lib/" .. expected_dep_name .. ".lua"
+    local expected_lock_source = gist_raw_url -- Lock source should be the download URL used
+    local expected_lock_hash_prefix = "sha256:"
+
+    -- Act: Run `almd add <gist_url>`
+    local success, output = scaffold.run_almd(sandbox_path, { "add", gist_raw_url })
+
+    -- Assert
+    assert.is_true(success, "Command should succeed. Output: " .. output)
+    -- 1. Check file download
+    assert.is_true(scaffold.file_exists(expected_file_path), "File should be downloaded to default lib path.")
+    -- 2. Check project.lua
+    local proj_data = scaffold.read_project_lua(sandbox_path)
+    assert.is_not_nil(proj_data.dependencies, "Dependencies table should exist.")
+    assert.is_not_nil(proj_data.dependencies[expected_dep_name], "Dependency key '" .. expected_dep_name .. "' should exist.")
+    -- Verify source uses the raw URL and path is correct
+    assert.are.same(expected_proj_dep_val, proj_data.dependencies[expected_dep_name], "Project dependency data mismatch.")
+    -- 3. Check almd-lock.lua
+    local lock_data = scaffold.read_lock_lua(sandbox_path)
+    assert.is_not_nil(lock_data.package, "Lockfile package table should exist.")
+    local lock_entry = lock_data.package[expected_dep_name]
+    assert.is_not_nil(lock_entry, "Lockfile entry for '" .. expected_dep_name .. "' should exist.")
+    assert.are.equal(expected_lock_path, lock_entry.path, "Lockfile path mismatch.")
+    assert.are.equal(expected_lock_source, lock_entry.source, "Lockfile source mismatch.")
+    assert.truthy(string.match(lock_entry.hash or "", expected_lock_hash_prefix), "Lockfile hash should start with 'sha256:'. Hash: " .. tostring(lock_entry.hash))
+  end)
+
   -- Add more tests for edge cases:
   -- - Re-adding an existing dependency (should it update or error?)
   -- - Invalid URL formats
