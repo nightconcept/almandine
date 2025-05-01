@@ -37,7 +37,7 @@
 - [x] **Task 1.3: Integrate `add` into `main.lua`**
     - [x] Ensure `src/main.lua` correctly parses the `add` command (and `i` alias).
     - [x] Ensure arguments (`<url>`, `-d`, `-n`) are correctly passed to the `add` module.
-    - [ ] Manual Verification: Run `almd add --help` (or similar) and verify basic command recognition works. Check argument parsing logic in `main.lua`.
+    - [x] Manual Verification: Run `almd add --help` (or similar) and verify basic command recognition works. Check argument parsing logic in `main.lua`.
 
 ## Milestone 2: E2E Testing Infrastructure (Scaffolding)
 
@@ -66,5 +66,88 @@
     - [ ] Implement `after_each` to call the `cleanup_func()`.
     - [ ] Manual Verification: Run the empty spec file with `busted`; ensure setup/teardown execute without errors.
 
+
 - [ ] **Task 3.2: Implement E2E Test: Add via Commit Hash (Default Path)**
-    - [ ] Implement the `
+    - [ ] Implement the `it` block corresponding to PRD E2E Example 1.
+    - [ ] Use `scaffold.run_almd` to execute the command.
+    - [ ] Use `scaffold.file_exists`, `scaffold.read_project_lua`, `scaffold.read_lock_lua` and Busted `assert` functions to verify:
+        - File downloaded to `lib/shove.lua`.
+        - `project.lua` contains `dependencies.shove` with the correct source string.
+        - `almd-lock.lua` contains `package.shove` with correct `path`, `source`, and `hash` (starting with `commit:`).
+    - [ ] Manual Verification: Run `busted src/spec/e2e/modules/add_spec.lua`; confirm this test passes and performs the correct checks.
+
+- [ ] **Task 3.3: Implement E2E Test: Add via Commit Hash (Custom Path `-d`)**
+    - [ ] Implement the `it` block corresponding to PRD E2E Example 2.
+    - [ ] Verify:
+        - File downloaded to `src/engine/lib/shove.lua`.
+        - `project.lua` contains `dependencies.shove` with correct structure (e.g., table with `source` and `path`).
+        - `almd-lock.lua` contains `package.shove` with the custom `path`.
+    - [ ] Manual Verification: Run `busted`; confirm test passes.
+
+- [ ] **Task 3.4: Implement E2E Test: Add via Commit Hash (Custom Path `-d`, Custom Name `-n`)**
+    - [ ] Implement the `it` block corresponding to PRD E2E Example 3.
+    - [ ] Verify:
+        - File downloaded to `src/engine/lib/clove.lua`.
+        - `project.lua` contains `dependencies.clove` (using the new name) with correct structure/path.
+        - `almd-lock.lua` contains `package.clove` with the custom `path` and new name.
+    - [ ] Manual Verification: Run `busted`; confirm test passes.
+
+- [ ] **Task 3.5: Implement E2E Test: Add via Branch Name (SHA256 Hash)**
+    - [ ] Implement the `it` block corresponding to PRD E2E Example 4.
+    - [ ] Verify:
+        - File downloaded to `lib/shove.lua`.
+        - `project.lua` contains `dependencies.shove`.
+        - `almd-lock.lua` contains `package.shove` with `hash` starting with `sha256:`.
+    - [ ] Manual Verification: Run `busted`; confirm test passes.
+
+- [ ] **Task 3.6: Implement E2E Test: Add Non-Existent File (Error Case)**
+    - [ ] Implement the `it` block corresponding to PRD E2E Example 5.
+    - [ ] Verify:
+        - `scaffold.run_almd` returns failure status.
+        - Output contains an informative error message.
+        - The target file does *not* exist.
+        - `project.lua` and `almd-lock.lua` are unchanged (or don't contain the failed dependency).
+    - [ ] Manual Verification: Run `busted`; confirm test passes and correctly checks for failure and lack of side effects.
+
+---
+
+## Analysis & Next Steps
+
+### Potentially Missing Test Cases for `add`
+
+Based on the initial set, here are areas where more E2E tests would improve robustness:
+
+1.  **Idempotency/Re-adding:**
+    * Run `almd add <url>` twice for the same URL. Expected: Should it succeed silently (no change), update if the remote changed (e.g., branch `main`), or error? Define and test the desired behavior.
+    * Run `almd add <url1>` then `almd add <url2> -n name1` where `url2` downloads a file that would overwrite the file from `url1`. Define and test behavior (error, overwrite, prompt?).
+2.  **Overwriting Conflicts:**
+    * Test adding a dependency `foo` when `lib/foo.lua` already exists but wasn't added by `almd`.
+    * Test adding with `-n bar` when `lib/bar.lua` already exists.
+3.  **Manifest/Lockfile Corruption:**
+    * Run `almd add` when `project.lua` exists but is invalid Lua syntax.
+    * Run `almd add` when `almd-lock.lua` exists but is invalid Lua syntax.
+    * Run `almd add` when `project.lua` or `almd-lock.lua` return non-table values.
+4.  **Network Failures:**
+    * Simulate network errors *during* download (if possible with chosen download method). Verify partial downloads are cleaned up and manifests aren't updated.
+5.  **Permissions Errors:**
+    * Run `almd add` targeting a directory where the user lacks write permissions.
+    * Run `almd add` when `project.lua` or `almd-lock.lua` are read-only.
+6.  **URL Variations:**
+    * Test different valid GitHub URL formats (e.g., `github.com/user/repo/blob/TAG/path/file.lua`).
+    * Test invalid/malformed URLs.
+7.  **Initialization Requirement:**
+    * Run `almd add` in a directory *without* a `project.lua`. Expected: Should error clearly stating the project needs initialization (`almd init`).
+8.  **Case Sensitivity:** Add tests involving filenames with different casing if targeting file systems where this matters (e.g., adding `MyLib.lua` then `mylib.lua` on Windows vs Linux).
+
+### Potential Improvements for `add` Functionality
+
+Beyond the core requirements, consider these future enhancements:
+
+1.  **Source Extensibility:** Design the URL parsing and downloading logic in `src/lib` (or `src/utils`) to be easily extended for other sources (GitLab, Bitbucket, generic Git URLs, plain HTTP(S) URLs, maybe even local paths `../other-project/file.lua`).
+2.  **Atomic Operations:** Refactor download and manifest updates to be more atomic. E.g., download to a temporary file, verify hash, then move to the final location; update manifest tables in memory, then attempt to write the complete file. This reduces the chance of a corrupted state if the process is interrupted.
+3.  **Download Progress/Feedback:** For larger files or slower connections, provide some feedback to the user during download.
+4.  **Caching:** Implement a local cache for downloaded files (based on URL and commit/hash) to avoid redundant downloads.
+5.  **Dry Run Mode:** Add a `--dry-run` flag to show what files would be downloaded and how manifests would change without actually performing the actions.
+6.  **Confirmation Prompts:** Add an optional `-y` / `--yes` flag, and without it, prompt the user before potentially overwriting existing files or making significant changes.
+
+*This TASKS.md outlines the immediate work. Further tasks should be added for the missing test cases and potential improvements as development progresses.*
