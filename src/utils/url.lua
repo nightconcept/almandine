@@ -29,10 +29,11 @@ function M.normalize_github_url(url, commit_hash_override)
     ref = commit_hash_override or blob_ref -- Use override if present
     base_url = string.format("https://github.com/%s/%s/blob/%s/%s", user, repo, ref, path)
     -- Check if the effective ref is a commit hash
-    if ref:match("^[a-fA-F0-9]{40}$") then
-      commit_hash = ref
-    else
-      commit_hash = nil -- It's a branch or tag
+    -- Ugly, but let's try explicit repetition to rule out quantifier issues
+    local explicit_pattern = "^%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x$"
+    local match_result = ref:match(explicit_pattern)
+    if match_result then
+      commit_hash = ref -- Assign to the function-scope commit_hash
     end
     download_url = string.format("https://raw.githubusercontent.com/%s/%s/%s/%s", user, repo, ref, path)
     return base_url, ref, commit_hash, download_url, nil
@@ -43,15 +44,14 @@ function M.normalize_github_url(url, commit_hash_override)
     url:match("^https://raw%.githubusercontent%.com/([^/]+)/([^/]+)/([^/]+)/(.+)$")
   if user_raw then
     ref = commit_hash_override or raw_ref -- Use override if present
-    -- Reconstruct the corresponding base (blob) URL using the effective ref
     base_url = string.format("https://github.com/%s/%s/blob/%s/%s", user_raw, repo_raw, ref, path_raw)
     -- Check if the effective ref is a commit hash
-    if ref:match("^[a-fA-F0-9]{40}$") then
-      commit_hash = ref
-    else
-      commit_hash = nil -- It's a branch or tag
+    -- Ugly, but let's try explicit repetition to rule out quantifier issues
+    local explicit_pattern_raw = "^%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x$"
+    local match_result_raw = ref:match(explicit_pattern_raw)
+    if match_result_raw then
+      commit_hash = ref -- Assign to the function-scope commit_hash
     end
-    -- Use the effective ref for the download URL (which is the input structure)
     download_url =
       string.format("https://raw.githubusercontent.com/%s/%s/%s/%s", user_raw, repo_raw, ref, path_raw)
     return base_url, ref, commit_hash, download_url, nil

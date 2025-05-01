@@ -33,6 +33,9 @@ function lockfile.generate_lockfile_table(resolved_deps)
     if dep.source then
       entry.source = dep.source
     end
+    if dep.path then
+      entry.path = dep.path
+    end
     pkgs[name] = entry
   end
   return {

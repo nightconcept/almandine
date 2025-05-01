@@ -43,46 +43,45 @@
 
 **Goal:** Create the necessary helper utilities for running E2E tests in isolated environments.
 
-- [ ] **Task 2.1: Implement Test Scaffolding Helper (`scaffold.lua`)**
-    - [ ] Create `src/spec/e2e/helpers/scaffold.lua`.
-    - [ ] Implement `scaffold.create_sandbox_project()`: Creates a unique temporary directory for a test. Returns the path and a cleanup function.
-    - [ ] Implement `cleanup_func()`: Deletes the temporary directory and its contents.
-    - [ ] Implement `scaffold.init_project_file(sandbox_path, initial_data)`: Creates a basic `project.lua` in the sandbox.
-    - [ ] Implement `scaffold.run_almd(sandbox_path, args_table)`: Executes the `almd` command (via `src/main.lua` or the wrapper script) targeting the sandbox directory, capturing success/failure status and output (stdout/stderr). Must work cross-platform.
-    - [ ] Implement `scaffold.read_project_lua(sandbox_path)`: Reads and parses the `project.lua` file from the sandbox. Returns the Lua table. Handles file-not-found errors.
-    - [ ] Implement `scaffold.read_lock_lua(sandbox_path)`: Reads and parses the `almd-lock.lua` file. Returns the Lua table. Handles file-not-found errors.
-    - [ ] Implement `scaffold.file_exists(file_path)`: Checks if a file exists at the given absolute path.
-    - [ ] Implement `scaffold.read_file(file_path)`: Reads the content of a file. (Optional, but useful for checking downloaded content).
-    - [ ] Manual Verification: Code review of the scaffold helper. Test helper functions individually if possible. Ensure cleanup works reliably.
+- [x] **Task 2.1: Implement Test Scaffolding Helper (`scaffold.lua`)**
+    - [x] Create `src/spec/e2e/helpers/scaffold.lua`.
+    - [x] Implement `scaffold.create_sandbox_project()`: Creates a unique temporary directory for a test. Returns the path and a cleanup function.
+    - [x] Implement `cleanup_func()`: Deletes the temporary directory and its contents.
+    - [x] Implement `scaffold.init_project_file(sandbox_path, initial_data)`: Creates a basic `project.lua` in the sandbox.
+    - [x] Implement `scaffold.run_almd(sandbox_path, args_table)`: Executes the `almd` command (via `src/main.lua` or the wrapper script) targeting the sandbox directory, capturing success/failure status and output (stdout/stderr). Must work cross-platform.
+    - [x] Implement `scaffold.read_project_lua(sandbox_path)`: Reads and parses the `project.lua` file from the sandbox. Returns the Lua table. Handles file-not-found errors.
+    - [x] Implement `scaffold.read_lock_lua(sandbox_path)`: Reads and parses the `almd-lock.lua` file. Returns the Lua table. Handles file-not-found errors.
+    - [x] Implement `scaffold.file_exists(file_path)`: Checks if a file exists at the given absolute path.
+    - [x] Implement `scaffold.read_file(file_path)`: Reads the content of a file. (Optional, but useful for checking downloaded content).
+    - [x] Manual Verification: Code review of the scaffold helper. Test helper functions individually if possible. Ensure cleanup works reliably.
 
 ## Milestone 3: E2E Tests for `add` Command
 
 **Goal:** Implement the specific E2E test cases for the `add` command using Busted and the scaffolding helper.
 
-- [ ] **Task 3.1: Create `add_spec.lua` Structure**
-    - [ ] Create `src/spec/e2e/modules/add_spec.lua`.
-    - [ ] Set up the `describe` block.
-    - [ ] Implement `before_each` to call `scaffold.create_sandbox_project()` and `scaffold.init_project_file()`.
-    - [ ] Implement `after_each` to call the `cleanup_func()`.
-    - [ ] Manual Verification: Run the empty spec file with `busted`; ensure setup/teardown execute without errors.
+- [x] **Task 3.1: Create `add_spec.lua` Structure**
+    - [x] Create `src/spec/e2e/modules/add_spec.lua`.
+    - [x] Set up the `describe` block.
+    - [x] Implement `before_each` to call `scaffold.create_sandbox_project()` and `scaffold.init_project_file()`.
+    - [x] Implement `after_each` to call the `cleanup_func()`.
+    - [x] Manual Verification: Run the empty spec file with `busted`; ensure setup/teardown execute without errors.
 
-
-- [ ] **Task 3.2: Implement E2E Test: Add via Commit Hash (Default Path)**
-    - [ ] Implement the `it` block corresponding to PRD E2E Example 1.
-    - [ ] Use `scaffold.run_almd` to execute the command.
-    - [ ] Use `scaffold.file_exists`, `scaffold.read_project_lua`, `scaffold.read_lock_lua` and Busted `assert` functions to verify:
+- [x] **Task 3.2: Implement E2E Test: Add via Commit Hash (Default Path)**
+    - [x] Implement the `it` block corresponding to PRD E2E Example 1.
+    - [x] Use `scaffold.run_almd` to execute the command.
+    - [x] Use `scaffold.file_exists`, `scaffold.read_project_lua`, `scaffold.read_lock_lua` and Busted `assert` functions to verify:
         - File downloaded to `lib/shove.lua`.
         - `project.lua` contains `dependencies.shove` with the correct source string.
         - `almd-lock.lua` contains `package.shove` with correct `path`, `source`, and `hash` (starting with `commit:`).
-    - [ ] Manual Verification: Run `busted src/spec/e2e/modules/add_spec.lua`; confirm this test passes and performs the correct checks.
+    - [x] Manual Verification: Run `busted src/spec/e2e/modules/add_spec.lua`; confirm this test passes and performs the correct checks.
 
 - [ ] **Task 3.3: Implement E2E Test: Add via Commit Hash (Custom Path `-d`)**
-    - [ ] Implement the `it` block corresponding to PRD E2E Example 2.
-    - [ ] Verify:
+    - [x] Implement the `it` block corresponding to PRD E2E Example 2.
+    - [x] Verify:
         - File downloaded to `src/engine/lib/shove.lua`.
         - `project.lua` contains `dependencies.shove` with correct structure (e.g., table with `source` and `path`).
         - `almd-lock.lua` contains `package.shove` with the custom `path`.
-    - [ ] Manual Verification: Run `busted`; confirm test passes.
+    - [x] Manual Verification: Run `busted`; confirm test passes.
 
 - [ ] **Task 3.4: Implement E2E Test: Add via Commit Hash (Custom Path `-d`, Custom Name `-n`)**
     - [ ] Implement the `it` block corresponding to PRD E2E Example 3.

@@ -197,7 +197,7 @@ function scaffold.init_project_file(sandbox_path, initial_data)
     indent = indent or ""
     local lines = {"{"}
     for k, v in pairs(tbl) do
-      local key_str
+      local key_str = nil
       if type(k) == "string" then
         -- Check if key needs quoting (e.g., contains spaces or special chars)
         if k:match("^[a-zA-Z_][a-zA-Z0-9_]*$") then
@@ -207,24 +207,26 @@ function scaffold.init_project_file(sandbox_path, initial_data)
         end
       elseif type(k) == "number" then
         key_str = string.format("[%d]", k)
-      else
-        -- Skip non-string/non-number keys for simplicity
-         goto continue
       end
 
-      local value_str
-      if type(v) == "string" then
-        value_str = string.format('"%s"', v:gsub('"', '\\"'):gsub('\\', '\\\\'))
-      elseif type(v) == "number" or type(v) == "boolean" then
-        value_str = tostring(v)
-      elseif type(v) == "table" then
-        value_str = serialize(v, indent .. "  ") -- Recurse for nested tables
-      else
-        -- Skip other types
-        goto continue
+      -- Only proceed if the key is valid (string or number)
+      if key_str then
+        local value_str = nil
+        if type(v) == "string" then
+          value_str = string.format('"%s"', v:gsub('"', '\\"'):gsub('\\', '\\\\'))
+        elseif type(v) == "number" or type(v) == "boolean" then
+          value_str = tostring(v)
+        elseif type(v) == "table" then
+          value_str = serialize(v, indent .. "  ") -- Recurse for nested tables
+        end
+
+        -- Only insert if the value is serializable (string, number, boolean, table)
+        if value_str then
+          table.insert(lines, string.format("%s  %s = %s,", indent, key_str, value_str))
+        end
+        -- If value_str is nil (other type), we skip inserting this key-value pair
       end
-      table.insert(lines, string.format("%s  %s = %s,", indent, key_str, value_str))
-      ::continue::
+      -- If key_str is nil (other type), we skip inserting this key-value pair
     end
     table.insert(lines, indent .. "}")
     return table.concat(lines, "\n")
@@ -246,49 +248,106 @@ function scaffold.init_project_file(sandbox_path, initial_data)
   return true, project_file_path
 end
 
--- Executes the almd command targeting the sandbox directory.
+-- Reads the content of a text file.
+local function read_text_file(path)
+  local file, err = io.open(path, "r")
+  if not file then return nil, "Failed to open file '" .. path .. "' for reading: " .. tostring(err) end
+  local content = file:read("*a")
+  file:close()
+  return content
+end
+
+-- Executes the almd command targeting the sandbox directory using os.execute for reliable exit code.
+-- Captures output via temporary files.
 -- args_table should be a list of command-line arguments (e.g., {"add", "url", "-d", "path"})
 -- Returns success (boolean), stdout (string), stderr (string).
 function scaffold.run_almd(sandbox_path, args_table)
-  local main_script_path = "src/main.lua" -- Assume running from project root
-  local project_dir_arg = '--project-dir "' .. sandbox_path .. '"'
+  -- LFS is required for chdir and reliable path manipulation
+  if not has_lfs then
+    return false, "", "Error: LuaFileSystem (lfs) is required for robust sandbox testing but not found."
+  end
+
+  -- Determine absolute path to main.lua
+  local absolute_main_script_path = lfs.currentdir() .. (is_windows() and "\\src\\main.lua" or "/src/main.lua")
 
   -- Check if main script exists
-  local main_exists = scaffold.file_exists(main_script_path)
-  if not main_exists then
-    return false, "", "Error: main.lua script not found at " .. main_script_path
+  if not scaffold.file_exists(absolute_main_script_path) then
+    return false, "", "Error: main.lua script not found at calculated path: " .. absolute_main_script_path
   end
 
-  -- Construct the command
-  local args_string = table.concat(args_table, '" "') -- Quote individual args
-   if args_string ~= "" then args_string = '"' .. args_string .. '"' end
-
-  -- Prepend project directory argument
-  local full_args = project_dir_arg .. " " .. args_string
-
-  local command = 'lua "' .. main_script_path .. '" ' .. full_args
-
-  -- Execute using io.popen to capture output
-  -- Redirect stderr to stdout (2>&1) to capture both
-  local handle, popen_err = io.popen(command .. ' 2>&1', 'r')
-  if not handle then
-    return false, "", "Failed to execute command: " .. command .. " Error: " .. tostring(popen_err)
+  -- Construct the argument string, ensuring proper quoting
+  local args_string = ""
+  if #args_table > 0 then
+     local quoted_args = {}
+     for _, arg in ipairs(args_table) do
+       table.insert(quoted_args, '"' .. tostring(arg):gsub('"', '\\"') .. '"')
+     end
+     args_string = table.concat(quoted_args, " ")
   end
 
-  local output = handle:read("*a") -- Read all output
-  local success, term_info, exit_code = handle:close()
+  -- Generate unique temporary file names within the sandbox
+  local timestamp = os.time()
+  local random_num = math.random(10000, 99999)
+  local tmp_stdout_name = string.format("_tmp_stdout_%d_%d.txt", timestamp, random_num)
+  local tmp_stderr_name = string.format("_tmp_stderr_%d_%d.txt", timestamp, random_num)
+  -- Use absolute paths for the temp files inside the sandbox
+  local tmp_stdout_path = sandbox_path .. (is_windows() and '\\' or '/') .. tmp_stdout_name
+  local tmp_stderr_path = sandbox_path .. (is_windows() and '\\' or '/') .. tmp_stderr_name
 
-  -- Interpretation of io.popen close results varies slightly by OS/Lua version
-  -- Generally: success is true if command started and finished, exit_code is often reliable.
-  -- We'll consider exit code 0 as success.
-  local is_success = (success and exit_code == 0)
+  -- Construct the command with redirection
+  local lua_exec = 'lua "' .. absolute_main_script_path .. '" ' .. args_string
+  local redirect_stdout = '> "' .. tmp_stdout_path .. '"'
+  local redirect_stderr
+  if is_windows() then
+    redirect_stderr = '2> "' .. tmp_stderr_path .. '"'
+  else
+    -- POSIX: 2>&1 redirects stderr to wherever stdout is going (the file)
+    -- However, simpler might be redirecting separately if combined output isn't needed
+    redirect_stderr = '2> "' .. tmp_stderr_path .. '"'
+  end
+  local command = lua_exec .. " " .. redirect_stdout .. " " .. redirect_stderr
 
-  -- Note: Separating stdout/stderr perfectly with io.popen and 2>&1 is tricky.
-  -- For simplicity, we return all combined output as stdout and empty stderr.
-  -- More complex solutions involving temp files or platform-specific APIs exist if needed.
-  return is_success, output or "", ""
+  -- Change directory into sandbox
+  local original_dir = lfs.currentdir()
+  local chdir_ok, chdir_err = pcall(lfs.chdir, sandbox_path)
+  if not chdir_ok then
+    return false, "", "Failed to chdir into sandbox '" .. sandbox_path .. "': " .. tostring(chdir_err)
+  end
+
+  -- Execute using os.execute
+  local exec_result = os.execute(command)
+
+  -- Change back to original directory immediately after execution
+  local chback_ok, chback_err = pcall(lfs.chdir, original_dir)
+  if not chback_ok then
+     print("Warning: Failed to chdir back to original directory '" .. original_dir .. "': " .. tostring(chback_err))
+     -- Continue, but state might be affected for subsequent tests if cleanup fails
+  end
+
+  -- Determine success based on os.execute result (platform-dependent)
+  local is_success
+  if is_windows() then
+    is_success = (exec_result == true) -- Windows os.execute returns boolean
+  else
+    is_success = (exec_result == 0) -- POSIX os.execute returns exit code (0 for success)
+  end
+
+  -- Read output from temp files
+  local stdout_content, stdout_err = read_text_file(tmp_stdout_path)
+  local stderr_content, stderr_err = read_text_file(tmp_stderr_path)
+
+  -- Clean up temp files
+  os.remove(tmp_stdout_path)
+  os.remove(tmp_stderr_path)
+
+  -- Combine outputs for simplicity? Or return separately?
+  -- For now, let's combine them similar to previous behavior.
+  local combined_output = (stdout_content or "") .. (stderr_content or "")
+  if stdout_err then combined_output = combined_output .. "\nError reading stdout temp file: " .. stdout_err end
+  if stderr_err then combined_output = combined_output .. "\nError reading stderr temp file: " .. stderr_err end
+
+  return is_success, combined_output, "" -- Return combined output as stdout, empty stderr
 end
-
 
 -- Checks if a file or directory exists at the given absolute or relative path.
 function scaffold.file_exists(path)

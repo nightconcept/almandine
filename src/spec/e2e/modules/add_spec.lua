@@ -1,202 +1,241 @@
--- Pseudocode for src/spec/e2e/modules/add_spec.lua
-local scaffold = require("src.spec.e2e.helpers.scaffold")
+-- End-to-End Tests for the `add` command
 
-describe("almd add command (E2E)", function()
+describe("E2E: `almd add` command", function()
+  -- Require the scaffold helper
+  -- Note the relative path from this spec file to the helper
+  -- Use dot notation assuming busted runs relative to src/
+  local scaffold = require("spec.e2e.helpers.scaffold")
+  local assert = require("luassert")
+
+  -- Variables to hold sandbox info between tests
   local sandbox_path
   local cleanup_func
+  local initial_project_data -- Optional: Can be customized per test if needed
 
-  -- Setup: Create a clean sandbox for each test
+  -- Setup: Create a fresh sandbox before each test
   before_each(function()
-    sandbox_path, cleanup_func = scaffold.create_sandbox_project()
-    -- Initialize a minimal project.lua if needed by the test case
-    scaffold.init_project_file(sandbox_path, { name = "test-project", version = "0.1.0" })
+    -- Create the sandbox directory
+    local path, cleaner, err = scaffold.create_sandbox_project()
+    assert.is_not_nil(path, "Failed to create sandbox: " .. tostring(err))
+    sandbox_path = path
+    cleanup_func = cleaner
+
+    -- Initialize a basic project.lua file
+    initial_project_data = { name = "e2e-add-test", version = "0.1.0", dependencies = {} }
+    local success, init_err = scaffold.init_project_file(sandbox_path, initial_project_data)
+    assert.is_true(success, "Failed to initialize project.lua: " .. tostring(init_err))
   end)
 
-  -- Teardown: Clean up the sandbox
+  -- Teardown: Clean up the sandbox after each test
   after_each(function()
     if cleanup_func then
       cleanup_func()
+      -- Clear vars for safety, though before_each should overwrite them
+      sandbox_path = nil
+      cleanup_func = nil
+    else
+       print("Warning: No cleanup function available for sandbox: " .. tostring(sandbox_path))
     end
   end)
 
-  it("should add a file from GitHub using commit hash URL to default lib/", function()
-    -- Arrange
-    local url =
-      "[https://github.com/Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua](https://github.com/Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua)"
-    local expected_file_path = sandbox_path .. "/lib/shove.lua"
-    local expected_proj_dep_key = "shove"
-    local expected_proj_dep_val = "github:Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua" -- Or similar representation
-    local expected_lock_path = "lib/shove.lua"
-    local expected_lock_source = url -- Or the "raw" URL used
-    local expected_lock_hash_prefix = "commit:81f7f87" -- Check commit hash source
-
-    -- Act: Run `almd add <url>` within the sandbox
-    local success, output = scaffold.run_almd(sandbox_path, { "add", url })
-
-    -- Assert
-    assert.is_true(success)
-    -- 1. Check file download: Assert file exists at expected_file_path
-    assert.is_true(scaffold.file_exists(expected_file_path))
-    -- 2. Check project.lua: Assert dependency key/value exists
-    local proj_data = scaffold.read_project_lua(sandbox_path)
-    assert.are.equal(expected_proj_dep_val, proj_data.dependencies[expected_proj_dep_key])
-    -- 3. Check almd-lock.lua: Assert package entry exists with correct path, source, and hash type/value
-    local lock_data = scaffold.read_lock_lua(sandbox_path)
-    local lock_entry = lock_data.package[expected_proj_dep_key]
-    assert.is_not_nil(lock_entry)
-    assert.are.equal(expected_lock_path, lock_entry.path)
-    assert.are.equal(expected_lock_source, lock_entry.source) -- Adjust if raw URL is stored
-    assert.truthy(string.match(lock_entry.hash, expected_lock_hash_prefix))
+  -- Placeholder test to ensure the spec file is valid
+  it("should run setup and teardown without errors", function()
+    -- This test primarily verifies that before_each and after_each work
+    assert.is_not_nil(sandbox_path)
+    assert.is_function(cleanup_func)
+    local exists = scaffold.file_exists(sandbox_path .. "/project.lua")
+    assert.is_true(exists, "project.lua should exist after setup")
   end)
 
-  it("should add a file from GitHub using commit hash URL to specified directory (-d)", function()
-    -- Arrange
-    local url =
-      "[https://github.com/Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua](https://github.com/Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua)"
-    local target_dir_rel = "src/engine/lib"
-    local target_dir_abs = sandbox_path .. "/" .. target_dir_rel
-    local expected_file_path = target_dir_abs .. "/shove.lua"
-    local expected_proj_dep_key = "shove"
-    -- project.lua might store source and path explicitly if not default
-    local expected_proj_dep_val = { source = "github:...", path = target_dir_rel .. "/shove.lua" } -- Define structure
-    local expected_lock_path = target_dir_rel .. "/shove.lua"
+  -- Task 3.2: Add via Commit Hash (Default Path)
+  it("should add a dependency from a specific commit URL to the default lib/ path", function()
+    local test_url = "https://github.com/Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua"
+    local expected_dep_name = "shove"
+    local expected_file_name = "shove.lua"
+    local expected_file_path_relative = "src/lib/" .. expected_file_name
+    local expected_commit_hash = "81f7f879a812e4479493a88e646831d0f0409560"
 
-    -- Act: Run `almd add <url> -d <dir>`
-    local success, output = scaffold.run_almd(sandbox_path, { "add", url, "-d", target_dir_rel })
+    -- Run the add command
+    local success, output = scaffold.run_almd(sandbox_path, {"add", test_url})
+    assert.is_true(success, "almd add command should exit successfully (exit code 0). Output:\n" .. output)
 
-    -- Assert
-    assert.is_true(success)
-    -- 1. Check file download: Assert file exists at expected_file_path (and dir created)
-    assert.is_true(scaffold.file_exists(expected_file_path))
-    -- 2. Check project.lua: Assert dependency has correct structure/values
-    local proj_data = scaffold.read_project_lua(sandbox_path)
-    assert.are.same(expected_proj_dep_val, proj_data.dependencies[expected_proj_dep_key]) -- Or check fields individually
-    -- 3. Check almd-lock.lua: Assert package entry has correct path
-    local lock_data = scaffold.read_lock_lua(sandbox_path)
-    assert.are.equal(expected_lock_path, lock_data.package[expected_proj_dep_key].path)
-    -- Check other lock fields (source, hash type) remain correct
-    assert.truthy(string.match(lock_data.package[expected_proj_dep_key].hash, "commit:"))
+    -- Verify file downloaded to the correct default location
+    local expected_file_path_absolute = sandbox_path .. "/" .. expected_file_path_relative
+    local file_exists = scaffold.file_exists(expected_file_path_absolute)
+    assert.is_true(file_exists, "Expected file " .. expected_file_path_relative .. " was not found.")
+
+    -- Verify project.lua content
+    local project_data, proj_err = scaffold.read_project_lua(sandbox_path)
+    assert.is_not_nil(project_data, "Failed to read project.lua: " .. tostring(proj_err))
+    assert.is_not_nil(project_data.dependencies, "Dependencies table missing in project.lua")
+    local actual_proj_dep_entry = project_data.dependencies and project_data.dependencies[expected_dep_name]
+    assert.is_table(actual_proj_dep_entry, "Project dependency entry should be a table.")
+
+    -- Calculate expected source identifier
+    local url_utils = require("utils.url") -- Need this utility here
+    local expected_source_identifier, id_err = url_utils.create_github_source_identifier(test_url)
+    assert.is_not_nil(expected_source_identifier, "Failed to create expected source identifier: " .. tostring(id_err))
+
+    assert.are.equal(expected_source_identifier, actual_proj_dep_entry.source,
+                     "Dependency source identifier mismatch in project.lua")
+
+    assert.are.equal(expected_file_path_relative, actual_proj_dep_entry.path,
+                     "Dependency path mismatch in project.lua")
+
+    -- Verify almd-lock.lua content
+    -- Debug: Print raw lockfile content
+    -- local lock_file_path = sandbox_path .. "/almd-lock.lua"
+    -- local raw_lock_content, raw_read_err = scaffold.read_file(lock_file_path)
+    -- print("\n[Debug Spec] Raw content of " .. lock_file_path .. ":")
+    -- print(raw_lock_content or ("Error reading raw lockfile: " .. tostring(raw_read_err)))
+    -- print("--- End Raw Lockfile Content ---")
+
+    local lock_data, lock_err = scaffold.read_lock_lua(sandbox_path)
+    assert.is_not_nil(lock_data, "Failed to read almd-lock.lua: " .. tostring(lock_err))
+    assert.is_not_nil(lock_data.package, "Package table missing in almd-lock.lua")
+    local dep_lock_info = lock_data.package and lock_data.package[expected_dep_name]
+    assert.is_not_nil(dep_lock_info, "Dependency entry missing in almd-lock.lua for " .. expected_dep_name)
+
+    assert.are.equal(expected_file_path_relative, dep_lock_info.path, "Lockfile path mismatch")
+    -- Lockfile source should be the raw download URL used
+    local expected_lock_source = string.format("https://raw.githubusercontent.com/Oval-Tutu/shove/%s/shove.lua", expected_commit_hash)
+    assert.are.equal(expected_lock_source, dep_lock_info.source, "Lockfile source mismatch")
+    local expected_hash = "commit:" .. expected_commit_hash
+    assert.are.equal(expected_hash, dep_lock_info.hash, "Lockfile hash mismatch (should be commit hash)")
   end)
 
-  it("should add a file from GitHub using commit hash URL with specified directory (-d) and name (-n)", function()
-    -- Arrange
-    local url =
-      "[https://github.com/Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua](https://github.com/Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua)"
-    local target_dir_rel = "src/engine/lib"
-    local dep_name = "clove"
-    local expected_file_path = sandbox_path .. "/" .. target_dir_rel .. "/" .. dep_name .. ".lua"
-    local expected_proj_dep_key = dep_name
-    local expected_proj_dep_val = { source = "github:...", path = target_dir_rel .. "/" .. dep_name .. ".lua" } -- Define structure
-    local expected_lock_path = target_dir_rel .. "/" .. dep_name .. ".lua"
+  --[[ E2E Test Template for `almd add`
 
-    -- Act: Run `almd add <url> -d <dir> -n <name>`
-    local success, output = scaffold.run_almd(sandbox_path, { "add", url, "-d", target_dir_rel, "-n", dep_name })
+  it("should handle adding <description of test case, e.g., custom path, custom name>", function()
+    -- 1. Define Test Case Variables
+    local test_input_url = "<URL for the test>"
+    local almd_args = {"add", test_input_url} -- Base arguments
+    -- Add specific flags if needed (e.g., -d, -n)
+    -- table.insert(almd_args, "-d")
+    -- table.insert(almd_args, "<custom_path_or_dir>")
+    -- table.insert(almd_args, "-n")
+    -- table.insert(almd_args, "<custom_name>")
 
-    -- Assert
-    assert.is_true(success)
-    -- 1. Check file download: Assert file exists with *new name* at expected_file_path
-    assert.is_true(scaffold.file_exists(expected_file_path))
-    -- 2. Check project.lua: Assert dependency uses *new key* and has correct structure/values
-    local proj_data = scaffold.read_project_lua(sandbox_path)
-    assert.is_not_nil(proj_data.dependencies[expected_proj_dep_key])
-    assert.are.same(expected_proj_dep_val, proj_data.dependencies[expected_proj_dep_key]) -- Or check fields
-    -- 3. Check almd-lock.lua: Assert package entry uses *new key* and has correct path
-    local lock_data = scaffold.read_lock_lua(sandbox_path)
-    assert.is_not_nil(lock_data.package[expected_proj_dep_key])
-    assert.are.equal(expected_lock_path, lock_data.package[expected_proj_dep_key].path)
-    -- Check other lock fields (source, hash type) remain correct
-    assert.truthy(string.match(lock_data.package[expected_proj_dep_key].hash, "commit:"))
+    local expected_dep_name = "<name expected in manifests (might be custom_name)>")
+    local expected_file_name = "<filename expected (might be custom_name.lua)>")
+    local expected_file_path_relative = "<path relative to sandbox root, e.g., src/custom/path/custom_name.lua>"
+    local expected_ref = "<commit hash, branch, or tag expected in source identifier>"
+    local expected_hash_prefix = "<commit: or sha256:>"
+    local expected_hash_value = "<the actual commit hash or expected sha256>" -- Note: SHA will require downloading the file manually first to get its hash
+
+    -- 2. Run `almd add`
+    local success, output = scaffold.run_almd(sandbox_path, almd_args)
+    assert.is_true(success, "almd add command should exit successfully. Output:\\n" .. output)
+
+    -- 3. Verify File Download
+    local expected_file_path_absolute = sandbox_path .. "/" .. expected_file_path_relative
+    local file_exists = scaffold.file_exists(expected_file_path_absolute)
+    assert.is_true(file_exists, "Expected file " .. expected_file_path_relative .. " was not found.")
+    -- Optional: Verify file content hash if expected_hash_prefix is "sha256:"
+    -- local hash_utils = require("utils.hash")
+    -- local actual_content_hash, hash_err = hash_utils.hash_file_sha256(expected_file_path_absolute)
+    -- assert.is_not_nil(actual_content_hash, "Failed to hash downloaded file: " .. tostring(hash_err))
+    -- assert.are.equal(expected_hash_value, actual_content_hash, "Downloaded file content hash mismatch")
+
+    -- 4. Verify project.lua
+    local project_data, proj_err = scaffold.read_project_lua(sandbox_path)
+    assert.is_not_nil(project_data, "Failed to read project.lua: " .. tostring(proj_err))
+    assert.is_not_nil(project_data.dependencies, "Dependencies table missing in project.lua")
+    local actual_proj_dep_entry = project_data.dependencies[expected_dep_name]
+    assert.is_table(actual_proj_dep_entry, "Project dependency entry should be a table.")
+
+    local url_utils = require("utils.url")
+    -- Use the *input* URL to generate the expected identifier stored in project.lua
+    local expected_source_identifier, id_err = url_utils.create_github_source_identifier(test_input_url)
+    assert.is_not_nil(expected_source_identifier, "Failed to create expected source identifier: " .. tostring(id_err))
+
+    assert.are.equal(expected_source_identifier, actual_proj_dep_entry.source, "Project source identifier mismatch")
+    -- The path in project.lua should match the resolved relative path
+    assert.are.equal(expected_file_path_relative, actual_proj_dep_entry.path, "Project path mismatch")
+
+    -- 5. Verify almd-lock.lua
+    local lock_data, lock_err = scaffold.read_lock_lua(sandbox_path)
+    assert.is_not_nil(lock_data, "Failed to read almd-lock.lua: " .. tostring(lock_err))
+    assert.is_not_nil(lock_data.package, "Package table missing in almd-lock.lua")
+    local dep_lock_info = lock_data.package[expected_dep_name]
+    assert.is_not_nil(dep_lock_info, "Dependency entry missing in almd-lock.lua for " .. expected_dep_name)
+
+    -- The path in lockfile should also match the resolved relative path
+    assert.are.equal(expected_file_path_relative, dep_lock_info.path, "Lockfile path mismatch")
+
+    -- The source in lockfile should be the raw download URL used for the specific ref
+    local _, _, _, expected_lock_source = url_utils.normalize_github_url(test_input_url) -- Get download URL from normalization
+    assert.is_not_nil(expected_lock_source, "Could not determine expected raw download URL for lockfile source check")
+    assert.are.equal(expected_lock_source, dep_lock_info.source, "Lockfile source mismatch (should be raw URL)")
+
+    -- Verify the hash prefix and value
+    local expected_hash = expected_hash_prefix .. expected_hash_value
+    assert.are.equal(expected_hash, dep_lock_info.hash, "Lockfile hash mismatch")
   end)
 
-  it("should add a file from GitHub using branch URL, generating a sha256 hash", function()
-    -- Arrange
-    local url =
-      "[https://github.com/Oval-Tutu/shove/blob/main/shove.lua](https://github.com/Oval-Tutu/shove/blob/main/shove.lua)" -- Uses branch 'main'
-    local expected_file_path = sandbox_path .. "/lib/shove.lua"
-    local expected_proj_dep_key = "shove"
-    local expected_lock_path = "lib/shove.lua"
-    local expected_lock_hash_prefix = "sha256:" -- Check calculated hash source
+  ]]
 
-    -- Act: Run `almd add <url>`
-    local success, output = scaffold.run_almd(sandbox_path, { "add", url })
+  -- Task 3.3: Add via Commit Hash (Custom Path -d)
+  it("should add a dependency from a specific commit URL to a custom path using -d", function()
+    -- 1. Define Test Case Variables
+    local test_input_url = "https://github.com/Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua"
+    local custom_dir = "src/engine/lib"
+    local almd_args = {"add", test_input_url, "-d", custom_dir}
 
-    -- Assert
-    assert.is_true(success)
-    -- 1. Check file download: Assert file exists
-    assert.is_true(scaffold.file_exists(expected_file_path))
-    -- 2. Check project.lua: Assert dependency added (check key/value structure)
-    local proj_data = scaffold.read_project_lua(sandbox_path)
-    assert.is_not_nil(proj_data.dependencies[expected_proj_dep_key])
-    -- 3. Check almd-lock.lua: Assert entry has correct path and sha256 hash
-    local lock_data = scaffold.read_lock_lua(sandbox_path)
-    local lock_entry = lock_data.package[expected_proj_dep_key]
-    assert.is_not_nil(lock_entry)
-    assert.are.equal(expected_lock_path, lock_entry.path)
-    assert.truthy(string.match(lock_entry.hash, expected_lock_hash_prefix))
+    local expected_dep_name = "shove"
+    local expected_file_name = "shove.lua"
+    local expected_file_path_relative = custom_dir .. "/" .. expected_file_name -- "src/engine/lib/shove.lua"
+    local expected_commit_hash = "81f7f879a812e4479493a88e646831d0f0409560"
+    local expected_hash_prefix = "commit:"
+    local expected_hash_value = expected_commit_hash
+
+    -- 2. Run `almd add`
+    local success, output = scaffold.run_almd(sandbox_path, almd_args)
+    assert.is_true(success, "almd add command should exit successfully. Output:\n" .. output)
+
+    -- 3. Verify File Download
+    local expected_file_path_absolute = sandbox_path .. "/" .. expected_file_path_relative
+    local file_exists = scaffold.file_exists(expected_file_path_absolute)
+    assert.is_true(file_exists, "Expected file " .. expected_file_path_relative .. " was not found.")
+
+    -- 4. Verify project.lua
+    local project_data, proj_err = scaffold.read_project_lua(sandbox_path)
+    assert.is_not_nil(project_data, "Failed to read project.lua: " .. tostring(proj_err))
+    assert.is_not_nil(project_data.dependencies, "Dependencies table missing in project.lua")
+    local actual_proj_dep_entry = project_data.dependencies[expected_dep_name]
+    assert.is_table(actual_proj_dep_entry, "Project dependency entry should be a table.")
+
+    local url_utils = require("utils.url")
+    -- Use the *input* URL to generate the expected identifier stored in project.lua
+    local expected_source_identifier, id_err = url_utils.create_github_source_identifier(test_input_url)
+    assert.is_not_nil(expected_source_identifier, "Failed to create expected source identifier: " .. tostring(id_err))
+
+    assert.are.equal(expected_source_identifier, actual_proj_dep_entry.source, "Project source identifier mismatch")
+    -- The path in project.lua should match the resolved relative path
+    assert.are.equal(expected_file_path_relative, actual_proj_dep_entry.path, "Project path mismatch")
+
+    -- 5. Verify almd-lock.lua
+    local lock_data, lock_err = scaffold.read_lock_lua(sandbox_path)
+    assert.is_not_nil(lock_data, "Failed to read almd-lock.lua: " .. tostring(lock_err))
+    assert.is_not_nil(lock_data.package, "Package table missing in almd-lock.lua")
+    local dep_lock_info = lock_data.package[expected_dep_name]
+    assert.is_not_nil(dep_lock_info, "Dependency entry missing in almd-lock.lua for " .. expected_dep_name)
+
+    -- The path in lockfile should also match the resolved relative path
+    assert.are.equal(expected_file_path_relative, dep_lock_info.path, "Lockfile path mismatch")
+
+    -- The source in lockfile should be the raw download URL used for the specific ref
+    -- Note: create_github_source_identifier returns user/repo/path@ref which is not the raw url
+    -- We need the actual download URL which normalize_github_url should provide
+    local _, _, _, expected_lock_source = url_utils.normalize_github_url(test_input_url)
+    assert.is_not_nil(expected_lock_source, "Could not determine expected raw download URL for lockfile source check")
+    assert.are.equal(expected_lock_source, dep_lock_info.source, "Lockfile source mismatch (should be raw URL)")
+
+    -- Verify the hash prefix and value
+    local expected_hash = expected_hash_prefix .. expected_hash_value
+    assert.are.equal(expected_hash, dep_lock_info.hash, "Lockfile hash mismatch")
   end)
 
-  it("should fail gracefully and inform user if the GitHub URL points to a non-existent file", function()
-    -- Arrange
-    local url =
-      "[https://github.com/Oval-Tutu/shove/blob/main/non_existent_file.lua](https://github.com/Oval-Tutu/shove/blob/main/non_existent_file.lua)"
-    local expected_file_path = sandbox_path .. "/lib/non_existent_file.lua"
+  -- Future tests for `add` functionality will go here...
 
-    -- Act: Run `almd add <url>`
-    local success, output = scaffold.run_almd(sandbox_path, { "add", url })
-
-    -- Assert
-    -- 1. Check command failed
-    assert.is_false(success)
-    -- 2. Check error message: Assert output contains informative error (e.g., "Failed to download", "File not found", URL)
-    assert.truthy(string.match(output, "Failed") or string.match(output, "not found") or string.match(output, "Error"))
-    -- 3. Check no file downloaded: Assert file does *not* exist
-    assert.is_false(scaffold.file_exists(expected_file_path))
-    -- 4. Check project.lua unchanged (or check no dependency added)
-    local proj_data = scaffold.read_project_lua(sandbox_path)
-    assert.is_nil(proj_data.dependencies or proj_data.dependencies["non_existent_file"])
-    -- 5. Check almd-lock.lua unchanged (or check no lock entry added)
-    local lock_data = scaffold.read_lock_lua(sandbox_path)
-    assert.is_nil(lock_data or lock_data.package or lock_data.package["non_existent_file"])
-  end)
-
-  it("should add a file from a Gist URL, generating a sha256 hash", function()
-    -- Arrange
-    -- Example: Use a real raw Gist URL if possible for testing, replace placeholders otherwise
-    local gist_raw_url = "https://gist.githubusercontent.com/anonymous/somegistid/raw/somecommithash/my_gist_lib.lua"
-    local expected_dep_name = "my_gist_lib" -- Inferred from filename
-    local expected_file_path = sandbox_path .. "/lib/" .. expected_dep_name .. ".lua"
-    -- Based on current logic, project source will be the raw URL itself
-    local expected_proj_dep_val = { source = gist_raw_url, path = "lib/" .. expected_dep_name .. ".lua" }
-    local expected_lock_path = "lib/" .. expected_dep_name .. ".lua"
-    local expected_lock_source = gist_raw_url -- Lock source should be the download URL used
-    local expected_lock_hash_prefix = "sha256:"
-
-    -- Act: Run `almd add <gist_url>`
-    local success, output = scaffold.run_almd(sandbox_path, { "add", gist_raw_url })
-
-    -- Assert
-    assert.is_true(success, "Command should succeed. Output: " .. output)
-    -- 1. Check file download
-    assert.is_true(scaffold.file_exists(expected_file_path), "File should be downloaded to default lib path.")
-    -- 2. Check project.lua
-    local proj_data = scaffold.read_project_lua(sandbox_path)
-    assert.is_not_nil(proj_data.dependencies, "Dependencies table should exist.")
-    assert.is_not_nil(proj_data.dependencies[expected_dep_name], "Dependency key '" .. expected_dep_name .. "' should exist.")
-    -- Verify source uses the raw URL and path is correct
-    assert.are.same(expected_proj_dep_val, proj_data.dependencies[expected_dep_name], "Project dependency data mismatch.")
-    -- 3. Check almd-lock.lua
-    local lock_data = scaffold.read_lock_lua(sandbox_path)
-    assert.is_not_nil(lock_data.package, "Lockfile package table should exist.")
-    local lock_entry = lock_data.package[expected_dep_name]
-    assert.is_not_nil(lock_entry, "Lockfile entry for '" .. expected_dep_name .. "' should exist.")
-    assert.are.equal(expected_lock_path, lock_entry.path, "Lockfile path mismatch.")
-    assert.are.equal(expected_lock_source, lock_entry.source, "Lockfile source mismatch.")
-    assert.truthy(string.match(lock_entry.hash or "", expected_lock_hash_prefix), "Lockfile hash should start with 'sha256:'. Hash: " .. tostring(lock_entry.hash))
-  end)
-
-  -- Add more tests for edge cases:
-  -- - Re-adding an existing dependency (should it update or error?)
-  -- - Invalid URL formats
-  -- - Network errors during download
-  -- - Permissions issues writing files/directories
 end)
