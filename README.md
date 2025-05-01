@@ -53,7 +53,8 @@ almd run <script>        # Run a script from project.lua
 ## 🤝 Contributing
 
 We 💙 contributions! Please:
-- Read [`project/PLANNING.md`](project/PLANNING.md) for architecture & folder rules.
+
+- Read [`project/PRD.md`](project/PRD.md) for architecture & folder rules.
 - Follow the coding standards (see comments in source).
 - All source code must go in `src/`.
 - Open issues or pull requests for feedback and improvements.

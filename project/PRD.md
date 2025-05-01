@@ -118,9 +118,9 @@ These rules supplement the mandatory Global AI Project Guidelines. They define s
 
 ### 1. Language, Environment & Dependencies
 
-* **Target Language:** Lua 5.1.
-* **Compatibility:** All code must be compatible with Lua versions 5.1 through 5.4 and LuaJIT.
-* **Dependencies:** **Strictly NO external dependencies** are permitted beyond standard Lua/LÖVE libraries specified in `PLANNING.md`.
+- **Target Language:** Lua 5.1.
+- **Compatibility:** All code must be compatible with Lua versions 5.1 through 5.4 and LuaJIT.
+- **Dependencies:** **Strictly NO external dependencies** are permitted beyond standard Lua/LÖVE libraries specified in `PRD.md`.
 
 ### 2. Lua Coding Standards
 
@@ -128,7 +128,7 @@ These standards refine the general coding standards for Lua development within t
 
 #### 2.1. Style & Formatting
 
-- **Base Style:** Adhere primarily to the [Lua Standard Style](https://github.com/Olivine-Labs/lua-style-guide/blob/master/lua-style.md) guidelines, unless overridden below or in `PLANNING.md`.
+- **Base Style:** Adhere primarily to the EmmyLua/LuaLS coding style.
 - **Strings:** Prefer double quotes (`"`) for string literals.
 - **Line Length:** Maximum line length is 120 characters.
 - **Function Calls:** Always use parentheses `()` for function calls, even if no arguments are passed (e.g., `my_function()` not `my_function`).
@@ -213,17 +213,17 @@ These standards refine the general coding standards for Lua development within t
 - Leverage Lua's strengths (e.g., tables for structures, first-class functions).
 - Be aware of common Lua pitfalls (e.g., 1-based indexing vs. 0-based, global variable scope issues, closure behavior).
 
-## 3. Testing & Behavior Specification (Busted)
+## 3. Testing & Behavior Specification (Prototype Phase)
 
-These rules specify how testing and behavior specification, required by the global guidelines, are implemented in this project using the `busted` framework.
+These rules specify how testing and behavior specification, required by the global guidelines, are implemented in this project using the `busted` framework **during the current prototype phase**. The focus during this phase is **exclusively on end-to-end (E2E) testing** to validate core user flows and system integration.
 
-- **Specification Location:** Behavior specifications must reside in the top-level `/spec` directory. This directory's structure must mirror the `/src` directory being specified.
-  - *Example:* Specifications for `src/game/engine/my_module.lua` belong in `spec/game/engine/my_module_spec.lua`.
+- **Specification Location:** During the prototype phase, all end-to-end behavior specifications must reside within the `/src/spec/e2e/` directory. This directory's structure must mirror the `/src` directory structure *excluding* the `spec/` part itself.
+  - *Example:* E2E specifications for functionality related to `src/game/engine/my_module.lua` belong in `src/spec/e2e/game/engine/my_module_spec.lua`.
 - **File Naming:** Specification files must end with `_spec.lua`.
 - **Framework:** Use the `busted` testing framework for all specifications.
-- **Test Doubles:** **Actively use test doubles** like spies, stubs, and mocks (e.g., via `require('luassert.spy')` or similar assertion library utilities) to isolate units under test, control dependencies, and verify interactions effectively.
-- **Scenario Coverage:** Each component's specification should describe its behavior under various conditions using `describe` and `it` blocks. Include scenarios covering, at minimum:
-  - **Expected Behavior:** Typical, successful interactions (the "happy path").
-  - **Boundary Conditions:** Behavior at known limits or edge cases.
-  - **Undesired Situations:** Behavior with errors, invalid inputs, or exceptional conditions.
-- **Require Paths:** Within specification files (`_spec.lua`), use full, project-relative module paths for `require` statements (e.g., `require("src.game.engine.core.scene")`). Do not use local relative paths.
+- **Test Type Focus:** As this is the **prototype phase**, testing efforts must concentrate **only on end-to-end tests**. Unit and integration tests, along with the heavy use of test doubles (spies, stubs, mocks) for isolating components, are **deferred** until a later stage. E2E tests should verify system behavior from an external perspective, simulating user interactions or system inputs/outputs.
+- **Scenario Coverage:** Each E2E specification should describe the system's behavior under various conditions using `describe` and `it` blocks, focusing on complete flows or features. Include scenarios covering, at minimum:
+  - **Expected Behavior:** Typical, successful user flows or system interactions (the "happy path").
+  - **Boundary Conditions:** Behavior at known limits or edge cases within a flow.
+  - **Undesired Situations:** System response to errors, invalid inputs, or exceptional conditions during an end-to-end operation.
+- **Require Paths:** Within specification files (`_spec.lua`), use full, project-relative module paths for `require` statements when needing entry points or helper modules (e.g., `require("src.game.main")` or `require("src.spec.e2e.helpers.setup")`). Do not use local relative paths.
