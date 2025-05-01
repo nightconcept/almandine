@@ -9,7 +9,7 @@ $LocalMode = $false
 
 # Usage: install.ps1 [-local] [version]
 foreach ($arg in $args) {
-  if ($arg -eq '-local' -or $arg -eq '--local') {
+  if ($arg -eq '--local') {
     $LocalMode = $true
   } elseif (-not $Version) {
     $Version = $arg
