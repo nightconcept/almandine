@@ -1,6 +1,6 @@
-# Task Checklist
+# Task Checklist: Almandine Package Manager
 
-**Purpose:** Tracks all tasks, milestones, and backlog for the Almandine Lua package manager. Each task includes a manual verification step for running and inspecting all tests and code.
+**Purpose:** Tracks tasks, milestones, and backlog for implementing the `add` command and its associated E2E testing infrastructure for the Almandine Lua package manager. Each task includes verification steps.
 
 **Multiplatform Policy:** All tasks, implementations, and verifications MUST consider cross-platform compatibility (Linux, macOS, and Windows) unless otherwise specified. Contributors (including AI) are required to design, implement, and test with multiplatform support as a baseline expectation. Any platform-specific logic must be clearly documented and justified in both code and task notes.
 
@@ -13,253 +13,142 @@
 
 ---
 
-## Milestone 1: Project Manifest & Initialization
+## Milestone 1: `add` Command Implementation & Verification
 
-- [x] **Task 1.1: Design and implement `project.lua` manifest schema**
-  - [x] Define fields: `name`, `type`, `version`, `license`, `description`, `scripts`, `dependencies`.
-  - [x] Manual Verification: Review schema, create sample file, and validate with test loader.
+**Goal:** Ensure `src/modules/add.lua` correctly implements the functionality defined in the PRD and address any gaps.
 
-- [x] **Task 1.2: CLI command to initialize a new Almandine project**
-  - [x] Implement `almd init` (creates `project.lua` with prompts).
-  - [x] Create a portable shell wrapper script that finds a suitable Lua interpreter and runs `src/main.lua` with all arguments (works on macOS and Linux).
-  - [x] Manual Verification: Run shell script with arguments, confirm it finds Lua and dispatches to `almd`.
-  - [x] Manual Verification: Run `almd`, inspect output, ensure correct manifest generation.
+- [ ] **Task 1.1: Review Existing `add` Implementation vs PRD**
+    - [ ] AI/Developer: Manually compare the *current* code in `src/modules/add.lua` against the requirements detailed in PRD sections 2.1 (`add` command description), 4 (`project.lua`, `almd-lock.lua`), and 1.1 (Dependencies - HTTP client decision).
+    - [ ] Identify any discrepancies, missing features, or incorrect behaviors based *strictly* on the PRD. Document these gaps.
+    - [ ] Manual Verification: Checklist of PRD requirements vs implemented features is created.
 
-- [x] **Task 1.3: Create Windows CLI wrapper script (`almd.bat`)** 
-  - [x] Implement a batch script at the project root that finds a suitable Lua interpreter and runs `src/main.lua` with all arguments (works on Windows).
-  - [x] Manual Verification: Run batch script with arguments, confirm it finds Lua and dispatches to `almd`.
+- [ ] **Task 1.2: Implement Identified Gaps in `add` Command**
+    - [ ] Based on Task 1.1, implement any missing functionality in `src/modules/add.lua`. This might include:
+        - [ ] Correct argument parsing (`<url>`, `-d`, `-n`).
+        - [ ] Correct GitHub URL parsing (commit hash vs branch name).
+        - [ ] Conversion to raw GitHub URL for download.
+        - [ ] Cross-platform file download mechanism (confirming approach: LuaSocket vs shell out).
+        - [ ] Target directory creation.
+        - [ ] Correct file saving (respecting `-n` for filename).
+        - [ ] Accurate reading/updating of `project.lua` (correct key/value format).
+        - [ ] Accurate reading/updating of `almd-lock.lua` (correct path, source, hash type - commit vs sha256).
+        - [ ] sha256 hash calculation when needed.
+        - [ ] Graceful error handling and user messaging for failures (download, file access, invalid manifest).
+    - [ ] Manual Verification: Code review confirms implementation matches PRD requirements identified in Task 1.1. Cross-platform considerations are addressed.
 
-## Milestone 2: Dependency Download & Pinning
+- [ ] **Task 1.3: Integrate `add` into `main.lua`**
+    - [ ] Ensure `src/main.lua` correctly parses the `add` command (and `i` alias).
+    - [ ] Ensure arguments (`<url>`, `-d`, `-n`) are correctly passed to the `add` module.
+    - [ ] Manual Verification: Run `almd add --help` (or similar) and verify basic command recognition works. Check argument parsing logic in `main.lua`.
 
-- [x] **Task 2.1: Implement file downloader (GitHub/raw URL support)**
-  - [x] Support pinning by semver or commit hash.
-  - [x] Manual Verification: Download a file, verify correct version/hash is retrieved.
+## Milestone 2: E2E Testing Infrastructure (Scaffolding)
 
-- [x] **Task 2.2: Implement dependency install command**
-  - [x] Add CLI function to add or remove dependencies from `project.lua` (establish dependency set).
-  - [x] Parse `dependencies` from `project.lua`.
-  - [x] Download to correct location (e.g., `lib/`).
-  - [ ] Manual Verification: Inspect downloaded files, check hashes/versions.
+**Goal:** Create the necessary helper utilities for running E2E tests in isolated environments.
 
-## Milestone 3: Lockfile Management
+- [ ] **Task 2.1: Implement Test Scaffolding Helper (`scaffold.lua`)**
+    - [ ] Create `src/spec/e2e/helpers/scaffold.lua`.
+    - [ ] Implement `scaffold.create_sandbox_project()`: Creates a unique temporary directory for a test. Returns the path and a cleanup function.
+    - [ ] Implement `cleanup_func()`: Deletes the temporary directory and its contents.
+    - [ ] Implement `scaffold.init_project_file(sandbox_path, initial_data)`: Creates a basic `project.lua` in the sandbox.
+    - [ ] Implement `scaffold.run_almd(sandbox_path, args_table)`: Executes the `almd` command (via `src/main.lua` or the wrapper script) targeting the sandbox directory, capturing success/failure status and output (stdout/stderr). Must work cross-platform.
+    - [ ] Implement `scaffold.read_project_lua(sandbox_path)`: Reads and parses the `project.lua` file from the sandbox. Returns the Lua table. Handles file-not-found errors.
+    - [ ] Implement `scaffold.read_lock_lua(sandbox_path)`: Reads and parses the `almd-lock.lua` file. Returns the Lua table. Handles file-not-found errors.
+    - [ ] Implement `scaffold.file_exists(file_path)`: Checks if a file exists at the given absolute path.
+    - [ ] Implement `scaffold.read_file(file_path)`: Reads the content of a file. (Optional, but useful for checking downloaded content).
+    - [ ] Manual Verification: Code review of the scaffold helper. Test helper functions individually if possible. Ensure cleanup works reliably.
 
-- [x] **Task 3.1: Design and implement `almd-lock.lua` schema**
-  - [x] Track `api_version`, resolved package versions/hashes.
-  - [x] Manual Verification: Generate lockfile, inspect for correctness and reproducibility.
+## Milestone 3: E2E Tests for `add` Command
 
-- [x] **Task 3.2: Lockfile update on install**
-  - [x] Update `almd-lock.lua` after each install.
-  - [ ] Manual Verification: Compare lockfile before/after install, confirm correct changes.
+**Goal:** Implement the specific E2E test cases for the `add` command using Busted and the scaffolding helper.
 
-## Milestone 4: CLI Command Feature Parity
+- [ ] **Task 3.1: Create `add_spec.lua` Structure**
+    - [ ] Create `src/spec/e2e/modules/add_spec.lua`.
+    - [ ] Set up the `describe` block.
+    - [ ] Implement `before_each` to call `scaffold.create_sandbox_project()` and `scaffold.init_project_file()`.
+    - [ ] Implement `after_each` to call the `cleanup_func()`.
+    - [ ] Manual Verification: Run the empty spec file with `busted`; ensure setup/teardown execute without errors.
 
-- [x] **Task 4.1: Implement `init` command**
-  - [x] Create/initialize a new Almandine project.
-  - [x] Manual Verification: Run `almd init`, check that manifest is created.
+- [ ] **Task 3.2: Implement E2E Test: Add via Commit Hash (Default Path)**
+    - [ ] Implement the `it` block corresponding to PRD E2E Example 1.
+    - [ ] Use `scaffold.run_almd` to execute the command.
+    - [ ] Use `scaffold.file_exists`, `scaffold.read_project_lua`, `scaffold.read_lock_lua` and Busted `assert` functions to verify:
+        - File downloaded to `lib/shove.lua`.
+        - `project.lua` contains `dependencies.shove` with the correct source string.
+        - `almd-lock.lua` contains `package.shove` with correct `path`, `source`, and `hash` (starting with `commit:`).
+    - [ ] Manual Verification: Run `busted src/spec/e2e/modules/add_spec.lua`; confirm this test passes and performs the correct checks.
 
-- [x] **Task 4.2: Implement `add`/`i` command**
-  - [x] Add dependencies to `project.lua` and download them.
-  - [x] Manual Verification: Add a dependency, verify it appears and is downloaded.
-  - [x] Automated Test: Add, download, and verify real dependencies (Task 4.2, 2025-04-27)
+- [ ] **Task 3.3: Implement E2E Test: Add via Commit Hash (Custom Path `-d`)**
+    - [ ] Implement the `it` block corresponding to PRD E2E Example 2.
+    - [ ] Verify:
+        - File downloaded to `src/engine/lib/shove.lua`.
+        - `project.lua` contains `dependencies.shove` with correct structure (e.g., table with `source` and `path`).
+        - `almd-lock.lua` contains `package.shove` with the custom `path`.
+    - [ ] Manual Verification: Run `busted`; confirm test passes.
 
-- [ ] **Task 4.2b: Make <dep_name> optional for `add` command (2025-04-28)**
-  - [x] Allow `almd add <source>` (GitHub raw URL) with no explicit dependency name; infer name from filename in URL.
-  - [x] If <dep_name> is omitted, use <FILENAME>.lua as the manifest key and output file.
-  - [x] Continue to support explicit <dep_name> as override.
-  - [x] Update help text and documentation for new usage.
-  - [ ] Manual Verification: Add dependency by URL only, check manifest and file, verify correct behavior for both implicit and explicit names.
+- [ ] **Task 3.4: Implement E2E Test: Add via Commit Hash (Custom Path `-d`, Custom Name `-n`)**
+    - [ ] Implement the `it` block corresponding to PRD E2E Example 3.
+    - [ ] Verify:
+        - File downloaded to `src/engine/lib/clove.lua`.
+        - `project.lua` contains `dependencies.clove` (using the new name) with correct structure/path.
+        - `almd-lock.lua` contains `package.clove` with the custom `path` and new name.
+    - [ ] Manual Verification: Run `busted`; confirm test passes.
 
-- [x] **Task 4.3: Implement `remove`/`rm`/`uninstall`/`un` command**
-  - [x] Remove dependencies from `project.lua` and project files.
-  - [x] Manual Verification: Remove a dependency, verify it is deleted.
+- [ ] **Task 3.5: Implement E2E Test: Add via Branch Name (SHA256 Hash)**
+    - [ ] Implement the `it` block corresponding to PRD E2E Example 4.
+    - [ ] Verify:
+        - File downloaded to `lib/shove.lua`.
+        - `project.lua` contains `dependencies.shove`.
+        - `almd-lock.lua` contains `package.shove` with `hash` starting with `sha256:`.
+    - [ ] Manual Verification: Run `busted`; confirm test passes.
 
-- [x] **Task 4.4: Implement `update`/`up`/`upgrade` command (`--latest` flag)**
-  - [x] Update dependencies to latest allowed version or to latest with `--latest`.
-  - [x] Manual Verification: Run `almd update`, check versions/hashes.
+- [ ] **Task 3.6: Implement E2E Test: Add Non-Existent File (Error Case)**
+    - [ ] Implement the `it` block corresponding to PRD E2E Example 5.
+    - [ ] Verify:
+        - `scaffold.run_almd` returns failure status.
+        - Output contains an informative error message.
+        - The target file does *not* exist.
+        - `project.lua` and `almd-lock.lua` are unchanged (or don't contain the failed dependency).
+    - [ ] Manual Verification: Run `busted`; confirm test passes and correctly checks for failure and lack of side effects.
 
-- [x] **Task 4.5: Implement `run` command (allow omitting if no conflicts)**
-  - [x] Run scripts from `project.lua`; allow omitting `run` if no conflict.
-  - [x] Manual Verification: Run scripts with and without `run`, check output.
+---
 
-- [x] **Task 4.6: Implement `list` command**
-  - [x] List installed dependencies and their versions.
-  - [x] Manual Verification: Run `almd list`, verify output.
+## Analysis & Next Steps
 
-- [ ] **Task 4.7: Improve test coverage for src/utils/manifest.lua (2025-04-28)**
-  - [ ] Add comprehensive tests for all code paths in manifest.safe_load_project_manifest (valid, file-not-found, syntax error, runtime error, non-table return).
-  - [ ] Manual Verification: Run all tests, confirm all branches are covered in luacov.stats.
+### Potentially Missing Test Cases for `add`
 
-- [ ] **Task 4.3: Ensure default 'run' script in project.lua** (2025-04-29)
-  - When initializing a new project, automatically include a 'run' script in the scripts table ("run = 'lua src/main.lua'") unless the user defines it interactively.
-  - Manual Verification: Run `almd init`, inspect project.lua, confirm 'run' script is present and correct.
+Based on the initial set, here are areas where more E2E tests would improve robustness:
 
-- [ ] **Task 4.8: Improve test coverage for src/modules/list.lua (2025-04-28)**
-  - [ ] Add comprehensive tests for all code paths and edge cases in list_dependencies and help_info (lockfile/manifest not a table, missing dependencies, dependencies as strings, missing version/hash, help output, etc).
-  - [ ] Manual Verification: Run all tests, confirm all branches are covered in luacov.stats.
+1.  **Idempotency/Re-adding:**
+    * Run `almd add <url>` twice for the same URL. Expected: Should it succeed silently (no change), update if the remote changed (e.g., branch `main`), or error? Define and test the desired behavior.
+    * Run `almd add <url1>` then `almd add <url2> -n name1` where `url2` downloads a file that would overwrite the file from `url1`. Define and test behavior (error, overwrite, prompt?).
+2.  **Overwriting Conflicts:**
+    * Test adding a dependency `foo` when `lib/foo.lua` already exists but wasn't added by `almd`.
+    * Test adding with `-n bar` when `lib/bar.lua` already exists.
+3.  **Manifest/Lockfile Corruption:**
+    * Run `almd add` when `project.lua` exists but is invalid Lua syntax.
+    * Run `almd add` when `almd-lock.lua` exists but is invalid Lua syntax.
+    * Run `almd add` when `project.lua` or `almd-lock.lua` return non-table values.
+4.  **Network Failures:**
+    * Simulate network errors *during* download (if possible with chosen download method). Verify partial downloads are cleaned up and manifests aren't updated.
+5.  **Permissions Errors:**
+    * Run `almd add` targeting a directory where the user lacks write permissions.
+    * Run `almd add` when `project.lua` or `almd-lock.lua` are read-only.
+6.  **URL Variations:**
+    * Test different valid GitHub URL formats (e.g., `github.com/user/repo/blob/TAG/path/file.lua`).
+    * Test invalid/malformed URLs.
+7.  **Initialization Requirement:**
+    * Run `almd add` in a directory *without* a `project.lua`. Expected: Should error clearly stating the project needs initialization (`almd init`).
+8.  **Case Sensitivity:** Add tests involving filenames with different casing if targeting file systems where this matters (e.g., adding `MyLib.lua` then `mylib.lua` on Windows vs Linux).
 
-- [ ] **Task 4.10: Refactor save_manifest to src/utils/manifest.lua** (2025-04-28)
-  - Move save_manifest() from src/modules/init.lua to src/utils/manifest.lua, update all imports/usages, and ensure modularity. No other modules currently use or require save_manifest; only init.lua calls it directly. All changes must follow PRD.md folder structure and Lua style guidelines.
-  - Manual Verification: Run almd init and verify manifest creation still works.
+### Potential Improvements for `add` Functionality
 
-- [ ] **Update all usage/help text to refer to the CLI tool as `almd` (not `almandine`).**
+Beyond the core requirements, consider these future enhancements:
 
-## Milestone 5: Installer and Wrapper Scripts
+1.  **Source Extensibility:** Design the URL parsing and downloading logic in `src/lib` (or `src/utils`) to be easily extended for other sources (GitLab, Bitbucket, generic Git URLs, plain HTTP(S) URLs, maybe even local paths `../other-project/file.lua`).
+2.  **Atomic Operations:** Refactor download and manifest updates to be more atomic. E.g., download to a temporary file, verify hash, then move to the final location; update manifest tables in memory, then attempt to write the complete file. This reduces the chance of a corrupted state if the process is interrupted.
+3.  **Download Progress/Feedback:** For larger files or slower connections, provide some feedback to the user during download.
+4.  **Caching:** Implement a local cache for downloaded files (based on URL and commit/hash) to avoid redundant downloads.
+5.  **Dry Run Mode:** Add a `--dry-run` flag to show what files would be downloaded and how manifests would change without actually performing the actions.
+6.  **Confirmation Prompts:** Add an optional `-y` / `--yes` flag, and without it, prompt the user before potentially overwriting existing files or making significant changes.
 
-- [x] **Task 5.1: Cross-platform installer and advanced wrapper scripts for `almd` CLI**
-  - [x] Create installer scripts (`install.sh`, `install.ps1`) to copy project files and wrapper scripts to user-specific locations on Linux/macOS and Windows.
-  - [x] Implement robust wrapper scripts (`install/almd.sh`, `install/almd.bat`) that:
-    - Locate a suitable Lua interpreter (`lua`, `lua5.4`, ..., `luajit`) automatically.
-    - Always run the CLI from the script's directory for portability (not assuming install location).
-    - Set `LUA_PATH` so that `src/lib` modules are found regardless of working directory (batch script only).
-    - Forward all arguments to `src/main.lua`.
-  - [ ] Manual Verification: Run installer on each platform, verify `almd` is available on the command line and launches the Lua app with arguments, even when run from any directory.
-
-- [ ] **Task 5.2: Implement `self uninstall` command**
-  - [ ] Add `almd self uninstall` to remove wrapper scripts and Lua CLI folder.
-  - [ ] Manual Verification: Run `almd self uninstall`, confirm all relevant files are deleted. (2025-04-28)
-
-- [ ] **Task 5.3: Remote installer fetches and installs from GitHub Releases** (2025-04-28)
-  - [ ] Update `install.sh` and `install.ps1` so they fetch and extract the distributable CLI zip from the latest (or specified) release on GitHub, using robust multiplatform methods (`curl`, `wget`, etc.).
-  - [ ] Manual Verification: Download and run installer scripts on all platforms with no other files present, confirm correct CLI installation and usability.
-
-- [ ] **Task 5.4: Modularize and delegate CLI help output** (2025-04-28)
-  - [ ] Refactor all CLI help/usage output so that each command module in `src/modules/` exposes a `help_info()` function returning or printing its usage/help text (using `almd` as the CLI name).
-  - [ ] Update `src/main.lua` to route `--help`/`help` invocations to the relevant module, and print a summary help if called as `almd --help` or `almd help` with no subcommand.
-  - [ ] Manual Verification: Run `almd --help`, `almd help <command>`, and `almd <command> --help` to verify correct output and routing.
-
-## Milestone 6: Automated Release Workflow & Changelog
-
-- [x] **Task 6.1: Automated Release Workflow & Changelog (2025-04-28)**
-  - [x] Add a GitHub Action in `.github/workflows` to:
-    - Build a distributable release zip containing the CLI and all required files (for use by `almd self update`).
-    - Automatically generate a changelog listing all changes since the previous release (using commit messages or PR titles).
-    - Attach the zip and changelog to a new GitHub Release.
-    - Ensure the workflow is professional and cross-platform aware.
-  - [ ] Manual Verification: Trigger release, verify zip contents, changelog accuracy, and release quality.
-
-- [ ] **Task 6.2: Migrate all src/spec tests to Busted framework (2025-04-28)**
-  - [ ] For each test file in `src/spec` named `*_test.lua`, create a corresponding `*_spec.lua` using the Busted test library and idioms (`describe`, `it`, `assert`).
-  - [ ] Preserve all test logic, grouping, and documentation; follow project Lua and LDoc standards.
-  - [ ] Do not delete or move original files unless explicitly approved.
-  - [ ] Manual Verification: Run all new specs with Busted, confirm all tests pass and logic is preserved.
-
-- [ ] **Task 6.3: Implement `self update` command for atomic CLI self-upgrade (2025-04-28)**
-  - [ ] Add `almd self update` to check GitHub for the latest release, download, and atomically replace the CLI install tree.
-  - [ ] Ensure all path handling and shell commands are cross-platform (Windows: use backslashes and no leading slashes; POSIX: use forward slashes).
-  - [ ] On Windows, guard against updating files that are in use (e.g., running scripts/executables). Abort or defer update if locked.
-  - [ ] Refactor updater to only print "Success" if all operations succeed; print clear error messages otherwise.
-  - [ ] Add/expand tests for Windows path handling, file-in-use, and error propagation in `src/spec/modules/self_spec.lua`.
-  - [ ] Manual Verification: Run `almd self update` on Linux, macOS, and Windows. Confirm correct update, correct error reporting, and no invalid parameter/file-in-use errors.
-
-- [ ] **Task 6.3: Implement `self update` command for atomic CLI self-upgrade (2025-04-28)**
-  - [ ] Add `almd self update` to check GitHub for the latest release, download, and atomically replace the CLI install tree.
-  - [ ] Ensure all path handling and shell commands are cross-platform (Windows: use backslashes and no leading slashes; POSIX: use forward slashes).
-  - [ ] On Windows, guard against updating files that are in use (e.g., running scripts/executables). Abort or defer update if locked.
-  - [ ] Refactor updater to only print "Success" if all operations succeed; print clear error messages otherwise.
-  - [ ] Add/expand tests for Windows path handling, file-in-use, and error propagation in `src/spec/modules/self_spec.lua`.
-  - [ ] Manual Verification: Run `almd self update` on Linux, macOS, and Windows. Confirm correct update, correct error reporting, and no invalid parameter/file-in-use errors.
-
-## Milestone 6: Automated Release Workflow & Changelog
-
-- [x] **Task 6.1: Automated Release Workflow & Changelog (2025-04-28)**
-  - [x] Add a GitHub Action in `.github/workflows` to:
-    - Build a distributable release zip containing the CLI and all required files (for use by `almd self update`).
-    - Automatically generate a changelog listing all changes since the previous release (using commit messages or PR titles).
-    - Attach the zip and changelog to a new GitHub Release.
-    - Ensure the workflow is professional and cross-platform aware.
-  - [ ] Manual Verification: Trigger release, verify zip contents, changelog accuracy, and release quality.
-
-- [ ] **Task 6.2: Migrate all src/spec tests to Busted framework (2025-04-28)**
-  - [ ] For each test file in `src/spec` named `*_test.lua`, create a corresponding `*_spec.lua` using the Busted test library and idioms (`describe`, `it`, `assert`).
-  - [ ] Preserve all test logic, grouping, and documentation; follow project Lua and LDoc standards.
-  - [ ] Do not delete or move original files unless explicitly approved.
-  - [ ] Manual Verification: Run all new specs with Busted, confirm all tests pass and logic is preserved.
-
-- [ ] **Task 6.3: Implement `self update` command for atomic CLI self-upgrade (2025-04-28)**
-  - [ ] Add `almd self update` to check GitHub for the latest release, download, and atomically replace the CLI install tree.
-  - [ ] Ensure all path handling and shell commands are cross-platform (Windows: use backslashes and no leading slashes; POSIX: use forward slashes).
-  - [ ] On Windows, guard against updating files that are in use (e.g., running scripts/executables). Abort or defer update if locked.
-  - [ ] Refactor updater to only print "Success" if all operations succeed; print clear error messages otherwise.
-  - [ ] Add/expand tests for Windows path handling, file-in-use, and error propagation in `src/spec/modules/self_spec.lua`.
-  - [ ] Manual Verification: Run `almd self update` on Linux, macOS, and Windows. Confirm correct update, correct error reporting, and no invalid parameter/file-in-use errors.
-
-- [ ] **Task 6.4: Redo spec for self module (2025-04-28)**
-  - [ ] Completely rewrite src/spec/modules/self_spec.lua to cover all logic, edge cases, and error handling in src/modules/self.lua. Ensure cross-platform, error, and output scenarios are tested. Remove all old code and replace with a new, style-compliant, and comprehensive test suite.
-  - [ ] Manual Verification: Run all specs with Busted, confirm all code paths and error branches are exercised and passing.
-
-## Milestone 7: CI/CD Improvements
-
-- [ ] **Task 7.1: Add CI workflow for lint, test, and coverage (2025-04-28)**
-  - [ ] Create a GitHub Actions workflow that runs on push and PR.
-  - [ ] Test on Lua 5.1, 5.2, 5.3, 5.4, and LuaJIT.
-  - [ ] Run `luacheck` on `src/` and `src/spec/`.
-  - [ ] Run Busted tests with coverage using `luacov`.
-  - [ ] Upload coverage to Coveralls (on Lua 5.1 only, using `COVERALLS_REPO_TOKEN`).
-  - [ ] Manual Verification: Check workflow runs and reports status for all jobs; confirm coverage appears on Coveralls.
-
-- [ ] **Task 7.2: Fix all luacheck warnings in src/ and src/spec (2025-04-29)**
-  - [ ] Address all line length, unused variable, shadowing, and read-only global warnings reported by `luacheck`.
-  - [ ] Ensure all changes conform to project Lua and LDoc standards.
-  - [ ] Manual Verification: Run `luacheck` and confirm 0 warnings/errors.
-
-- [ ] **Task 7.3: Add pre-commit hook to run luacheck on staged Lua files (2025-04-28)**
-  - [ ] Create a portable pre-commit hook script in `install/pre-commit.sample`.
-  - [ ] Script must block commit if any staged `.lua` files fail `luacheck`.
-  - [ ] Manual Verification: Copy hook to `.git/hooks/pre-commit`, stage a `.lua` file with a lint error, and confirm commit is blocked.
-
-- [ ] **Task 7.4: Add `.luacov` config to exclude `.luarocks/lua/` from coverage (2025-04-28)**
-  - [ ] Create `.luacov` in the project root.
-  - [ ] Exclude `.luarocks/lua/` from coverage to prevent skewed results.
-  - [ ] Manual Verification: Confirm coverage report excludes `.luarocks/lua/` files.
-
-- [ ] **Task 7.5: Add pre-commit hook to run Stylua on staged Lua files (2025-04-28)**
-  - [ ] Create a portable pre-commit hook script in `install/pre-commit.sample`.
-  - [ ] Script must block commit if any staged `.lua` files fail formatting check via `npx @johnnymorganz/stylua-bin src/`.
-  - [ ] Manual Verification: Copy hook to `.git/hooks/pre-commit`, stage a `.lua` file with a formatting error, and confirm commit is blocked.
-
-- [ ] **Task 7.3: Eliminate luacheck read-only global warnings in filesystem tests (2025-04-28)**
-  - [ ] Refactor `filesystem.ensure_lib_dir` and its tests to avoid assigning to `os.execute` or `package.config`.
-  - [ ] Use dependency injection or local overrides for path separator and command execution in tests.
-  - [ ] Manual Verification: Run all specs and confirm no warnings about read-only global fields.
-
-## Milestone 8: Refactor Downloader Utility
-
-- [ ] **Task 8.1: Refactor downloader utility to remove external dependencies and use wget/curl (2025-04-28)**
-  - [ ] Update `src/utils/downloader.lua` to eliminate LuaSocket/ltn12 and implement download logic using wget/curl via os.execute.
-  - [ ] Manual Verification: Run `almd` and all commands that download files on Linux, macOS, and Windows; confirm correct behavior and no dependency errors.
-
-- [ ] **Task 8.2: Print pnpm-style usage/help when running `almd` with no arguments (2025-04-28)**
-  - [ ] Update CLI entrypoint so that running `almd` (with no arguments) prints a detailed usage/help message similar to pnpm, listing version, usage, command groups, and options, with formatting and descriptions matching the pnpm example.
-  - [ ] Manual Verification: Run `almd` (no arguments), confirm output matches the pnpm-style usage/help format, includes all commands, aliases, and options.
-
-- [ ] **Task 8.3: Add comprehensive spec for src/modules/init.lua (2025-04-28)**
-  - [ ] Create src/spec/modules/init_spec.lua to test all interactive and error paths in project initialization.
-  - [ ] Mock user input and file system side effects for deterministic, non-interactive tests.
-  - [ ] Manual Verification: Run all specs with Busted, confirm all branches and error cases are covered.
-
-- [ ] **Task 8.4: Add comprehensive spec for src/utils/version.lua** (2025-04-28)
-  - [ ] Create src/spec/utils/version_spec.lua to test all public and edge-case behaviors of the version utility module.
-  - [ ] Manual Verification: Run all specs with Busted, confirm all branches and error cases are covered.
-
-- [ ] **Task 8.5: Pretty-print dependencies in project.lua for manual editing** (2025-04-28)
-  - [ ] Refactor manifest.save_manifest() so that dependencies are serialized in a human-friendly, well-indented, and easy-to-edit format.
-  - [ ] Ensure output uses 2-space indentation, double quotes, and puts each dependency and its fields on their own lines.
-  - [ ] Manual Verification: Run almd init/add, inspect project.lua, and confirm dependencies section is pretty-printed for user editing.
-
-- [BUGFIX] Self-update now always targets the CLI's install directory, never the working directory. All update/backup/validation steps use absolute paths based on the detected install root. (2025-04-28)
-
-*Last updated: 2025-04-29*
-
-- **2025-04-29**: Create a comprehensive Busted test suite for `src/utils/lockfile.lua` in `src/spec/utils/lockfile_spec.lua`. The test must cover all functions and edge cases, use dependency injection via a `deps` table for all external/file/OS interactions, and utilize spies/mocks as needed. All code and structure must follow project and Lua standards.
-
-- **2025-04-29**: **Add -local flag to install scripts for local developer testing**
-  - Enhance install.sh (Bash) and install.ps1 (PowerShell) to support a -local flag.
-  - When -local is provided, the scripts copy from the current repo instead of downloading from GitHub.
-  - Updated documentation in README.md.
-  - Manual Verification: Test both scripts with and without -local to ensure correct behavior on all platforms.
-
-- **2025-04-29**: **Integrate pre-commit framework and enforce Lua code quality**
-  - Add pre-commit and nodejs to devenv.nix from unstable channel; ensure luacheck, busted, and stylua are available in the dev shell.
-  - Configure a shell hook in devenv.nix to auto-install/update the pre-commit hook on environment entry.
-  - Create .pre-commit-config.yaml to run npx @johnnymorganz/stylua-bin, luacheck, and busted on staged Lua files.
-  - Manual Verification: (1) Enter the dev environment and confirm the pre-commit hook is installed. (2) Stage a Lua file with style/lint/test issues and verify the hook blocks the commit. (3) Fix issues and confirm commit succeeds. (4) Confirm cross-platform compatibility.
+*This TASKS.md outlines the immediate work. Further tasks should be added for the missing test cases and potential improvements as development progresses.*
