@@ -112,14 +112,30 @@ local function hash_file_sha256(file_path)
   local os_type = package.config:sub(1, 1) == "\\" and "windows" or "unix"
 
   if os_type == "unix" then
-    -- Use shasum -a 256 (more common) or sha256sum
-    -- We need to check which one exists, or just try shasum first
-    -- For simplicity, let's assume shasum is available
-    command = string.format("shasum -a 256 '%s'", file_path)
+    -- Try sha256sum first (more standard on Linux), then fallback to shasum
+    local sha256sum_exists = os.execute("command -v sha256sum > /dev/null 2>&1") == 0
+    if sha256sum_exists then
+      command = string.format("sha256sum '%s'", file_path)
+    else
+      -- Fallback to shasum if sha256sum is not found
+      local shasum_exists = os.execute("command -v shasum > /dev/null 2>&1") == 0
+      if shasum_exists then
+        command = string.format("shasum -a 256 '%s'", file_path)
+      else
+        return nil, "Neither sha256sum nor shasum found in PATH."
+      end
+    end
   else -- windows
     -- Use CertUtil with SHA256
     command = string.format('CertUtil -hashfile "%s" SHA256', file_path)
   end
+
+  -- Check if file exists before attempting to hash
+  local file = io.open(file_path, "rb")
+  if not file then
+      return nil, "File not found or not readable: " .. file_path
+  end
+  file:close()
 
   local handle = io.popen(command)
   if not handle then
