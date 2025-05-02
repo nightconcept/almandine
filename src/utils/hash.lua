@@ -102,8 +102,106 @@ local function calculate_sha512(file_path)
   end
 end
 
+--- Calculates the SHA256 hash of a file using external command.
+-- NOTE: Requires 'shasum' (with -a 256) or 'sha256sum' (Linux/macOS) or 'CertUtil' (Windows) to be in the PATH.
+-- @param file_path string Path to the file.
+-- @return string|nil The hex-encoded SHA256 hash, or nil if a fatal error occurred.
+-- @return string|nil Error message if calculation failed fatally.
+-- @return boolean|nil True if a non-fatal warning occurred (e.g., hash tool not found), nil otherwise.
+local function hash_file_sha256(file_path)
+  local command
+  local os_type = package.config:sub(1, 1) == "\\\\" and "windows" or "unix"
+  --luacheck: ignore
+  local warning_occurred = false
+  --luacheck: ignore
+  local warning_message = nil
+
+  if os_type == "unix" then
+    -- Try sha256sum first (more standard on Linux), then fallback to shasum
+    -- Use io.popen to check for command existence to avoid os.execute exit code issues
+    local function check_command_exists(cmd_name)
+      local handle = io.popen("command -v " .. cmd_name .. " 2>/dev/null")
+      if handle then
+        local output = handle:read("*a")
+        handle:close()
+        return (output and output ~= "") -- Command exists if popen succeeded and gave output
+      end
+      return false
+    end
+
+    if check_command_exists("sha256sum") then
+      command = string.format("sha256sum '%s'", file_path)
+    elseif check_command_exists("shasum") then
+      command = string.format("shasum -a 256 '%s'", file_path)
+    else
+      warning_occurred = true
+      warning_message = "Neither sha256sum nor shasum found in PATH."
+      return nil, nil, warning_occurred, warning_message
+    end
+  else -- windows
+    -- Use CertUtil with SHA256
+    command = string.format('CertUtil -hashfile "%s" SHA256', file_path)
+    -- Add a check for CertUtil existence on Windows?
+    -- For now, assume it exists, consistent with previous logic.
+  end
+
+  -- Check if file exists before attempting to hash
+  local file = io.open(file_path, "rb")
+  if not file then
+      -- Treat file not found as a fatal error for hashing
+      return nil, "File not found or not readable: " .. file_path, false
+  end
+  file:close()
+
+  local handle = io.popen(command)
+  if not handle then
+    -- Failed to even start the command - fatal error
+    return nil, "Failed to execute hash command: " .. command, false
+  end
+
+  local result = handle:read("*a")
+  local success, exit_code, term_signal = handle:close()
+
+  -- First try to parse the hash from the output
+  local hash
+  if os_type == "unix" then
+    -- Extract hash from shasum/sha256sum output (hash first, then filename)
+    hash = result:match("^(%x+)")
+  else -- windows
+    -- CertUtil output is multi-line, hash is usually on the second line
+    hash = result:match("\n(%x+)%s*\n")
+    if hash then
+      hash = hash:gsub("%s", "") -- Remove spaces if any
+    end
+  end
+
+  -- If we could extract a valid hash, consider the operation successful
+  -- regardless of the exit code
+  if hash and #hash > 0 then
+    -- Success: return hash, no error, no warning
+    return hash:lower(), nil, false, nil
+  end
+
+  -- If we couldn't get a hash, then check if the command failed
+  if not success or (exit_code and exit_code ~= 0) then
+     local err_msg = string.format("Hash command failed (Exit: %s, Signal: %s): %s\nOutput: %s",
+         tostring(exit_code), tostring(term_signal), command, result or "")
+     -- Treat command execution failure as fatal for the hash operation
+     return nil, err_msg, false, nil
+  end
+
+  if not result or result == "" then
+    -- Treat no output as a fatal error
+    return nil, "Hash command produced no output.", false, nil
+  end
+
+  -- If we got here, we had output but couldn't parse a hash - fatal error
+  return nil, "Could not parse hash from command output: " .. result, false, nil
+end
+
 return {
   extract_github_hash = extract_github_hash,
   hash_dependency = hash_dependency,
   calculate_sha512 = calculate_sha512,
+  hash_file_sha256 = hash_file_sha256,
 }

@@ -38,11 +38,12 @@ local function pretty_print_dependencies(dependencies, indent)
   for _, k in ipairs(dep_keys) do
     local v = dependencies[k]
     if type(v) == "table" then
-      local url = v.url or ""
+      local source = v.source or ""
       local path = v.path or ""
       path = path:gsub("\\", "\\\\")
+      source = source:gsub("\"", "\\\"")
       table.insert(lines, string.format('%s  ["%s"] = {', indent, k))
-      table.insert(lines, string.format('%s    url = "%s",', indent, url))
+      table.insert(lines, string.format('%s    source = "%s",', indent, source))
       table.insert(lines, string.format('%s    path = "%s"', indent, path))
       table.insert(lines, indent .. "  },")
     else

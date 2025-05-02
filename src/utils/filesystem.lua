@@ -127,4 +127,24 @@ function M.get_path_type(path)
   end
 end
 
+---
+-- Attempts to remove a file.
+-- @param file_path string The path to the file to remove.
+-- @return boolean success True if the file was removed successfully or did not exist.
+-- @return string|nil error_message Error message if removal failed.
+function M.remove_file(file_path)
+  if not file_path then
+    return false, "File path cannot be nil"
+  end
+  -- os.remove returns nil + error message on failure
+  local ok, err = os.remove(file_path)
+  if ok then
+    return true -- Successfully removed
+  elseif err:match("No such file or directory") then
+    return true -- File didn't exist, which is fine for cleanup
+  else
+    return false, err -- Return the actual error message from os.remove
+  end
+end
+
 return M

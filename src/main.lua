@@ -153,15 +153,7 @@ For help with a command: almd help <command> or almd <command> --help
       return
     end
 
-    -- Validate GitHub URL format and commit hash presence
-    local hash_utils = require("utils.hash")
-    local hash = hash_utils.extract_github_hash(source)
-    if not hash then
-      print("Error: GitHub URL must contain a commit hash")
-      print("Example: https://github.com/owner/repo/blob/COMMIT_HASH/file.lua")
-      return
-    end
-
+    local verbose = false
     local dest_dir, dep_name
     local i = 3
     while i <= #args do
@@ -171,20 +163,38 @@ For help with a command: almd help <command> or almd <command> --help
       elseif args[i] == "-n" and args[i + 1] then
         dep_name = args[i + 1]
         i = i + 2
+      elseif args[i] == "--verbose" then
+        verbose = true
+        i = i + 1
       else
         print("Unknown or incomplete flag: " .. tostring(args[i]))
         return
       end
     end
 
-    add_module.add_dependency(dep_name, source, dest_dir, {
+    local ok, fatal_err, warning_occurred, warning_msg = add_module.add_dependency(dep_name, source, dest_dir, {
       load_manifest = manifest_utils.safe_load_project_manifest,
       save_manifest = manifest_utils.save_manifest,
       ensure_lib_dir = filesystem_utils.ensure_lib_dir,
       downloader = downloader,
-      hash_utils = hash_utils,
+      hash_utils = require("utils.hash"),
       lockfile = require("utils.lockfile"),
+      verbose = verbose,
     })
+
+    if warning_occurred then
+      print("Warning(s) occurred during add operation:")
+      print("  " .. (warning_msg or "Unknown warning"):gsub("\n", "\n  "))
+    end
+
+    if not ok then
+      print("Error: Add operation failed.")
+      if fatal_err then
+        print("  Reason: " .. fatal_err)
+      end
+      os.exit(1)
+    end
+
     return
   elseif args[1] == "install" or args[1] == "i" then
     -- Usage: almd install [<dep_name>]
@@ -198,19 +208,24 @@ For help with a command: almd help <command> or almd <command> --help
       filesystem = filesystem_utils, -- Pass the filesystem utils module
       url_utils = require("utils.url"), -- Pass url utils needed for hash extraction
     }
-    local ok, err = install_module.install_dependencies(dep_name, deps)
+    local ok, _ = install_module.install_dependencies(dep_name, deps)
     if not ok then
-      print("Installation failed: " .. tostring(err or "Unknown error"))
-      -- Potentially exit with error code here: os.exit(1)
+      print("Installation failed: " .. tostring(_ or "Unknown error"))
+      os.exit(1) -- Exit with error code
     end
-    return
+    return -- Success
   elseif args[1] == "remove" or args[1] == "rm" or args[1] == "uninstall" or args[1] == "un" then
     if args[2] then
-      remove_module.remove_dependency(args[2], load_manifest, manifest_utils.save_manifest)
+      local ok, _ = remove_module.remove_dependency(args[2], load_manifest, manifest_utils.save_manifest)
+      if not ok then
+        -- Error message likely printed by remove_dependency
+        os.exit(1)
+      end
     else
       print("Usage: almd remove <dep_name>")
+      os.exit(1)
     end
-    return
+    return -- Success
   elseif args[1] == "update" or args[1] == "up" then
     -- Usage: almd update [--latest]
     local latest = false
@@ -231,14 +246,15 @@ For help with a command: almd help <command> or almd <command> --help
   elseif args[1] == "run" then
     if not args[2] then
       print("Usage: almd run <script_name>")
-      return
+      os.exit(1) -- Exit with error for wrong usage
     end
     local deps = { manifest_loader = manifest_utils.safe_load_project_manifest }
     local ok, err = run_module.run_script(args[2], deps)
     if not ok then
-      print(err)
+      print(err) -- run_script returns the error message
+      os.exit(1)
     end
-    return
+    return -- Success
   elseif args[1] == "list" or args[1] == "ls" then
     list_module.list_dependencies(load_manifest)
     return
@@ -248,8 +264,9 @@ For help with a command: almd help <command> or almd <command> --help
       print("almd self uninstall: Success.")
     else
       print("almd self uninstall: Failed.\n" .. (err or "Unknown error."))
+      os.exit(1)
     end
-    return
+    return -- Success
   elseif args[1] == "self" and args[2] == "update" then
     local ok, err = self_module.self_update()
     if ok then
@@ -258,8 +275,9 @@ For help with a command: almd help <command> or almd <command> --help
       print(err)
     else
       print("almd self update: Failed.\n" .. (err or "Unknown error."))
+      os.exit(1)
     end
-    return
+    return -- Success
   elseif not run_module.is_reserved_command(args[1]) then
     -- If not a reserved command, check if it's an unambiguous script name
     local deps = { manifest_loader = manifest_utils.safe_load_project_manifest }
@@ -268,11 +286,13 @@ For help with a command: almd help <command> or almd <command> --help
       local ok, err = run_module.run_script(script_name, deps)
       if not ok then
         print(err)
+        os.exit(1)
       end
-      return
+      return -- Success
     end
   end
   print_help()
+  os.exit(1) -- Exit with error if command not found
 end
 
 main(unpack(arg, 1))
