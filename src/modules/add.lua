@@ -15,6 +15,7 @@ local url_utils = require("utils.url")
 ---@field downloader table
 ---@field downloader.download fun(url: string, path: string, verbose: boolean|nil): boolean, string?
 ---@field hash_utils table
+-- luacheck: ignore
 ---@field hash_utils.hash_file_sha256 fun(path: string): string?, string?, boolean?, string? -- hash, fatal_err, warning_occurred, warning_msg
 ---@field lockfile table
 ---@field lockfile.generate_lockfile_table fun(deps: table): table
@@ -67,7 +68,7 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     -- Infer filename from URL
     filename = input_url:match("/([^/]+)$")
     if not filename or filename == "" then
-      return false, "Could not determine filename from URL: " .. input_url .. ". Try using the -n flag.", false -- Fatal error
+      return false, "Could not determine filename from URL: " .. input_url .. ". Try using the -n flag.", false
     end
     -- Infer dep_name from filename if not provided
     local name_from_file = filename:match("^(.+)%.lua$")

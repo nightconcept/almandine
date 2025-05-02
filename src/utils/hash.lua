@@ -111,18 +111,22 @@ end
 local function hash_file_sha256(file_path)
   local command
   local os_type = package.config:sub(1, 1) == "\\\\" and "windows" or "unix"
+  --luacheck: ignore
   local warning_occurred = false
+  --luacheck: ignore
   local warning_message = nil
 
   if os_type == "unix" then
     -- Try sha256sum first (more standard on Linux), then fallback to shasum
     -- Wrap execute in pcall to prevent script exit on error, capture status
-    local sha256sum_found = (pcall(os.execute, "command -v sha256sum > /dev/null 2>&1") and os.execute("command -v sha256sum > /dev/null 2>&1") == 0)
+    local sha256sum_found = (pcall(os.execute, "command -v sha256sum > /dev/null 2>&1") and
+      os.execute("command -v sha256sum > /dev/null 2>&1") == 0)
     if sha256sum_found then
       command = string.format("sha256sum '%s'", file_path)
     else
       -- Fallback to shasum if sha256sum is not found
-      local shasum_found = (pcall(os.execute, "command -v shasum > /dev/null 2>&1") and os.execute("command -v shasum > /dev/null 2>&1") == 0)
+      local shasum_found = (pcall(os.execute, "command -v shasum > /dev/null 2>&1") and
+        os.execute("command -v shasum > /dev/null 2>&1") == 0)
       if shasum_found then
         command = string.format("shasum -a 256 '%s'", file_path)
       else
