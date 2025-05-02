@@ -162,18 +162,7 @@ local function hash_file_sha256(file_path)
   local result = handle:read("*a")
   local success, exit_code, term_signal = handle:close()
 
-  if not success or (exit_code and exit_code ~= 0) then
-     local err_msg = string.format("Hash command failed (Exit: %s, Signal: %s): %s\nOutput: %s",
-         tostring(exit_code), tostring(term_signal), command, result or "")
-     -- Treat command execution failure as fatal for the hash operation
-     return nil, err_msg, false
-  end
-
-  if not result or result == "" then
-    -- Treat no output as a fatal error
-    return nil, "Hash command produced no output.", false
-  end
-
+  -- First try to parse the hash from the output
   local hash
   if os_type == "unix" then
     -- Extract hash from shasum/sha256sum output (hash first, then filename)
@@ -186,13 +175,28 @@ local function hash_file_sha256(file_path)
     end
   end
 
-  if hash then
+  -- If we could extract a valid hash, consider the operation successful
+  -- regardless of the exit code
+  if hash and #hash > 0 then
     -- Success: return hash, no error, no warning
-    return hash:lower(), nil, false
-  else
-    -- Failed to parse output - fatal error
-    return nil, "Could not parse hash from command output: " .. result, false
+    return hash:lower(), nil, false, nil
   end
+
+  -- If we couldn't get a hash, then check if the command failed
+  if not success or (exit_code and exit_code ~= 0) then
+     local err_msg = string.format("Hash command failed (Exit: %s, Signal: %s): %s\nOutput: %s",
+         tostring(exit_code), tostring(term_signal), command, result or "")
+     -- Treat command execution failure as fatal for the hash operation
+     return nil, err_msg, false, nil
+  end
+
+  if not result or result == "" then
+    -- Treat no output as a fatal error
+    return nil, "Hash command produced no output.", false, nil
+  end
+
+  -- If we got here, we had output but couldn't parse a hash - fatal error
+  return nil, "Could not parse hash from command output: " .. result, false, nil
 end
 
 return {
