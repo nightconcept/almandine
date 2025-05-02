@@ -118,23 +118,25 @@ local function hash_file_sha256(file_path)
 
   if os_type == "unix" then
     -- Try sha256sum first (more standard on Linux), then fallback to shasum
-    -- Wrap execute in pcall to prevent script exit on error, capture status
-    local sha256sum_found = (pcall(os.execute, "command -v sha256sum > /dev/null 2>&1") and
-      os.execute("command -v sha256sum > /dev/null 2>&1") == 0)
-    if sha256sum_found then
-      command = string.format("sha256sum '%s'", file_path)
-    else
-      -- Fallback to shasum if sha256sum is not found
-      local shasum_found = (pcall(os.execute, "command -v shasum > /dev/null 2>&1") and
-        os.execute("command -v shasum > /dev/null 2>&1") == 0)
-      if shasum_found then
-        command = string.format("shasum -a 256 '%s'", file_path)
-      else
-        warning_occurred = true
-        warning_message = "Neither sha256sum nor shasum found in PATH."
-        -- Return nil hash, no fatal error, but set warning flag
-        return nil, nil, warning_occurred, warning_message
+    -- Use io.popen to check for command existence to avoid os.execute exit code issues
+    local function check_command_exists(cmd_name)
+      local handle = io.popen("command -v " .. cmd_name .. " 2>/dev/null")
+      if handle then
+        local output = handle:read("*a")
+        handle:close()
+        return (output and output ~= "") -- Command exists if popen succeeded and gave output
       end
+      return false
+    end
+
+    if check_command_exists("sha256sum") then
+      command = string.format("sha256sum '%s'", file_path)
+    elseif check_command_exists("shasum") then
+      command = string.format("shasum -a 256 '%s'", file_path)
+    else
+      warning_occurred = true
+      warning_message = "Neither sha256sum nor shasum found in PATH."
+      return nil, nil, warning_occurred, warning_message
     end
   else -- windows
     -- Use CertUtil with SHA256
