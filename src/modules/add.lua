@@ -13,7 +13,7 @@ local url_utils = require("utils.url")
 ---@field save_manifest fun(manifest: table): boolean, string?
 ---@field ensure_lib_dir fun(): nil
 ---@field downloader table
----@field downloader.download fun(url: string, path: string, verbose: boolean|nil): boolean, string? -- Added verbose flag
+---@field downloader.download fun(url: string, path: string, verbose: boolean|nil): boolean, string?
 ---@field hash_utils table
 ---@field hash_utils.hash_file_sha256 fun(path: string): string?, string? -- Adjusted signature based on usage
 ---@field lockfile table
@@ -77,8 +77,8 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   -- At this point, both dep_name and filename should be set.
 
   -- 4. Normalize URL & Get Download Info
-  -- Returns: base_url, ref, commit_hash (only if ref is hash), download_url, error
-  local base_url, ref, commit_hash, download_url, norm_err = url_utils.normalize_github_url(input_url)
+  -- Returns: download_url, error
+  local _, _, commit_hash, download_url, norm_err = url_utils.normalize_github_url(input_url)
   if norm_err then
     return false, string.format("Failed to process URL '%s': %s", input_url, norm_err)
   end
@@ -157,7 +157,11 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     -- Attempt to remove potentially partially downloaded file
     local removed, remove_err = filesystem_utils.remove_file(target_path)
     if not removed then
-      print(string.format("Warning: Could not remove partially downloaded file '%s': %s", target_path, remove_err or "unknown error"))
+      print(string.format(
+        "Warning: Could not remove partially downloaded file '%s': %s",
+        target_path,
+        remove_err or "unknown error"
+      ))
     end
     return false, "Download failed: " .. (download_err or "Unknown error")
   end

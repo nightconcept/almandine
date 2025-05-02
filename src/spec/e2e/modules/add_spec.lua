@@ -232,7 +232,10 @@ describe("E2E: `almd add` command", function()
     local expected_commit_hash = "81f7f879a812e4479493a88e646831d0f0409560"
 
     -- Run the add command using the command path
-    local success, output = scaffold.run_almd(sandbox_path, { "add", test_url, "-d", cmd_test_path, "-n", cmd_test_name })
+    local success, output = scaffold.run_almd(
+      sandbox_path,
+      { "add", test_url, "-d", cmd_test_path, "-n", cmd_test_name }
+    )
     assert.is_true(success, "almd add command should exit successfully (exit code 0). Output:\n" .. output)
 
     -- Verify file downloaded to the custom path
@@ -275,7 +278,6 @@ describe("E2E: `almd add` command", function()
     local expected_hash = "commit:" .. expected_commit_hash
     assert.are.equal(expected_hash, dep_lock_info.hash, "Lockfile hash mismatch (should be commit hash)")
   end)
-  
   -- Add a bad path (non-existent file)
   -- Equivalent to:
   -- almd add https://github.com/Oval-Tutu/shove/blob/main/clove.lua
@@ -286,7 +288,8 @@ describe("E2E: `almd add` command", function()
     -- Capture initial project state (dependencies)
     local initial_project_data_before, proj_err_before = scaffold.read_project_lua(sandbox_path)
     assert.is_not_nil(initial_project_data_before, "Failed to read initial project.lua: " .. tostring(proj_err_before))
-    local initial_dependencies = initial_project_data_before.dependencies or {} -- Handle case where dependencies might be nil
+    -- Handle case where dependencies might be nil
+    local initial_dependencies = initial_project_data_before.dependencies or {}
 
     -- Run the add command using the command path - expect failure
     local success, output = scaffold.run_almd(sandbox_path, { "add", test_url })
@@ -295,18 +298,31 @@ describe("E2E: `almd add` command", function()
     -- Verify file was NOT downloaded (check default location and potential variations)
     local default_file_path = sandbox_path .. "/src/lib/" .. expected_dep_name .. ".lua"
     local file_exists = scaffold.file_exists(default_file_path)
-    assert.is_false(file_exists, "Dependency file should NOT have been downloaded to " .. default_file_path)
+    assert.is_false(
+      file_exists,
+      "Dependency file should NOT have been downloaded to " .. default_file_path
+    )
 
     -- Verify project.lua content remains unchanged
     local project_data_after, proj_err_after = scaffold.read_project_lua(sandbox_path)
-    assert.is_not_nil(project_data_after, "Failed to read project.lua after command: " .. tostring(proj_err_after))
-    assert.are.same(initial_dependencies, project_data_after.dependencies, "project.lua dependencies table should remain unchanged.")
+    assert.is_not_nil(
+      project_data_after,
+      "Failed to read project.lua after command: " .. tostring(proj_err_after)
+    )
+    assert.are.same(
+      initial_dependencies,
+      project_data_after.dependencies,
+      "project.lua dependencies table should remain unchanged."
+    )
 
     -- Verify almd-lock.lua was not created or remains unchanged (assuming it doesn't exist initially)
     local lock_file_path = sandbox_path .. "/almd-lock.lua"
     local lock_file_exists = scaffold.file_exists(lock_file_path)
     -- If the lock file COULD exist empty initially, we might need a different check,
     -- but the scaffold likely doesn't create it. So, just check for non-existence.
-    assert.is_false(lock_file_exists, "almd-lock.lua should not have been created.")
+    assert.is_false(
+      lock_file_exists,
+      "almd-lock.lua should not have been created."
+    )
   end)
 end)
