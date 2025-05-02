@@ -354,12 +354,16 @@ function scaffold.run_almd(sandbox_path, args_table)
     -- Continue, but state might be affected for subsequent tests if cleanup fails
   end
 
-  -- Determine success based on os.execute result (platform-dependent)
+  -- Determine success based on os.execute result (platform-dependent and Lua version-dependent)
   local is_success
-  if is_windows() then
-    is_success = (exec_result == true) -- Windows os.execute returns boolean
+  local lua_version = tonumber(_VERSION:match("Lua (%d+%.%d+)"))
+  if lua_version and lua_version >= 5.2 then
+    -- Lua 5.2+ returns (boolean success, string exit_type, number code)
+    is_success = (exec_result == true)
+  elseif is_windows() then
+    is_success = (exec_result == true) -- Windows os.execute returns boolean in Lua 5.1
   else
-    is_success = (exec_result == 0) -- POSIX os.execute returns exit code (0 for success)
+    is_success = (exec_result == 0) -- POSIX os.execute returns exit code (0 for success) in Lua 5.1
   end
 
   -- Read output from temp files
