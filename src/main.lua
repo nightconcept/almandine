@@ -172,7 +172,7 @@ For help with a command: almd help <command> or almd <command> --help
       end
     end
 
-    local ok, _ = add_module.add_dependency(dep_name, source, dest_dir, {
+    local ok, fatal_err, warning_occurred, warning_msg = add_module.add_dependency(dep_name, source, dest_dir, {
       load_manifest = manifest_utils.safe_load_project_manifest,
       save_manifest = manifest_utils.save_manifest,
       ensure_lib_dir = filesystem_utils.ensure_lib_dir,
@@ -181,12 +181,21 @@ For help with a command: almd help <command> or almd <command> --help
       lockfile = require("utils.lockfile"),
       verbose = verbose,
     })
+
+    if warning_occurred then
+      print("Warning(s) occurred during add operation:")
+      print("  " .. (warning_msg or "Unknown warning"):gsub("\n", "\n  "))
+    end
+
     if not ok then
-      -- print("[Debug main.lua] add_dependency returned not ok. Error:", _) -- Remove Debug
-      -- Error message already printed by add_dependency
+      print("Error: Add operation failed.")
+      if fatal_err then
+        print("  Reason: " .. fatal_err)
+      end
       os.exit(1)
     end
-    return -- Success, implicit exit 0
+
+    return
   elseif args[1] == "install" or args[1] == "i" then
     -- Usage: almd install [<dep_name>]
     local dep_name = args[2]

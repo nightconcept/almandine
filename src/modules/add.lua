@@ -15,7 +15,7 @@ local url_utils = require("utils.url")
 ---@field downloader table
 ---@field downloader.download fun(url: string, path: string, verbose: boolean|nil): boolean, string?
 ---@field hash_utils table
----@field hash_utils.hash_file_sha256 fun(path: string): string?, string? -- Adjusted signature based on usage
+---@field hash_utils.hash_file_sha256 fun(path: string): string?, string?, boolean?, string? -- hash, fatal_err, warning_occurred, warning_msg
 ---@field lockfile table
 ---@field lockfile.generate_lockfile_table fun(deps: table): table
 ---@field lockfile.write_lockfile fun(table): boolean, string?
@@ -26,17 +26,21 @@ local url_utils = require("utils.url")
 ---@param dep_source string|table Dependency source string (URL) or table with url/path.
 ---@param cmd_dest_path_or_dir string|nil Optional destination directory or full path provided via command line (-d).
 ---@param deps AddDeps Table containing dependency injected functions and configuration.
----@return boolean success True if operation completed successfully.
----@return string? error Error message if operation failed.
+---@return boolean success True if core operation completed successfully (download, manifest update).
+---@return string? error Error message if a fatal operation failed.
+---@return boolean warning True if a non-fatal warning occurred (e.g. hash failure).
+---@return string? warning_message The warning message if a warning occurred.
 local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   local verbose = deps.verbose or false
+  local final_warning_occurred = false
+  local final_warning_message = nil
 
   -- 1. Load Manifest & Ensure Library Directory
   deps.ensure_lib_dir()
   local manifest, manifest_err = deps.load_manifest()
   if not manifest then
     print("Error loading manifest: " .. (manifest_err or "Unknown error"))
-    return false, manifest_err
+    return false, manifest_err, false -- Fatal error
   end
 
   -- 2. Process Input Source (URL/Table)
@@ -47,7 +51,7 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     input_url = dep_source.url
     input_path = dep_source.path -- Path from source table, not -d flag
     if not input_url then
-      return false, "Dependency source table must contain a 'url' field."
+      return false, "Dependency source table must contain a 'url' field.", false -- Fatal error
     end
   else
     input_url = dep_source
@@ -63,7 +67,7 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     -- Infer filename from URL
     filename = input_url:match("/([^/]+)$")
     if not filename or filename == "" then
-      return false, "Could not determine filename from URL: " .. input_url .. ". Try using the -n flag."
+      return false, "Could not determine filename from URL: " .. input_url .. ". Try using the -n flag.", false -- Fatal error
     end
     -- Infer dep_name from filename if not provided
     local name_from_file = filename:match("^(.+)%.lua$")
@@ -71,7 +75,7 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
       dep_name = name_from_file
     else
       -- This case might be hard to reach if filename extraction worked, but safeguarding.
-      return false, "Could not infer dependency name from URL/filename: " .. input_url
+      return false, "Could not infer dependency name from URL/filename: " .. input_url, false -- Fatal error
     end
   end
   -- At this point, both dep_name and filename should be set.
@@ -80,25 +84,25 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   -- Returns: download_url, error
   local _, _, commit_hash, download_url, norm_err = url_utils.normalize_github_url(input_url)
   if norm_err then
-    return false, string.format("Failed to process URL '%s': %s", input_url, norm_err)
+    return false, string.format("Failed to process URL '%s': %s", input_url, norm_err), false -- Fatal error
   end
   if not download_url then
     -- Should be caught by normalize_github_url errors usually, but double-check
-    return false, string.format("Could not determine download URL for '%s'", input_url)
+    return false, string.format("Could not determine download URL for '%s'", input_url), false -- Fatal error
   end
 
   -- 5. Create Source Identifier for Manifest
   local source_identifier, sid_err = url_utils.create_github_source_identifier(input_url)
   if not source_identifier then
-    print(
-      string.format(
-        "Warning: Could not create specific GitHub identifier for '%s' (%s). Using original URL.",
-        input_url,
-        sid_err or "unknown error"
-      )
+    -- Treat this as a non-fatal warning for now, allows proceeding with original URL
+    final_warning_occurred = true
+    final_warning_message = string.format(
+      "Could not create specific GitHub identifier for '%s' (%s). Using original URL.",
+      input_url,
+      sid_err or "unknown error"
     )
+    print("Warning: " .. final_warning_message)
     source_identifier = input_url -- Fallback to the original URL
-    -- Note: commit_hash might still be known from normalization step even if identifier creation failed.
   end
 
   -- 6. Determine Final Target Path
@@ -131,7 +135,7 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
       local err_msg =
         string.format("Failed to ensure target directory '%s' exists: %s", target_dir_path, dir_err or "unknown error")
       print(err_msg)
-      return false, err_msg
+      return false, err_msg, false -- Fatal error
     end
   end
 
@@ -163,7 +167,7 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
         remove_err or "unknown error"
       ))
     end
-    return false, "Download failed: " .. (download_err or "Unknown error")
+    return false, "Download failed: " .. (download_err or "Unknown error"), false -- Fatal error
   end
 
   -- 10. Download Succeeded: Save Manifest
@@ -176,7 +180,7 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     print(err_msg)
     print("  The downloaded file exists at: " .. target_path)
     print("  The manifest (project.lua) may be inconsistent.")
-    return false, err_msg
+    return false, err_msg, false -- Fatal error
   end
   print("Updated project.lua.")
 
@@ -184,7 +188,11 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   local existing_lockfile_data, load_err = deps.lockfile.load_lockfile()
   if load_err and not load_err:match("Could not read lockfile") then
     -- Warn but continue, we'll create a new lockfile or overwrite based on current state.
-    print("Warning: Could not load existing lockfile to merge changes: " .. tostring(load_err))
+    local load_warn_msg = "Could not load existing lockfile to merge changes: " .. tostring(load_err)
+    print("Warning: " .. load_warn_msg)
+    -- Aggregate warnings
+    final_warning_occurred = true
+    final_warning_message = (final_warning_message and final_warning_message .. "\n" or "") .. load_warn_msg
     existing_lockfile_data = nil -- Treat as if no lockfile existed
   end
 
@@ -203,20 +211,28 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     print(string.format("Using commit hash '%s' for lockfile entry '%s'.", commit_hash, dep_name))
   else
     print(string.format("Calculating sha256 content hash for '%s'...", target_path))
-    local content_hash, hash_err = deps.hash_utils.hash_file_sha256(target_path)
+    -- Adjusted call to handle 4 return values
+    local content_hash, hash_fatal_err, hash_warning_occurred, hash_warning_msg = deps.hash_utils.hash_file_sha256(target_path)
+
     if content_hash then
       lockfile_hash_string = "sha256:" .. content_hash
       print(string.format("Using content hash '%s' for lockfile entry '%s'.", content_hash, dep_name))
+    elseif hash_warning_occurred then
+      -- Specific non-fatal warning: hash tool not found
+      lockfile_hash_string = "hash_error:tool_not_found"
+      -- Aggregate warning
+      final_warning_occurred = true
+      final_warning_message = (final_warning_message and final_warning_message .. "\n" or "") .. hash_warning_msg
+      -- Do NOT print warning here, let main.lua handle it
     else
-      -- Non-critical warning: Lockfile entry will indicate hash failure.
-      lockfile_hash_string = "hash_error:" .. (hash_err or "unknown")
-      print(
-        string.format(
-          "Warning: Could not calculate sha256 hash for '%s': %s. Lockfile entry will reflect this.",
-          target_path,
-          hash_err or "unknown error"
-        )
-      )
+      -- Some other fatal error occurred during hashing (file not found, command failed, parse error)
+      -- Treat this as fatal for the add operation?
+      -- For now, let's treat it as a non-fatal warning like tool_not_found, but use the error message.
+      lockfile_hash_string = "hash_error:" .. (hash_fatal_err or "unknown_fatal_error")
+      local hash_fail_warn_msg = string.format("Failed to calculate sha256 hash for '%s': %s", target_path, hash_fatal_err or "unknown error")
+      final_warning_occurred = true
+      final_warning_message = (final_warning_message and final_warning_message .. "\n" or "") .. hash_fail_warn_msg
+      -- Do NOT print warning here, let main.lua handle it
     end
   end
 
@@ -237,11 +253,13 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     local err_msg = "Error: Failed to write almd-lock.lua: " .. (err_lock or "Unknown error")
     print(err_msg)
     print("  The manifest (project.lua) was updated, but the lockfile update failed.")
-    return false, err_msg -- Return error, state is slightly inconsistent.
+    -- Treat lockfile write failure as fatal
+    return false, err_msg, final_warning_occurred, final_warning_message
   end
 
   print("Successfully updated almd-lock.lua.")
-  return true -- Entire operation successful
+  -- Return success, potentially with warnings
+  return true, nil, final_warning_occurred, final_warning_message
 end
 
 ---Prints usage/help information for the `add` command.

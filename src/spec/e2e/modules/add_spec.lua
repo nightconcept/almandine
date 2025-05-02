@@ -49,7 +49,7 @@ describe("E2E: `almd add` command", function()
   end)
 
   -- Helper function for verifying successful add cases
-  local function verify_add_or_fail_scenario(params)
+  local function _verify_add(params)
     -- Construct command arguments
     local cmd_args = { "add", params.url }
     if params.extra_args then
@@ -201,7 +201,6 @@ describe("E2E: `almd add` command", function()
     end
   end
 
-  -- Define test cases
   local test_cases = {
     -- Equivalent to:
     -- almd add https://github.com/Oval-Tutu/shove/blob/81f7f879a812e4479493a88e646831d0f0409560/shove.lua
@@ -257,6 +256,7 @@ describe("E2E: `almd add` command", function()
       expected_lock_source = LOCKSOURCE_GITHUB_RAW,
       expect_success = true,
     },
+    -- Equivalent to:
     -- almd add https://github.com/Oval-Tutu/shove/blob/main/clove.lua (non-existent file)
     {
       description = "should fail to add a dependency from a URL pointing to a non-existent file",
@@ -271,7 +271,7 @@ describe("E2E: `almd add` command", function()
   -- Iterate over cases and run tests
   for _, test_case in ipairs(test_cases) do
     it(test_case.description, function()
-      verify_add_or_fail_scenario(test_case)
+      _verify_add(test_case)
     end)
   end
 end)

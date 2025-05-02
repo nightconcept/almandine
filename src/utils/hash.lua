@@ -105,41 +105,52 @@ end
 --- Calculates the SHA256 hash of a file using external command.
 -- NOTE: Requires 'shasum' (with -a 256) or 'sha256sum' (Linux/macOS) or 'CertUtil' (Windows) to be in the PATH.
 -- @param file_path string Path to the file.
--- @return string|nil The hex-encoded SHA256 hash, or nil on error.
--- @return string|nil Error message if calculation failed.
+-- @return string|nil The hex-encoded SHA256 hash, or nil if a fatal error occurred.
+-- @return string|nil Error message if calculation failed fatally.
+-- @return boolean|nil True if a non-fatal warning occurred (e.g., hash tool not found), nil otherwise.
 local function hash_file_sha256(file_path)
   local command
-  local os_type = package.config:sub(1, 1) == "\\" and "windows" or "unix"
+  local os_type = package.config:sub(1, 1) == "\\\\" and "windows" or "unix"
+  local warning_occurred = false
+  local warning_message = nil
 
   if os_type == "unix" then
     -- Try sha256sum first (more standard on Linux), then fallback to shasum
-    local sha256sum_exists = os.execute("command -v sha256sum > /dev/null 2>&1") == 0
-    if sha256sum_exists then
+    -- Wrap execute in pcall to prevent script exit on error, capture status
+    local sha256sum_found = (pcall(os.execute, "command -v sha256sum > /dev/null 2>&1") and os.execute("command -v sha256sum > /dev/null 2>&1") == 0)
+    if sha256sum_found then
       command = string.format("sha256sum '%s'", file_path)
     else
       -- Fallback to shasum if sha256sum is not found
-      local shasum_exists = os.execute("command -v shasum > /dev/null 2>&1") == 0
-      if shasum_exists then
+      local shasum_found = (pcall(os.execute, "command -v shasum > /dev/null 2>&1") and os.execute("command -v shasum > /dev/null 2>&1") == 0)
+      if shasum_found then
         command = string.format("shasum -a 256 '%s'", file_path)
       else
-        return nil, "Neither sha256sum nor shasum found in PATH."
+        warning_occurred = true
+        warning_message = "Neither sha256sum nor shasum found in PATH."
+        -- Return nil hash, no fatal error, but set warning flag
+        return nil, nil, warning_occurred, warning_message
       end
     end
   else -- windows
     -- Use CertUtil with SHA256
     command = string.format('CertUtil -hashfile "%s" SHA256', file_path)
+    -- Add a check for CertUtil existence on Windows?
+    -- For now, assume it exists, consistent with previous logic.
   end
 
   -- Check if file exists before attempting to hash
   local file = io.open(file_path, "rb")
   if not file then
-      return nil, "File not found or not readable: " .. file_path
+      -- Treat file not found as a fatal error for hashing
+      return nil, "File not found or not readable: " .. file_path, false
   end
   file:close()
 
   local handle = io.popen(command)
   if not handle then
-    return nil, "Failed to execute hash command: " .. command
+    -- Failed to even start the command - fatal error
+    return nil, "Failed to execute hash command: " .. command, false
   end
 
   local result = handle:read("*a")
@@ -148,11 +159,13 @@ local function hash_file_sha256(file_path)
   if not success or (exit_code and exit_code ~= 0) then
      local err_msg = string.format("Hash command failed (Exit: %s, Signal: %s): %s\nOutput: %s",
          tostring(exit_code), tostring(term_signal), command, result or "")
-     return nil, err_msg
+     -- Treat command execution failure as fatal for the hash operation
+     return nil, err_msg, false
   end
 
   if not result or result == "" then
-    return nil, "Hash command produced no output."
+    -- Treat no output as a fatal error
+    return nil, "Hash command produced no output.", false
   end
 
   local hash
@@ -168,9 +181,11 @@ local function hash_file_sha256(file_path)
   end
 
   if hash then
-    return hash:lower()
+    -- Success: return hash, no error, no warning
+    return hash:lower(), nil, false
   else
-    return nil, "Could not parse hash from command output: " .. result
+    -- Failed to parse output - fatal error
+    return nil, "Could not parse hash from command output: " .. result, false
   end
 end
 
