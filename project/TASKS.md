@@ -32,22 +32,22 @@
     - [x] Ensure existing functionality (prompting for name, version, license, description, scripts, dependencies, writing `project.lua`) remains unchanged.
     - [x] Manual Verification: Code review confirms the refactoring uses dependency injection correctly and preserves the original interactive behavior logic.
 
-- [ ] **Task 1.3: Update `main.lua` for Dependency Injection**
-    - [ ] Modify `src/main.lua` where the `init` command is handled.
-    - [ ] Create an instance of the `InitDeps` table, providing the actual implementations (e.g., wrapping `io.read`/`io.write` for `prompt`, `print` for `println`, `manifest_utils.save_manifest` for `save_manifest`).
-    - [ ] Pass this `InitDeps` table when calling the refactored `init_project` function.
-    - [ ] Manual Verification: Run `almd init` manually. Verify the interactive prompts work as before and `project.lua` is created correctly. Check argument parsing logic in `main.lua`.
+- [x] **Task 1.3: Update `main.lua` for Dependency Injection**
+    - [x] Modify `src/main.lua` where the `init` command is handled.
+    - [x] Create an instance of the `InitDeps` table, providing the actual implementations (e.g., wrapping `io.read`/`io.write` for `prompt`, `print` for `println`, `manifest_utils.save_manifest` for `save_manifest`).
+    - [x] Pass this `InitDeps` table when calling the refactored `init_project` function.
+    - [x] Manual Verification: Run `almd init` manually. Verify the interactive prompts work as before and `project.lua` is created correctly. Check argument parsing logic in `main.lua`.
 
 ## Milestone 2: E2E Tests for `init` Command
 
 **Goal:** Implement E2E test cases for the `init` command using Busted and the existing scaffolding helper, accounting for its interactive nature.
 
-- [ ] **Task 2.1: Create `init_spec.lua` Structure**
-    - [ ] Create `src/spec/e2e/modules/init_spec.lua` (if it doesn't exist or is empty).
-    - [ ] Set up the `describe` block.
-    - [ ] Implement `before_each` to call `scaffold.create_sandbox_project()`. Note: `init_project_file` is likely *not* needed here, as `init`'s purpose is to create it.
-    - [ ] Implement `after_each` to call the `cleanup_func()`.
-    - [ ] Manual Verification: Run the empty spec file with `busted`; ensure setup/teardown execute without errors in a clean sandbox.
+- [x] **Task 2.1: Create `init_spec.lua` Structure**
+    - [x] Create `src/spec/e2e/modules/init_spec.lua` (if it doesn't exist or is empty).
+    - [x] Set up the `describe` block.
+    - [x] Implement `before_each` to call `scaffold.create_sandbox_project()`. Note: `init_project_file` is likely *not* needed here, as `init`'s purpose is to create it.
+    - [x] Implement `after_each` to call the `cleanup_func()`.
+    - [x] Manual Verification: Run the empty spec file with `busted`; ensure setup/teardown execute without errors in a clean sandbox.
 
 - [ ] **Task 2.2: Develop Strategy for Testing Interaction**
     - [ ] Analyze how `scaffold.run_almd` (or direct `main.lua` calls) can handle the interactive prompts of `almd init`.

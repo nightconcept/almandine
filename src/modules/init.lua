@@ -12,6 +12,7 @@ package.path = filesystem_utils.join_path("src", "lib", "?.lua") .. ";" .. packa
 ---@field println fun(...) Function to print output to the console.
 ---@field save_manifest fun(manifest: table): boolean, string? Function to save the manifest table.
 ---@field exit fun(code: number|nil) Function to exit the application.
+---@field printer table Printer utility with stdout/stderr methods.
 
 --- Internal helper function to prompt the user.
 --- Uses the injected prompt function from dependencies.
@@ -41,21 +42,21 @@ end
 --- Usage: almd init
 --- Initializes a new Almandine project interactively.
 local function help_info()
-  -- Use a local print function for consistency, though injecting println
-  -- might be overkill for help_info unless we want to capture its output.
-  local print_func = print
-  print_func([[
+  return [[
 Usage: almd init
 
 Interactively initializes a new Almandine project and creates a project.lua manifest.
-]])
+]]
 end
 
 --- Initializes a new Almandine project by interactively prompting the user for manifest fields and writing project.lua.
 ---@param deps InitDeps Table containing dependency injected functions.
+---@return boolean success True if successful, false otherwise.
+---@return string|nil message Success message for stdout.
+---@return string|nil error_message Error message for stderr.
 function init_project(deps)
-  deps.println("Almandine Project Initialization")
-  deps.println("-------------------------------")
+  deps.printer.stdout("Almandine Project Initialization")
+  deps.printer.stdout("-------------------------------")
   local manifest = {}
 
   manifest.name = _prompt_user(deps, "Project name", "my-lua-project")
@@ -93,10 +94,10 @@ function init_project(deps)
 
   local ok, err = deps.save_manifest(manifest)
   if not ok then
-    deps.println("Error: Could not write project.lua - " .. tostring(err))
-    deps.exit(1)
+    return false, nil, "Error: Could not write project.lua - " .. tostring(err)
   end
   deps.println("\nproject.lua written successfully.")
+  return true, "Project initialized successfully."
 end
 
 return {
