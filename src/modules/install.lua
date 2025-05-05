@@ -80,9 +80,12 @@ local function install_dependencies(dep_name, deps)
       -- Try to extract commit hash from URL for github: prefix
       local _, extracted_commit_hash = url_utils.normalize_github_url(dep_info.url, nil)
 
+      -- Normalize path with forward slashes
+      local normalized_path = fs_utils.normalize_path(dep_info.path)
+
       local manifest_entry = {
         source = dep_info.url, -- Store the original source URL
-        path = dep_info.path,
+        path = normalized_path, -- Use normalized path
         -- hash = nil -- Set below
       }
 
@@ -183,6 +186,11 @@ local function install_dependencies(dep_name, deps)
         local target_path = lock_entry.path
         local expected_hash = lock_entry.hash
 
+        -- Ensure path is normalized for operations but keeps forward slashes in lockfile
+        local normalized_path = fs_utils.normalize_path(target_path)
+        -- For file operations, we may need to convert back to OS-specific format
+        local system_path = target_path -- This is fine as is since it came from lockfile
+        
         -- Get the raw download URL, preferring normalized version
         local _, _, normalized_download_url, norm_err = url_utils.normalize_github_url(source_url, nil)
         local download_url = normalized_download_url or source_url -- Fallback to original source if normalization fails
@@ -190,25 +198,25 @@ local function install_dependencies(dep_name, deps)
           table.insert(error_messages, string.format("Warning: Using potentially non-raw URL for %s. Normalization error: %s", name, norm_err))
         end
 
-        local target_dir = target_path:match("(.+)[\\/]")
+        local target_dir = system_path:match("(.+)[\\/]")
         if target_dir then
           fs_utils.ensure_dir_exists(target_dir)
         end
 
         local display_hash = expected_hash:match("^github:(.+)$")
         local display_name = name .. (display_hash and ("@" .. display_hash:sub(1, 7)) or "")
-        table.insert(output_messages, string.format("Downloading %s from %s to %s...", display_name, download_url, target_path))
-        local ok, err_download = effective_downloader.download(download_url, target_path)
+        table.insert(output_messages, string.format("Downloading %s from %s to %s...", display_name, download_url, system_path))
+        local ok, err_download = effective_downloader.download(download_url, system_path)
 
         if ok then
-          table.insert(output_messages, string.format("Downloaded %s to %s", name, target_path))
+          table.insert(output_messages, string.format("Downloaded %s to %s", name, system_path))
           install_count = install_count + 1
 
           -- Verify or Calculate SHA512 hash if needed
           if needs_content_hash[name] then
             content_hashes_verified_or_calculated = true -- Mark that we ran this logic
             table.insert(output_messages, string.format("Calculating/Verifying SHA512 hash for %s...", name))
-            local calculated_hash, hash_err = hash_utils.calculate_sha512(target_path)
+            local calculated_hash, hash_err = hash_utils.calculate_sha512(system_path)
 
             if calculated_hash then
               local calculated_hash_str = "sha512:" .. calculated_hash
@@ -229,6 +237,8 @@ local function install_dependencies(dep_name, deps)
                 end
               else -- Calculate and store new SHA512 hash
                 lock_entry.hash = calculated_hash_str
+                -- Ensure path is normalized in the lockfile
+                lock_entry.path = normalized_path
                 table.insert(output_messages, string.format("  -> SHA512 Calculated: %s", lock_entry.hash))
                 lockfile_updated = true -- Mark that we need to re-save the lockfile
               end

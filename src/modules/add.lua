@@ -136,6 +136,9 @@ local function add_dependency(dep_name, dep_source, dest_dir, deps)
     target_path = filesystem_utils.join_path("src", "lib", filename)
   end
 
+  -- Normalize path with forward slashes for project.lua
+  local normalized_path = filesystem_utils.normalize_path(target_path)
+
   -- Ensure Target Directory Exists
   local target_dir_path = target_path:match("(.+)[\\/]")
   if target_dir_path then
@@ -151,10 +154,10 @@ local function add_dependency(dep_name, dep_source, dest_dir, deps)
   manifest.dependencies = manifest.dependencies or {}
   manifest.dependencies[dep_name] = {
     source = source_identifier,
-    path = target_path,
+    path = normalized_path, -- Use normalized path with forward slashes
   }
   table.insert(output_messages,
-    string.format("Preparing to add dependency '%s': source='%s', path='%s'", dep_name, source_identifier, target_path)
+    string.format("Preparing to add dependency '%s': source='%s', path='%s'", dep_name, source_identifier, normalized_path)
   )
 
   -- Download Dependency
@@ -242,7 +245,7 @@ local function add_dependency(dep_name, dep_source, dest_dir, deps)
   current_lock_packages[dep_name] = {
     -- Use the raw download URL for reproducibility, as it includes the specific ref used.
     source = download_url,
-    path = target_path,
+    path = normalized_path, -- Use normalized path with forward slashes
     hash = lockfile_hash_string,
   }
 

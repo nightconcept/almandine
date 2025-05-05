@@ -128,6 +128,18 @@ function M.get_path_type(path)
 end
 
 ---
+-- Normalizes a path to use forward slashes, making it consistent across platforms
+-- for storage in project files. This ensures paths in project.lua and almd-lock.lua
+-- are portable across different operating systems.
+-- @param path string The path to normalize
+-- @return string The normalized path with forward slashes
+function M.normalize_path(path)
+  if not path then return nil end
+  -- Replace all backslashes with forward slashes
+  return path:gsub("\\", "/")
+end
+
+---
 -- Attempts to remove a file.
 -- @param file_path string The path to the file to remove.
 -- @return boolean success True if the file was removed successfully or did not exist.
