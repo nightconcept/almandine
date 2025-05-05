@@ -92,32 +92,68 @@ For help with a command: almd help <command> or almd <command> --help
 ]]):format(version))
 end
 
-local function main(...)
-  --- The main entry point for the Almandine CLI application.
+local function run_cli(args)
+  --- Executes the appropriate Almandine command based on arguments.
+  -- Returns: boolean success, string message_or_error
   --
-  -- @param ... string CLI arguments.
-  version_utils.check_lua_version(load_manifest)
-  local args = { ... }
-  -- pnpm-style usage/help if no arguments
-  if not args[1] or args[1] == "--help" or args[1] == "help" or (args[2] and args[2] == "--help") then
-    print_help()
-    return
+
+  -- Helper function to get manifest, memoized per run_cli call
+  local manifest_cache = nil
+  local manifest_load_error = nil
+  local function get_cached_manifest()
+    if manifest_cache == nil and manifest_load_error == nil then
+      manifest_cache, manifest_load_error = manifest_utils.safe_load_project_manifest("project.lua")
+    end
+    return manifest_cache, manifest_load_error
   end
-  -- Modular help delegation
-  if args[1] == "--help" or args[1] == "help" or (args[2] and args[2] == "--help") then
-    local cmd = args[2] or args[1]
-    local help_map = {
-      init = init_module.help_info,
-      add = add_module.help_info,
-      install = install_module.help_info,
-      remove = remove_module.help_info,
-      update = update_module.help_info,
-      run = run_module.help_info,
-      list = list_module.help_info,
-      ["self"] = self_module.help_info,
-    }
-    if not args[2] or args[1] == "--help" then
-      print([[almd: Modern Lua Package Manager
+
+  version_utils.check_lua_version(get_cached_manifest) -- Still check version early
+
+  -- Handle no args or help flags
+  if not args[1] or args[1] == "--help" or args[1] == "help" or (args[1] and args[1]:match("^%-h")) then
+    local version = version_utils.get_version and version_utils.get_version() or "(unknown)"
+    return true, ([[
+Almandine CLI v%s
+
+Usage: almd [command] [options]
+     almd [ -h | --help | -v | --version ]
+
+Project Management:
+ init                  Initialize a new Lua project in the current directory
+
+Dependency Management:
+ add                   Add a dependency to the project
+ install               Install all dependencies listed in project.lua (aliases: i)
+ remove                Remove a dependency from the project (aliases: rm, uninstall, un)
+ update                Update dependencies to latest allowed version (aliases: up)
+ list                  List installed dependencies and their versions (aliases: ls)
+
+Scripts:
+ run                   Run a script defined in project.lua scripts table
+
+Self-management:
+ self uninstall        Remove the almd CLI
+ self update           Update the almd CLI
+
+Options:
+-h, --help             Show this help message
+-v, --version          Show version
+
+For help with a command: almd help <command> or almd <command> --help
+]]):format(version)
+  end
+
+  -- Handle version flag
+  if args[1] == "-v" or args[1] == "--version" then
+    local version = version_utils.get_version and version_utils.get_version() or "(unknown)"
+    return true, "Almandine CLI v" .. version
+  end
+
+  -- Handle specific command help
+  if args[1] == "help" or (args[2] and args[2] == "--help") then
+    local cmd = args[2] or args[1] -- Command is the second arg if 'help' is first
+    if args[1] == "help" and not args[2] then -- `almd help` case
+      return true, [[almd: Modern Lua Package Manager
 
 Usage: almd <command> [options]
 
@@ -132,25 +168,50 @@ Commands:
   self       Self-management commands
 
 For help with a command: almd help <command> or almd <command> --help
-]])
-      return
-    elseif help_map[cmd] then
+]]
+    end
+
+    local help_map = {
+      init = init_module.help_info,
+      add = add_module.help_info,
+      install = install_module.help_info,
+      remove = remove_module.help_info,
+      update = update_module.help_info,
+      run = run_module.help_info,
+      list = list_module.help_info,
+      ["self"] = self_module.help_info,
+    }
+    if help_map[cmd] then
+      -- Capture output of help function instead of printing directly
+      local old_print = print
+      local help_output = {}
+      _G.print = function(...) -- Temporarily override print
+        local parts = {}
+        for i = 1, select("#", ...) do
+          parts[i] = tostring(select(i, ...))
+        end
+        table.insert(help_output, table.concat(parts, "\t"))
+      end
       help_map[cmd]()
-      return
+      _G.print = old_print -- Restore print
+      return true, table.concat(help_output, "\n")
     else
-      print("Unknown command for help: " .. tostring(cmd))
-      return
+      return false, "Unknown command for help: " .. tostring(cmd)
     end
   end
-  if args[1] == "init" then
-    init_module.init_project()
-    return
-  elseif args[1] == "add" then
-    -- Usage: almd add <source> [-d <dir>] [-n <dep_name>]
+
+  -- --- Command Execution ---
+  local command = args[1]
+
+  if command == "init" then
+    -- Assuming init_project prints its own success/failure messages for now
+    -- Or refactor init_project to return status/message if needed for testing
+    local ok, msg = init_module.init_project() -- TODO: Ensure init_project returns ok, msg
+    return ok, msg or (ok and "Project initialized." or "Initialization failed.")
+  elseif command == "add" then
     local source = args[2]
     if not source then
-      print("Usage: almd add <source> [-d <dir>] [-n <dep_name>]")
-      return
+      return false, "Usage: almd add <source> [-d <dir>] [-n <dep_name>] [--verbose]"
     end
 
     local verbose = false
@@ -167,8 +228,7 @@ For help with a command: almd help <command> or almd <command> --help
         verbose = true
         i = i + 1
       else
-        print("Unknown or incomplete flag: " .. tostring(args[i]))
-        return
+        return false, "Unknown or incomplete flag: " .. tostring(args[i])
       end
     end
 
@@ -182,121 +242,161 @@ For help with a command: almd help <command> or almd <command> --help
       verbose = verbose,
     })
 
+    local final_message = ""
     if warning_occurred then
-      print("Warning(s) occurred during add operation:")
-      print("  " .. (warning_msg or "Unknown warning"):gsub("\n", "\n  "))
+      final_message = "Warning(s): " .. (warning_msg or "Unknown warning") .. "\n"
     end
 
     if not ok then
-      print("Error: Add operation failed.")
+      final_message = final_message .. "Error: Add operation failed.\n"
       if fatal_err then
-        print("  Reason: " .. fatal_err)
+        final_message = final_message .. "  Reason: " .. fatal_err
       end
-      os.exit(1)
+      return false, final_message:gsub("\n$", "") -- Trim trailing newline
+    else
+      -- Optionally add a success message part
+      return true, final_message .. "Dependency added successfully."
     end
 
-    return
-  elseif args[1] == "install" or args[1] == "i" then
-    -- Usage: almd install [<dep_name>]
+  elseif command == "install" or command == "i" then
     local dep_name = args[2]
     local deps = {
-      load_manifest = load_manifest,
+      load_manifest = get_cached_manifest, -- Use cached loader
       ensure_lib_dir = filesystem_utils.ensure_lib_dir,
       downloader = downloader,
-      lockfile = require("utils.lockfile"), -- Pass the module
-      hash_utils = require("utils.hash"), -- Pass the module (needed for future checks)
-      filesystem = filesystem_utils, -- Pass the filesystem utils module
-      url_utils = require("utils.url"), -- Pass url utils needed for hash extraction
+      lockfile = require("utils.lockfile"),
+      hash_utils = require("utils.hash"),
+      filesystem = filesystem_utils,
+      url_utils = require("utils.url"),
     }
-    local ok, _ = install_module.install_dependencies(dep_name, deps)
+    local ok, msg = install_module.install_dependencies(dep_name, deps)
     if not ok then
-      print("Installation failed: " .. tostring(_ or "Unknown error"))
-      os.exit(1) -- Exit with error code
+      return false, "Installation failed: " .. tostring(msg or "Unknown error")
     end
-    return -- Success
-  elseif args[1] == "remove" or args[1] == "rm" or args[1] == "uninstall" or args[1] == "un" then
-    if args[2] then
-      local ok, _ = remove_module.remove_dependency(args[2], load_manifest, manifest_utils.save_manifest)
-      if not ok then
-        -- Error message likely printed by remove_dependency
-        os.exit(1)
-      end
-    else
-      print("Usage: almd remove <dep_name>")
-      os.exit(1)
+    return true, msg or "Installation complete."
+
+  elseif command == "remove" or command == "rm" or command == "uninstall" or command == "un" then
+    local dep_name = args[2]
+    if not dep_name then
+      return false, "Usage: almd remove <dep_name>"
     end
-    return -- Success
-  elseif args[1] == "update" or args[1] == "up" then
-    -- Usage: almd update [--latest]
+    local ok, msg = remove_module.remove_dependency(
+      dep_name,
+      get_cached_manifest, -- Use cached loader
+      manifest_utils.save_manifest
+    )
+    if not ok then
+      return false, msg or "Removal failed."
+    end
+    return true, msg or "Dependency removed."
+
+  elseif command == "update" or command == "up" then
     local latest = false
     for i = 2, #args do
       if args[i] == "--latest" then
         latest = true
       end
     end
+    -- TODO: Refactor update_dependencies to return status and messages
+    -- For now, assume success and capture its prints if needed, or just return basic success.
     update_module.update_dependencies(
-      load_manifest,
+      get_cached_manifest, -- Use cached loader
       manifest_utils.save_manifest,
       filesystem_utils.ensure_lib_dir,
       { downloader = downloader },
       add_module.resolve_latest_version,
       latest
     )
-    return
-  elseif args[1] == "run" then
-    if not args[2] then
-      print("Usage: almd run <script_name>")
-      os.exit(1) -- Exit with error for wrong usage
+    return true, "Update process initiated. Check output for details." -- Placeholder message
+
+  elseif command == "run" then
+    local script_name = args[2]
+    if not script_name then
+      return false, "Usage: almd run <script_name>"
     end
-    local deps = { manifest_loader = manifest_utils.safe_load_project_manifest }
-    local ok, err = run_module.run_script(args[2], deps)
+    local deps = { manifest_loader = get_cached_manifest } -- Use cached loader
+    local ok, msg = run_module.run_script(script_name, deps)
     if not ok then
-      print(err) -- run_script returns the error message
-      os.exit(1)
+      return false, msg -- run_script returns the error message
     end
-    return -- Success
-  elseif args[1] == "list" or args[1] == "ls" then
-    list_module.list_dependencies(load_manifest)
-    return
-  elseif args[1] == "self" and args[2] == "uninstall" then
+    return true, msg or ("Script '" .. script_name .. "' executed.") -- Return output or basic success
+
+  elseif command == "list" or command == "ls" then
+    -- TODO: Refactor list_dependencies to return output string
+    -- For now, capture its prints.
+    local old_print = print
+    local list_output = {}
+    _G.print = function(...) -- Temporarily override print
+      local parts = {}
+      for i = 1, select("#", ...) do
+        parts[i] = tostring(select(i, ...))
+      end
+      table.insert(list_output, table.concat(parts, "\t"))
+    end
+    list_module.list_dependencies(get_cached_manifest) -- Use cached loader
+    _G.print = old_print -- Restore print
+    return true, table.concat(list_output, "\n")
+
+  elseif command == "self" and args[2] == "uninstall" then
     local ok, err = self_module.uninstall_self()
     if ok then
-      print("almd self uninstall: Success.")
+      return true, "almd self uninstall: Success."
     else
-      print("almd self uninstall: Failed.\n" .. (err or "Unknown error."))
-      os.exit(1)
+      return false, "almd self uninstall: Failed.\n" .. (err or "Unknown error.")
     end
-    return -- Success
-  elseif args[1] == "self" and args[2] == "update" then
-    local ok, err = self_module.self_update()
+  elseif command == "self" and args[2] == "update" then
+    local ok, msg = self_module.self_update()
     if ok then
-      print("almd self update: Success.")
-    elseif err == "Update staged for next run." then
-      print(err)
+      return true, "almd self update: Success."
+    elseif msg == "Update staged for next run." then
+      return true, msg -- Special case, considered success
     else
-      print("almd self update: Failed.\n" .. (err or "Unknown error."))
-      os.exit(1)
+      return false, "almd self update: Failed.\n" .. (msg or "Unknown error.")
     end
-    return -- Success
-  elseif not run_module.is_reserved_command(args[1]) then
-    -- If not a reserved command, check if it's an unambiguous script name
-    local deps = { manifest_loader = manifest_utils.safe_load_project_manifest }
-    local script_name = run_module.get_unambiguous_script(args[1], deps)
+
+  elseif not run_module.is_reserved_command(command) then
+    -- Check for unambiguous script name if not a reserved command
+    local deps = { manifest_loader = get_cached_manifest } -- Use cached loader
+    local script_name = run_module.get_unambiguous_script(command, deps)
     if script_name then
-      local ok, err = run_module.run_script(script_name, deps)
+      local ok, msg = run_module.run_script(script_name, deps)
       if not ok then
-        print(err)
-        os.exit(1)
+        return false, msg
       end
-      return -- Success
+      return true, msg or ("Script '" .. script_name .. "' executed.")
     end
   end
-  print_help()
-  os.exit(1) -- Exit with error if command not found
+
+  -- If command wasn't handled, return generic help/error
+  local version = version_utils.get_version and version_utils.get_version() or "(unknown)"
+  return false, "Unknown command or usage error: '" .. tostring(command) .. "'\n\n" .. ([[
+Almandine CLI v%s
+
+Usage: almd [command] [options]
+... (rest of help message - truncated for brevity) ...
+For help with a command: almd help <command> or almd <command> --help
+]]):format(version)
 end
 
-main(unpack(arg, 1))
+-- Wrapper for run_cli to handle exit code
+local function main(...)
+  local ok, message = run_cli({ ... })
 
+  if message then
+    print(message)
+  end
+
+  if not ok then
+    os.exit(1)
+  end
+end
+
+-- Entry point check: only run main if script is executed directly
+if not pcall(debug.getlocal, 2, 1) then
+  main(unpack(arg, 1))
+end
+
+-- Export the run_cli function for testing or programmatic use
 return {
-  remove_dependency = remove_module.remove_dependency,
+  run_cli = run_cli,
 }

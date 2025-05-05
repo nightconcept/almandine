@@ -7,6 +7,13 @@ local scaffold = {}
 -- Attempt to load LuaFileSystem, but don't error if it's not present
 local has_lfs, lfs = pcall(require, "lfs")
 
+-- Require the main module to call run_cli directly
+-- Assuming tests are run from the `src` directory
+local has_main, main_module = pcall(require, "main")
+if not has_main then
+  error("Failed to require src/main.lua: " .. tostring(main_module))
+end
+
 -- --- Private Helper Functions ---
 
 -- Simple platform detection
@@ -287,104 +294,112 @@ local function read_text_file(path)
   return content
 end
 
--- Executes the almd command targeting the sandbox directory using os.execute for reliable exit code.
--- Captures output via temporary files.
+-- Executes the almd command targeting the sandbox directory by calling main.run_cli directly.
+-- Captures output and simulates exit behavior.
 -- args_table should be a list of command-line arguments (e.g., {"add", "url", "-d", "path"})
--- Returns success (boolean), stdout (string), stderr (string).
+-- Returns success (boolean), combined output (string), stderr (string - typically empty now).
 function scaffold.run_almd(sandbox_path, args_table)
-  -- LFS is required for chdir and reliable path manipulation
+  -- LFS is required for chdir
   if not has_lfs then
-    return false, "", "Error: LuaFileSystem (lfs) is required for robust sandbox testing but not found."
+    return false, "Error: LuaFileSystem (lfs) is required for robust sandbox testing but not found.", ""
+  end
+  if not main_module or not main_module.run_cli then
+    return false, "Error: src/main.lua did not load correctly or missing run_cli function.", ""
   end
 
-  -- Determine absolute path to main.lua
-  local absolute_main_script_path = lfs.currentdir() .. (is_windows() and "\\src\\main.lua" or "/src/main.lua")
-
-  -- Check if main script exists
-  if not scaffold.file_exists(absolute_main_script_path) then
-    return false, "", "Error: main.lua script not found at calculated path: " .. absolute_main_script_path
-  end
-
-  -- Construct the argument string, ensuring proper quoting
-  local args_string = ""
-  if #args_table > 0 then
-    local quoted_args = {}
-    for _, arg in ipairs(args_table) do
-      table.insert(quoted_args, '"' .. tostring(arg):gsub('"', '\\"') .. '"')
-    end
-    args_string = table.concat(quoted_args, " ")
-  end
-
-  -- Generate unique temporary file names within the sandbox
-  local timestamp = os.time()
-  local random_num = math.random(10000, 99999)
-  local tmp_stdout_name = string.format("_tmp_stdout_%d_%d.txt", timestamp, random_num)
-  local tmp_stderr_name = string.format("_tmp_stderr_%d_%d.txt", timestamp, random_num)
-  -- Use absolute paths for the temp files inside the sandbox
-  local tmp_stdout_path = sandbox_path .. (is_windows() and "\\" or "/") .. tmp_stdout_name
-  local tmp_stderr_path = sandbox_path .. (is_windows() and "\\" or "/") .. tmp_stderr_name
-
-  -- Construct the command with redirection
-  local lua_exec = 'lua "' .. absolute_main_script_path .. '" ' .. args_string
-  local redirect_stdout = '> "' .. tmp_stdout_path .. '"'
-  local redirect_stderr
-  if is_windows() then
-    redirect_stderr = '2> "' .. tmp_stderr_path .. '"'
-  else
-    -- POSIX: 2>&1 redirects stderr to wherever stdout is going (the file)
-    -- However, simpler might be redirecting separately if combined output isn't needed
-    redirect_stderr = '2> "' .. tmp_stderr_path .. '"'
-  end
-  local command = lua_exec .. " " .. redirect_stdout .. " " .. redirect_stderr
-
-  -- Change directory into sandbox
   local original_dir = lfs.currentdir()
+  local original_package_path = package.path
+
+  -- Construct paths relative to the original directory
+  local src_lua_path = original_dir .. "/src/?.lua"
+  local src_init_path = original_dir .. "/src/?/init.lua"
+  -- Add other paths if main.lua adds more complex ones, e.g., src/lib
+  local src_lib_path = original_dir .. "/src/lib/?.lua"
+
   local chdir_ok, chdir_err = pcall(lfs.chdir, sandbox_path)
   if not chdir_ok then
-    return false, "", "Failed to chdir into sandbox '" .. sandbox_path .. "': " .. tostring(chdir_err)
+    return false, "Failed to chdir into sandbox '" .. sandbox_path .. "': " .. tostring(chdir_err), ""
   end
 
-  -- Execute using os.execute
-  local exec_result = os.execute(command)
+  -- Temporarily adjust package.path after chdir
+  local temp_package_path = src_lua_path .. ";" .. src_init_path .. ";" .. src_lib_path .. ";" .. package.path
 
-  -- Change back to original directory immediately after execution
+  -- Store originals and setup capture variables
+  local original_print = print
+  local original_exit = os.exit
+  local previous_package_path = package.path -- Store before modifying
+  package.path = temp_package_path -- Apply temporary path
+
+  local captured_prints = {}
+  local captured_exit_code = nil
+
+  -- Override print to capture output
+  _G.print = function(...)
+    local parts = {}
+    for i = 1, select("#", ...) do
+      parts[i] = tostring(select(i, ...))
+    end
+    table.insert(captured_prints, table.concat(parts, "\t"))
+  end
+
+  -- Override os.exit to capture code and prevent termination
+  _G.os.exit = function(code)
+    captured_exit_code = code or 0 -- Default to 0 if no code provided
+    -- Do not actually exit, just record the code
+    -- error("os.exit called with code: " .. tostring(captured_exit_code)) -- Use error to stop execution if needed, but run_cli should handle flow
+  end
+
+  local run_cli_ok, run_cli_message
+  local execution_ok, execution_result = pcall(main_module.run_cli, args_table)
+
+  -- Restore originals immediately after call
+  _G.print = original_print
+  _G.os.exit = original_exit
+
+  -- Change back to original directory
+  package.path = previous_package_path -- Restore package.path *before* chdir back
   local chback_ok, chback_err = pcall(lfs.chdir, original_dir)
   if not chback_ok then
     print("Warning: Failed to chdir back to original directory '" .. original_dir .. "': " .. tostring(chback_err))
-    -- Continue, but state might be affected for subsequent tests if cleanup fails
+    -- Continue, but state might be affected for subsequent tests
   end
 
-  -- Determine success based on os.execute result (platform-dependent and Lua version-dependent)
-  local is_success
-  local lua_version = tonumber(_VERSION:match("Lua (%d+%.%d+)"))
-  if lua_version and lua_version >= 5.2 then
-    -- Lua 5.2+ returns (boolean success, string exit_type, number code)
-    is_success = (exec_result == true)
-  elseif is_windows() then
-    is_success = (exec_result == true) -- Windows os.execute returns boolean in Lua 5.1
+  -- Fully restore original package path *after* changing back, just in case
+  package.path = original_package_path
+
+  local final_success
+  local final_output
+
+  if not execution_ok then
+    -- Error occurred *during* run_cli execution (uncaught error)
+    final_success = false
+    run_cli_message = "Error during run_cli execution: " .. tostring(execution_result)
   else
-    is_success = (exec_result == 0) -- POSIX os.execute returns exit code (0 for success) in Lua 5.1
+    -- run_cli completed, use its return values
+    run_cli_ok = execution_result -- First return value is the success status
+    run_cli_message = select(2, execution_result) or "" -- Second return value is the message
+
+    -- Determine overall success: run_cli must return true AND os.exit must not have been called with a non-zero code
+    final_success = run_cli_ok and (captured_exit_code == nil or captured_exit_code == 0 or captured_exit_code == true)
+    -- Note: os.execute compatibility: Lua 5.1 os.execute returns 0 for success, true on Windows.
+    -- Our overridden os.exit captures the code. `run_cli` itself returns boolean `ok`.
+    -- So, true success is `run_cli_ok == true` and `captured_exit_code` is not failure (e.g., 1).
   end
 
-  -- Read output from temp files
-  local stdout_content, stdout_err = read_text_file(tmp_stdout_path)
-  local stderr_content, stderr_err = read_text_file(tmp_stderr_path)
-
-  -- Clean up temp files
-  os.remove(tmp_stdout_path)
-  os.remove(tmp_stderr_path)
-
-  -- Combine outputs for simplicity? Or return separately?
-  -- For now, let's combine them similar to previous behavior.
-  local combined_output = (stdout_content or "") .. (stderr_content or "")
-  if stdout_err then
-    combined_output = combined_output .. "\nError reading stdout temp file: " .. stdout_err
-  end
-  if stderr_err then
-    combined_output = combined_output .. "\nError reading stderr temp file: " .. stderr_err
+  -- Combine returned message and captured prints
+  local captured_print_str = table.concat(captured_prints, "\n")
+  -- Decide order: message first, then prints? Or interleave? Let's put message first.
+  final_output = run_cli_message
+  if captured_print_str ~= "" then
+    if final_output ~= "" then
+      final_output = final_output .. "\n" .. captured_print_str
+    else
+      final_output = captured_print_str
+    end
   end
 
-  return is_success, combined_output, "" -- Return combined output as stdout, empty stderr
+  -- Return in the format expected by add_spec.lua
+  return final_success, final_output or "", "" -- Return empty string for stderr
 end
 
 -- Checks if a file or directory exists at the given absolute or relative path.
