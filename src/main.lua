@@ -92,6 +92,22 @@ For help with a command: almd help <command> or almd <command> --help
 ]]):format(version))
 end
 
+-- Helper to capture print_help output
+local function get_help_string()
+  local old_print = print
+  local help_output = {}
+  _G.print = function(...) -- Temporarily override print
+    local parts = {}
+    for i = 1, select("#", ...) do
+      parts[i] = tostring(select(i, ...))
+    end
+    table.insert(help_output, table.concat(parts, "\t"))
+  end
+  print_help()
+  _G.print = old_print -- Restore print
+  return table.concat(help_output, "\n")
+end
+
 local function run_cli(args)
   --- Executes the appropriate Almandine command based on arguments.
   -- Returns: boolean success, string message_or_error
@@ -111,36 +127,7 @@ local function run_cli(args)
 
   -- Handle no args or help flags
   if not args[1] or args[1] == "--help" or args[1] == "help" or (args[1] and args[1]:match("^%-h")) then
-    local version = version_utils.get_version and version_utils.get_version() or "(unknown)"
-    return true, ([[
-Almandine CLI v%s
-
-Usage: almd [command] [options]
-     almd [ -h | --help | -v | --version ]
-
-Project Management:
- init                  Initialize a new Lua project in the current directory
-
-Dependency Management:
- add                   Add a dependency to the project
- install               Install all dependencies listed in project.lua (aliases: i)
- remove                Remove a dependency from the project (aliases: rm, uninstall, un)
- update                Update dependencies to latest allowed version (aliases: up)
- list                  List installed dependencies and their versions (aliases: ls)
-
-Scripts:
- run                   Run a script defined in project.lua scripts table
-
-Self-management:
- self uninstall        Remove the almd CLI
- self update           Update the almd CLI
-
-Options:
--h, --help             Show this help message
--v, --version          Show version
-
-For help with a command: almd help <command> or almd <command> --help
-]]):format(version)
+    return true, get_help_string() -- Use helper here
   end
 
   -- Handle version flag
@@ -153,22 +140,7 @@ For help with a command: almd help <command> or almd <command> --help
   if args[1] == "help" or (args[2] and args[2] == "--help") then
     local cmd = args[2] or args[1] -- Command is the second arg if 'help' is first
     if args[1] == "help" and not args[2] then -- `almd help` case
-      return true, [[almd: Modern Lua Package Manager
-
-Usage: almd <command> [options]
-
-Commands:
-  init       Initialize a new Lua project
-  add        Add a dependency to the project
-  install    Install dependencies
-  remove     Remove a dependency
-  update     Update dependencies
-  run        Run a project script
-  list       List installed dependencies
-  self       Self-management commands
-
-For help with a command: almd help <command> or almd <command> --help
-]]
+      return true, get_help_string() -- Use helper here
     end
 
     local help_map = {
@@ -368,14 +340,7 @@ For help with a command: almd help <command> or almd <command> --help
   end
 
   -- If command wasn't handled, return generic help/error
-  local version = version_utils.get_version and version_utils.get_version() or "(unknown)"
-  return false, "Unknown command or usage error: '" .. tostring(command) .. "'\n\n" .. ([[
-Almandine CLI v%s
-
-Usage: almd [command] [options]
-... (rest of help message - truncated for brevity) ...
-For help with a command: almd help <command> or almd <command> --help
-]]):format(version)
+  return false, "Unknown command or usage error: '" .. tostring(command) .. "'\\n\\n" .. get_help_string() -- Use helper here
 end
 
 -- Wrapper for run_cli to handle exit code
