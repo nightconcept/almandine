@@ -49,14 +49,6 @@ local run_module = require("modules.run")
 local list_module = require("modules.list")
 local self_module = require("modules.self")
 
-local function load_manifest()
-  local manifest, err = manifest_utils.safe_load_project_manifest("project.lua")
-  if not manifest then
-    return nil, err
-  end
-  return manifest, nil
-end
-
 local function print_help()
   local version = version_utils.get_version and version_utils.get_version() or "(unknown)"
   print(([[
@@ -335,7 +327,7 @@ local function run_cli(args)
   end
 
   -- If command wasn't handled, return generic help/error
-  return false, "Unknown command or usage error: '" .. tostring(command) .. "'\\n\\n" .. get_help_string() -- Use helper here
+  return false, "Unknown command or usage error: '" .. tostring(command) .. "'\\n\\n" .. get_help_string()
 end
 
 -- Wrapper for run_cli to handle exit code

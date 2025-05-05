@@ -283,17 +283,6 @@ function scaffold.init_project_file(sandbox_path, initial_data)
   return true, project_file_path
 end
 
--- Reads the content of a text file.
-local function read_text_file(path)
-  local file, err = io.open(path, "r")
-  if not file then
-    return nil, "Failed to open file '" .. path .. "' for reading: " .. tostring(err)
-  end
-  local content = file:read("*a")
-  file:close()
-  return content
-end
-
 -- Executes the almd command targeting the sandbox directory by calling main.run_cli directly.
 -- Captures output and simulates exit behavior.
 -- args_table should be a list of command-line arguments (e.g., {"add", "url", "-d", "path"})
@@ -346,7 +335,8 @@ function scaffold.run_almd(sandbox_path, args_table)
   _G.os.exit = function(code)
     captured_exit_code = code or 0 -- Default to 0 if no code provided
     -- Do not actually exit, just record the code
-    -- error("os.exit called with code: " .. tostring(captured_exit_code)) -- Use error to stop execution if needed, but run_cli should handle flow
+    -- error("os.exit called with code: " .. tostring(captured_exit_code))
+    -- Use error to stop execution if needed, but run_cli should handle flow
   end
 
   local run_cli_ok, run_cli_message
