@@ -1,20 +1,18 @@
---[[
-  Main Entrypoint for Almandine Package Manager
-
-  This file serves as the main entrypoint for the Almandine Lua package manager.
-  It is responsible for bootstrapping the application and delegating control to the appropriate
-  modules based on user input or CLI arguments.
-  All initialization and top-level logic begins here.
-]]
---
+---
+--- Main Entrypoint for Almandine Package Manager
+---
+--- This file serves as the main entrypoint for the Almandine Lua package manager.
+--- It is responsible for bootstrapping the application and delegating control to the appropriate
+--- modules based on user input or CLI arguments.
+--- All initialization and top-level logic begins here.
+---
 
 ---
 -- Entry point for the Almandine CLI application.
 -- Parses CLI arguments and dispatches to the appropriate command module.
---
+---
 -- @usage lua src/main.lua <command> [options]
 --
--- @class MainEntrypoint
 
 -- Robustly set package.path relative to this script's directory (cross-platform)
 local function script_dir()
@@ -109,9 +107,11 @@ local function get_help_string()
 end
 
 local function run_cli(args)
-  --- Executes the appropriate Almandine command based on arguments.
-  -- Returns: boolean success, string message_or_error
-  --
+  ---
+  -- Executes the appropriate Almandine command based on arguments.
+  -- @return boolean success
+  -- @return string message_or_error
+  ---
 
   -- Helper function to get manifest, memoized per run_cli call
   local manifest_cache = nil
@@ -177,7 +177,6 @@ local function run_cli(args)
 
   if command == "init" then
     -- Assuming init_project prints its own success/failure messages for now
-    -- Or refactor init_project to return status/message if needed for testing
     local ok, msg = init_module.init_project() -- TODO: Ensure init_project returns ok, msg
     return ok, msg or (ok and "Project initialized." or "Initialization failed.")
   elseif command == "add" then
@@ -233,7 +232,7 @@ local function run_cli(args)
   elseif command == "install" or command == "i" then
     local dep_name = args[2]
     local deps = {
-      load_manifest = get_cached_manifest, -- Use cached loader
+      load_manifest = get_cached_manifest,
       ensure_lib_dir = filesystem_utils.ensure_lib_dir,
       downloader = downloader,
       lockfile = require("utils.lockfile"),
@@ -254,7 +253,7 @@ local function run_cli(args)
     end
     local ok, msg = remove_module.remove_dependency(
       dep_name,
-      get_cached_manifest, -- Use cached loader
+      get_cached_manifest,
       manifest_utils.save_manifest
     )
     if not ok then
@@ -269,10 +268,8 @@ local function run_cli(args)
         latest = true
       end
     end
-    -- TODO: Refactor update_dependencies to return status and messages
-    -- For now, assume success and capture its prints if needed, or just return basic success.
     update_module.update_dependencies(
-      get_cached_manifest, -- Use cached loader
+      get_cached_manifest,
       manifest_utils.save_manifest,
       filesystem_utils.ensure_lib_dir,
       { downloader = downloader },
@@ -286,7 +283,7 @@ local function run_cli(args)
     if not script_name then
       return false, "Usage: almd run <script_name>"
     end
-    local deps = { manifest_loader = get_cached_manifest } -- Use cached loader
+    local deps = { manifest_loader = get_cached_manifest }
     local ok, msg = run_module.run_script(script_name, deps)
     if not ok then
       return false, msg -- run_script returns the error message
@@ -294,8 +291,6 @@ local function run_cli(args)
     return true, msg or ("Script '" .. script_name .. "' executed.") -- Return output or basic success
 
   elseif command == "list" or command == "ls" then
-    -- TODO: Refactor list_dependencies to return output string
-    -- For now, capture its prints.
     local old_print = print
     local list_output = {}
     _G.print = function(...) -- Temporarily override print
@@ -305,7 +300,7 @@ local function run_cli(args)
       end
       table.insert(list_output, table.concat(parts, "\t"))
     end
-    list_module.list_dependencies(get_cached_manifest) -- Use cached loader
+    list_module.list_dependencies(get_cached_manifest)
     _G.print = old_print -- Restore print
     return true, table.concat(list_output, "\n")
 
@@ -328,7 +323,7 @@ local function run_cli(args)
 
   elseif not run_module.is_reserved_command(command) then
     -- Check for unambiguous script name if not a reserved command
-    local deps = { manifest_loader = get_cached_manifest } -- Use cached loader
+    local deps = { manifest_loader = get_cached_manifest }
     local script_name = run_module.get_unambiguous_script(command, deps)
     if script_name then
       local ok, msg = run_module.run_script(script_name, deps)
