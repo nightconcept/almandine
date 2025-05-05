@@ -1,152 +1,92 @@
-# Task Checklist: Almandine Package Manager
+# Task Checklist: Almandine `init` Command Refactor & Testing
 
-**Purpose:** Tracks tasks, milestones, and backlog for implementing the `add` command and its associated E2E testing infrastructure for the Almandine Lua package manager. Each task includes verification steps.
+**Purpose:** Tracks tasks, milestones, and backlog for refactoring the `init` command for better testability and implementing its associated E2E testing using the established infrastructure.
 
-**Multiplatform Policy:** All tasks, implementations, and verifications MUST consider cross-platform compatibility (Linux, macOS, and Windows) unless otherwise specified. Contributors (including AI) are required to design, implement, and test with multiplatform support as a baseline expectation. Any platform-specific logic must be clearly documented and justified in both code and task notes.
+**Multiplatform Policy:** All tasks, implementations, and verifications MUST consider cross-platform compatibility (Linux, macOS, and Windows) unless otherwise specified.
 
 ---
 
 ## CLI Tool Name
 
-- The CLI executable is called `almd` (short for Almandine).
-- All documentation, usage, and examples should refer to the CLI as `almd` (not `almandine`).
+- The CLI executable is called `almd`.
+- All documentation, usage, and examples should refer to the CLI as `almd`.
 
 ---
 
-## Milestone 1: `add` Command Implementation & Verification
+## Milestone 1: `init` Command Refactoring
 
-**Goal:** Ensure `src/modules/add.lua` correctly implements the functionality defined in the PRD and address any gaps.
+**Goal:** Refactor `src/modules/init.lua` to use dependency injection for improved testability, mirroring the structure of `src/modules/add.lua`.
 
-- [x] **Task 1.1: Review Existing `add` Implementation vs PRD**
-    - [x] AI/Developer: Manually compare the *current* code in `src/modules/add.lua` against the requirements detailed in PRD sections 2.1 (`add` command description), 4 (`project.lua`, `almd-lock.lua`), and 1.1 (Dependencies - HTTP client decision).
-    - [x] Identify any discrepancies, missing features, or incorrect behaviors based *strictly* on the PRD. Document these gaps.
-    - [x] Manual Verification: Checklist of PRD requirements vs implemented features is created.
+- [x] **Task 1.1: Define `InitDeps` Structure**
+    - [x] Define an `InitDeps` table structure using EmmyLua annotations in `src/modules/init.lua`.
+    - [x] This structure should include functions for:
+        - Prompting the user for input (`prompt`).
+        - Printing output (`println`).
+        - Saving the manifest file (`save_manifest`).
+    - [x] Manual Verification: Code review confirms the `InitDeps` structure is well-defined and covers necessary dependencies.
 
-- [x] **Task 1.2: Implement Identified Gaps in `add` Command**
-    - [x] Based on Task 1.1, implement any missing functionality in `src/modules/add.lua`. This might include:
-        - [x] Confirm/Implement Download Mechanism: Decision made (shell out). Implementation is via injected `deps.downloader.download`, actual implementation deferred to downloader module.
-        - [x] Clarify/Fix Default Directory: Decision made (`src/lib/`). Implementation confirmed correct.
-        - [x] Align `project.lua` Structure: Implemented storage of `source` string or `{source=..., path=...}` table per PRD.
-        - [x] Correct `almd-lock.lua` Structure & Content:
-            - Added the missing `path` field to lockfile entries.
-            - Ensured the `source` field in the lockfile matches the identifier used in `project.lua`.
-            - Corrected hashing logic to differentiate `commit:` vs `sha256:` (requires `hash_utils.hash_file_sha256` to be implemented).
-            - Lockfile update logic simplified to handle only the added dependency for now.
-    - [x] Manual Verification: Code review confirms implementation matches PRD requirements identified in Task 1.1. Cross-platform considerations are addressed.
+- [x] **Task 1.2: Refactor `init_project` Function**
+    - [x] Modify the `init_project` function in `src/modules/init.lua` to accept the `InitDeps` table as an argument.
+    - [x] Update the internal logic to use the injected functions (e.g., `deps.prompt`, `deps.println`, `deps.save_manifest`) instead of direct `io` calls or `require`d utils where applicable.
+    - [x] Consider breaking down the logic into smaller, internal helper functions if it improves clarity and testability.
+    - [x] Ensure existing functionality (prompting for name, version, license, description, scripts, dependencies, writing `project.lua`) remains unchanged.
+    - [x] Manual Verification: Code review confirms the refactoring uses dependency injection correctly and preserves the original interactive behavior logic.
 
-- [x] **Task 1.3: Integrate `add` into `main.lua`**
-    - [x] Ensure `src/main.lua` correctly parses the `add` command (and `i` alias).
-    - [x] Ensure arguments (`<url>`, `-d`, `-n`) are correctly passed to the `add` module.
-    - [x] Manual Verification: Run `almd add --help` (or similar) and verify basic command recognition works. Check argument parsing logic in `main.lua`.
+- [ ] **Task 1.3: Update `main.lua` for Dependency Injection**
+    - [ ] Modify `src/main.lua` where the `init` command is handled.
+    - [ ] Create an instance of the `InitDeps` table, providing the actual implementations (e.g., wrapping `io.read`/`io.write` for `prompt`, `print` for `println`, `manifest_utils.save_manifest` for `save_manifest`).
+    - [ ] Pass this `InitDeps` table when calling the refactored `init_project` function.
+    - [ ] Manual Verification: Run `almd init` manually. Verify the interactive prompts work as before and `project.lua` is created correctly. Check argument parsing logic in `main.lua`.
 
-## Milestone 2: E2E Testing Infrastructure (Scaffolding)
+## Milestone 2: E2E Tests for `init` Command
 
-**Goal:** Create the necessary helper utilities for running E2E tests in isolated environments.
+**Goal:** Implement E2E test cases for the `init` command using Busted and the existing scaffolding helper, accounting for its interactive nature.
 
-- [x] **Task 2.1: Implement Test Scaffolding Helper (`scaffold.lua`)**
-    - [x] Create `src/spec/e2e/helpers/scaffold.lua`.
-    - [x] Implement `scaffold.create_sandbox_project()`: Creates a unique temporary directory for a test. Returns the path and a cleanup function.
-    - [x] Implement `cleanup_func()`: Deletes the temporary directory and its contents.
-    - [x] Implement `scaffold.init_project_file(sandbox_path, initial_data)`: Creates a basic `project.lua` in the sandbox.
-    - [x] Implement `scaffold.run_almd(sandbox_path, args_table)`: Executes the `almd` command (via `src/main.lua` or the wrapper script) targeting the sandbox directory, capturing success/failure status and output (stdout/stderr). Must work cross-platform.
-    - [x] Implement `scaffold.read_project_lua(sandbox_path)`: Reads and parses the `project.lua` file from the sandbox. Returns the Lua table. Handles file-not-found errors.
-    - [x] Implement `scaffold.read_lock_lua(sandbox_path)`: Reads and parses the `almd-lock.lua` file. Returns the Lua table. Handles file-not-found errors.
-    - [x] Implement `scaffold.file_exists(file_path)`: Checks if a file exists at the given absolute path.
-    - [x] Implement `scaffold.read_file(file_path)`: Reads the content of a file. (Optional, but useful for checking downloaded content).
-    - [x] Manual Verification: Code review of the scaffold helper. Test helper functions individually if possible. Ensure cleanup works reliably.
+- [ ] **Task 2.1: Create `init_spec.lua` Structure**
+    - [ ] Create `src/spec/e2e/modules/init_spec.lua` (if it doesn't exist or is empty).
+    - [ ] Set up the `describe` block.
+    - [ ] Implement `before_each` to call `scaffold.create_sandbox_project()`. Note: `init_project_file` is likely *not* needed here, as `init`'s purpose is to create it.
+    - [ ] Implement `after_each` to call the `cleanup_func()`.
+    - [ ] Manual Verification: Run the empty spec file with `busted`; ensure setup/teardown execute without errors in a clean sandbox.
 
-## Milestone 3: E2E Tests for `add` Command
+- [ ] **Task 2.2: Develop Strategy for Testing Interaction**
+    - [ ] Analyze how `scaffold.run_almd` (or direct `main.lua` calls) can handle the interactive prompts of `almd init`.
+    - [ ] Options might include:
+        - Modifying `scaffold.run_almd` to accept predefined input streams/responses.
+        - Mocking the `prompt` function within the `InitDeps` table specifically during tests.
+        - Running `init` non-interactively if an option for that is added later (outside current scope).
+    - [ ] Decide on and document the chosen strategy. Implement any necessary helpers in `scaffold.lua` or test setup.
+    - [ ] Manual Verification: Demonstrate the chosen interaction strategy works reliably in a sample test case.
 
-**Goal:** Implement the specific E2E test cases for the `add` command using Busted and the scaffolding helper.
+- [ ] **Task 2.3: Implement E2E Test: Basic Initialization (Defaults)**
+    - [ ] Implement an `it` block for running `almd init` and accepting default values for all prompts.
+    - [ ] Use the chosen interaction strategy (Task 2.2) to provide input (e.g., just pressing Enter).
+    - [ ] Use `scaffold.read_project_lua` and Busted `assert` functions to verify:
+        - `project.lua` is created.
+        - The content matches the expected structure with default values (e.g., name "my-lua-project", version "0.0.1", default "run" script).
+    - [ ] Manual Verification: Run `busted src/spec/e2e/modules/init_spec.lua`; confirm this test passes.
 
-- [x] **Task 3.1: Create `add_spec.lua` Structure**
-    - [x] Create `src/spec/e2e/modules/add_spec.lua`.
-    - [x] Set up the `describe` block.
-    - [x] Implement `before_each` to call `scaffold.create_sandbox_project()` and `scaffold.init_project_file()`.
-    - [x] Implement `after_each` to call the `cleanup_func()`.
-    - [x] Manual Verification: Run the empty spec file with `busted`; ensure setup/teardown execute without errors.
-
-- [x] **Task 3.2: Implement E2E Test: Add via Commit Hash (Default Path)**
-    - [x] Implement the `it` block corresponding to PRD E2E Example 1.
-    - [x] Use `scaffold.run_almd` to execute the command.
-    - [x] Use `scaffold.file_exists`, `scaffold.read_project_lua`, `scaffold.read_lock_lua` and Busted `assert` functions to verify:
-        - File downloaded to `lib/shove.lua`.
-        - `project.lua` contains `dependencies.shove` with the correct source string.
-        - `almd-lock.lua` contains `package.shove` with correct `path`, `source`, and `hash` (starting with `commit:`).
-    - [x] Manual Verification: Run `busted src/spec/e2e/modules/add_spec.lua`; confirm this test passes and performs the correct checks.
-
-- [ ] **Task 3.3: Implement E2E Test: Add via Commit Hash (Custom Path `-d`)**
-    - [x] Implement the `it` block corresponding to PRD E2E Example 2.
-    - [x] Verify:
-        - File downloaded to `src/engine/lib/shove.lua`.
-        - `project.lua` contains `dependencies.shove` with correct structure (e.g., table with `source` and `path`).
-        - `almd-lock.lua` contains `package.shove` with the custom `path`.
-    - [x] Manual Verification: Run `busted`; confirm test passes.
-
-- [ ] **Task 3.4: Implement E2E Test: Add via Commit Hash (Custom Path `-d`, Custom Name `-n`)**
-    - [ ] Implement the `it` block corresponding to PRD E2E Example 3.
-    - [ ] Verify:
-        - File downloaded to `src/engine/lib/clove.lua`.
-        - `project.lua` contains `dependencies.clove` (using the new name) with correct structure/path.
-        - `almd-lock.lua` contains `package.clove` with the custom `path` and new name.
+- [ ] **Task 2.4: Implement E2E Test: Initialization with Custom Values**
+    - [ ] Implement an `it` block for running `almd init` and providing custom values for prompts (name, version, description, license, scripts, dependencies).
+    - [ ] Use the interaction strategy to provide specific custom input.
+    - [ ] Verify `project.lua` is created with the exact custom values provided.
     - [ ] Manual Verification: Run `busted`; confirm test passes.
 
-- [ ] **Task 3.5: Implement E2E Test: Add via Branch Name (SHA256 Hash)**
-    - [ ] Implement the `it` block corresponding to PRD E2E Example 4.
-    - [ ] Verify:
-        - File downloaded to `lib/shove.lua`.
-        - `project.lua` contains `dependencies.shove`.
-        - `almd-lock.lua` contains `package.shove` with `hash` starting with `sha256:`.
+- [ ] **Task 2.5: Implement E2E Test: Initialization Over Existing `project.lua`**
+    - [ ] Implement an `it` block where `scaffold.init_project_file` is used first to create a dummy `project.lua`.
+    - [ ] Run `almd init` with custom values.
+    - [ ] Verify the original `project.lua` is overwritten with the newly generated content based on the interactive session.
     - [ ] Manual Verification: Run `busted`; confirm test passes.
-
-- [ ] **Task 3.6: Implement E2E Test: Add Non-Existent File (Error Case)**
-    - [ ] Implement the `it` block corresponding to PRD E2E Example 5.
-    - [ ] Verify:
-        - `scaffold.run_almd` returns failure status.
-        - Output contains an informative error message.
-        - The target file does *not* exist.
-        - `project.lua` and `almd-lock.lua` are unchanged (or don't contain the failed dependency).
-    - [ ] Manual Verification: Run `busted`; confirm test passes and correctly checks for failure and lack of side effects.
 
 ---
 
 ## Analysis & Next Steps
 
-### Potentially Missing Test Cases for `add`
+### Potential Improvements for `init` Functionality
 
-Based on the initial set, here are areas where more E2E tests would improve robustness:
+1.  **Non-Interactive Mode:** Add a `--yes` or `-y` flag to skip prompts and use default values, or potentially allow providing values via flags (e.g., `almd init --name myproj --version 0.1`).
+2.  **Template-Based Initialization:** Allow initialization based on predefined project templates.
+3.  **Input Validation:** Add validation for inputs like version numbers (SemVer format) or checking for invalid characters in the project name.
+4.  **Error Handling:** Improve error handling if `project.lua` cannot be written (e.g., permissions issues).
 
-1.  **Idempotency/Re-adding:**
-    * Run `almd add <url>` twice for the same URL. Expected: Should it succeed silently (no change), update if the remote changed (e.g., branch `main`), or error? Define and test the desired behavior.
-    * Run `almd add <url1>` then `almd add <url2> -n name1` where `url2` downloads a file that would overwrite the file from `url1`. Define and test behavior (error, overwrite, prompt?).
-2.  **Overwriting Conflicts:**
-    * Test adding a dependency `foo` when `lib/foo.lua` already exists but wasn't added by `almd`.
-    * Test adding with `-n bar` when `lib/bar.lua` already exists.
-3.  **Manifest/Lockfile Corruption:**
-    * Run `almd add` when `project.lua` exists but is invalid Lua syntax.
-    * Run `almd add` when `almd-lock.lua` exists but is invalid Lua syntax.
-    * Run `almd add` when `project.lua` or `almd-lock.lua` return non-table values.
-4.  **Network Failures:**
-    * Simulate network errors *during* download (if possible with chosen download method). Verify partial downloads are cleaned up and manifests aren't updated.
-5.  **Permissions Errors:**
-    * Run `almd add` targeting a directory where the user lacks write permissions.
-    * Run `almd add` when `project.lua` or `almd-lock.lua` are read-only.
-6.  **URL Variations:**
-    * Test different valid GitHub URL formats (e.g., `github.com/user/repo/blob/TAG/path/file.lua`).
-    * Test invalid/malformed URLs.
-7.  **Initialization Requirement:**
-    * Run `almd add` in a directory *without* a `project.lua`. Expected: Should error clearly stating the project needs initialization (`almd init`).
-8.  **Case Sensitivity:** Add tests involving filenames with different casing if targeting file systems where this matters (e.g., adding `MyLib.lua` then `mylib.lua` on Windows vs Linux).
-
-### Potential Improvements for `add` Functionality
-
-Beyond the core requirements, consider these future enhancements:
-
-1.  **Source Extensibility:** Design the URL parsing and downloading logic in `src/lib` (or `src/utils`) to be easily extended for other sources (GitLab, Bitbucket, generic Git URLs, plain HTTP(S) URLs, maybe even local paths `../other-project/file.lua`).
-2.  **Atomic Operations:** Refactor download and manifest updates to be more atomic. E.g., download to a temporary file, verify hash, then move to the final location; update manifest tables in memory, then attempt to write the complete file. This reduces the chance of a corrupted state if the process is interrupted.
-3.  **Download Progress/Feedback:** For larger files or slower connections, provide some feedback to the user during download.
-4.  **Caching:** Implement a local cache for downloaded files (based on URL and commit/hash) to avoid redundant downloads.
-5.  **Dry Run Mode:** Add a `--dry-run` flag to show what files would be downloaded and how manifests would change without actually performing the actions.
-6.  **Confirmation Prompts:** Add an optional `-y` / `--yes` flag, and without it, prompt the user before potentially overwriting existing files or making significant changes.
-
-*This TASKS.md outlines the immediate work. Further tasks should be added for the missing test cases and potential improvements as development progresses.*
+*This TASKS.md outlines the refactoring and initial E2E testing. Further tasks can be added for the potential improvements or more complex test scenarios.* 
