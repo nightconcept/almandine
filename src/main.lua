@@ -198,7 +198,6 @@ local function run_cli(args)
     })
 
     local final_message = ""
-    local final_error = nil
 
     if warning_occurred then
       -- Warnings go to stdout for now, could be stderr if preferred
@@ -206,12 +205,12 @@ local function run_cli(args)
     end
 
     if not ok then
-      final_error = "Error: Add operation failed."
+      local error_message = "Error: Add operation failed."
       if fatal_err then
-        final_error = final_error .. "\n  Reason: " .. fatal_err
+        error_message = error_message .. "\n  Reason: " .. fatal_err
       end
       -- Return warning message on stdout even if error occurred
-      return false, final_message:gsub("\n$", ""), final_error
+      return false, final_message:gsub("\n$", ""), error_message
     else
       -- Combine warnings and success message
       final_message = final_message .. "Dependency added successfully."

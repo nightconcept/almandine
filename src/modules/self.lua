@@ -6,6 +6,8 @@
 ]]
 --
 
+---TODO: remove this once we have a pass over this file
+-- luacheck: ignore
 local lfs = require("lfs")
 local M = {}
 

@@ -11,6 +11,8 @@
 ---@field executor fun(cmd: string): boolean, string?, number? Optional function for command execution.
 ---@field printer table Printer utility with stdout/stderr methods.
 
+---TODO: remove this once we have a pass over this file
+-- luacheck: ignore
 ---
 -- Executes a script by name from the project manifest using provided dependencies.
 -- @param script_name string The key of the script in the scripts table.

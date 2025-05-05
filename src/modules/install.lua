@@ -6,11 +6,8 @@
 ]]
 --
 
--- REMOVED: Unused top-level requires, use versions passed in deps
--- local url_utils = require("utils.url")
--- local filesystem_utils = require("utils.filesystem")
--- local lockfile = require("utils.lockfile") -- REMOVED: Use the one passed in deps
-
+---TODO: remove this once we have a pass over this file
+-- luacheck: ignore
 ---@class InstallDeps
 ---@field load_manifest fun(): table, string?
 ---@field ensure_lib_dir fun(): nil
@@ -189,8 +186,7 @@ local function install_dependencies(dep_name, deps)
         -- Ensure path is normalized for operations but keeps forward slashes in lockfile
         local normalized_path = fs_utils.normalize_path(target_path)
         -- For file operations, we may need to convert back to OS-specific format
-        local system_path = target_path -- This is fine as is since it came from lockfile
-        
+        local system_path = target_path -- This is fine as is since it came from lockfile        
         -- Get the raw download URL, preferring normalized version
         local _, _, normalized_download_url, norm_err = url_utils.normalize_github_url(source_url, nil)
         local download_url = normalized_download_url or source_url -- Fallback to original source if normalization fails

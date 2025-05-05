@@ -2,6 +2,9 @@
 --- Provides interactive project initialization and manifest creation.
 --
 
+---TODO: remove this once we have a pass over this file
+--luacheck: ignore
+
 -- Ensure relative paths work for requires within the project
 local filesystem_utils = require("utils.filesystem")
 package.path = filesystem_utils.join_path("src", "?.lua") .. ";" .. package.path

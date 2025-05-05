@@ -6,6 +6,8 @@
 ]]
 --
 
+---TODO: remove this once we have a pass over this file
+-- luacheck: ignore
 ---@class UpdateDeps
 ---@field load_manifest fun(): table, string?
 ---@field save_manifest fun(manifest: table): boolean, string?

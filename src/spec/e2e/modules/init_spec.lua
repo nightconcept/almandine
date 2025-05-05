@@ -52,7 +52,7 @@ describe("almd init command (E2E)", function()
     -- 1. Prepare Mock Dependencies
     local captured_output = {}
     local mock_deps = {
-      prompt = function(msg, default)
+      prompt = function(_msg, _default)
         -- Always return nil to accept the default value
         return nil
       end,
@@ -138,7 +138,7 @@ describe("almd init command (E2E)", function()
     -- 2. Prepare Mock Dependencies
     local captured_output = {}
     local mock_deps = {
-      prompt = function(msg, default)
+      prompt = function(msg, _default)
         -- Return custom values based on the prompt message
         if msg:find("Project name", 1, true) then
           return custom_inputs.name
@@ -240,7 +240,7 @@ describe("almd init command (E2E)", function()
     -- 3. Prepare Mock Dependencies (similar to the custom values test)
     local captured_output = {}
     local mock_deps = {
-      prompt = function(msg, default)
+      prompt = function(msg, _default)
         if msg:find("Project name", 1, true) then return custom_inputs.name end
         if msg:find("Project version", 1, true) then return custom_inputs.version end
         if msg:find("License", 1, true) then return custom_inputs.license end
@@ -297,11 +297,12 @@ describe("almd init command (E2E)", function()
         expected_manifest.scripts["run"] = "lua src/main.lua"
     end
 
-    assert.are.same(expected_manifest, manifest_content, "Manifest content should match the new custom inputs, overwriting the old ones")
-
+    assert.are.same(expected_manifest, manifest_content,
+      "Manifest content should match the new custom inputs, overwriting the old ones")
     -- Double-check the dummy values are gone
     assert.is_nil(manifest_content.dependencies.old_dep, "Old dummy dependency should be gone")
-    assert.is_not_equal(manifest_content.name, dummy_manifest.name, "Project name should be the new one, not the dummy one")
+    assert.is_not_equal(manifest_content.name, dummy_manifest.name,
+      "Project name should be the new one, not the dummy one")
   end)
 
 end)

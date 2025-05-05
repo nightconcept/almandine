@@ -6,6 +6,8 @@
 ]]
 --
 
+---TODO: remove this once we have a pass over this file
+-- luacheck: ignore
 local lockfile_utils = require("utils.lockfile")
 
 --- Lists installed dependencies and their versions.
