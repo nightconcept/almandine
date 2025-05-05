@@ -1,3 +1,6 @@
 return {
-  exclude = { ".luarocks/share/lua/" }
+  exclude = {
+    ".luarocks/share/lua/",
+    "src/spec/"
+    }
 }

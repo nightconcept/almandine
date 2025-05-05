@@ -30,4 +30,4 @@ function M.stderr(...)
   io.stderr:flush() -- Ensure output is immediate
 end
 
-return M 
+return M

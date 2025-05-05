@@ -6,7 +6,12 @@
 ]]
 --
 
+local lfs = require("lfs")
 local M = {}
+
+---@class SelfDeps
+---@field executor fun(cmd: string): boolean, string?, number? Optional function for command execution.
+---@field printer table Printer utility with stdout/stderr methods.
 
 --- Recursively delete a directory and its contents (cross-platform: POSIX and Windows)
 -- @param path [string] Directory path to delete
@@ -31,9 +36,17 @@ function M.rmdir_recursive(path, executor)
 end
 
 --- Remove wrapper scripts and Lua CLI folder.
--- @param executor [function?] Optional. Function to use for executing shell commands (default: os.execute)
--- @return [boolean, string?] True if successful, or false and error message
-function M.uninstall_self(executor)
+-- @param deps SelfDeps Dependencies { executor?, printer }.
+-- @return boolean success True if successful, false otherwise.
+-- @return string|nil output_message Message for stdout.
+-- @return string|nil error_message Message for stderr.
+function M.uninstall_self(deps)
+  local executor = deps and deps.executor or os.execute
+  local printer = deps and deps.printer
+
+  local output_messages = {}
+  local error_messages = {}
+
   -- Remove wrapper scripts from known install locations
   local is_windows = package.config:sub(1, 1) == "\\"
   local install_prefixes
@@ -61,7 +74,13 @@ function M.uninstall_self(executor)
     for _, script in ipairs(wrappers) do
       local sep = is_windows and "\\" or "/"
       local path = prefix .. sep .. script
-      os.remove(path)
+      local removed = os.remove(path)
+      if removed == nil then
+        -- os.remove returns nil on failure, true on success
+        -- printer.stderr("DEBUG: Failed to remove wrapper ", path) -- Optional debug
+      elseif removed then
+        table.insert(output_messages, "Removed wrapper: " .. path)
+      end
     end
   end
   -- Remove src/ folder from main install dir
@@ -76,8 +95,18 @@ function M.uninstall_self(executor)
   end
   if require("lfs").attributes(cli_dir) then
     M.rmdir_recursive(cli_dir, executor)
+    table.insert(output_messages, "Removed CLI directory: " .. cli_dir)
+  else
+    table.insert(output_messages, "CLI directory not found or already removed: " .. cli_dir)
   end
-  return true
+
+  local final_output = table.concat(output_messages, "\n")
+  local final_error = nil
+  if #error_messages > 0 then
+    final_error = table.concat(error_messages, "\n")
+  end
+
+  return true, final_output, final_error -- Assume success unless rmdir fails catastrophically (hard to detect well)
 end
 
 --- Returns the absolute path to the install root (directory containing this script)
@@ -108,8 +137,14 @@ end
 --- Atomically self-update the CLI from the latest GitHub release.
 -- Downloads, extracts, backs up, and atomically replaces the install tree.
 -- Only deletes backup if new version is fully extracted and ready.
--- @return [boolean, string?] True if successful, or false and error message
-function M.self_update()
+-- @param deps SelfDeps Dependencies { executor?, printer }.
+-- @return boolean success True if successful, false otherwise.
+-- @return string|nil output_message Message for stdout.
+-- @return string|nil error_message Message for stderr.
+function M.self_update(deps)
+  local executor = deps and deps.executor or os.execute
+  local printer = deps and deps.printer
+
   local is_windows = package.config:sub(1, 1) == "\\"
   local install_root = get_install_root()
   local join = function(...) -- join paths with correct sep
@@ -129,14 +164,27 @@ function M.self_update()
     return out
   end
 
+  local function log_output(msg)
+    if printer then
+      printer.stdout(msg)
+    else
+      print(msg) -- Fallback if printer not injected (e.g., testing)
+    end
+  end
+
+  local function log_error(msg)
+    if printer then
+      printer.stderr(msg)
+    else
+      print("Error: " .. msg) -- Fallback
+    end
+  end
+
   -- Utility: check if file or directory exists
   local function path_exists(path)
-    local f = io.open(path, "r")
-    if f then
-      f:close()
-      return true
-    end
-    return false
+    -- Use lfs for better directory checking
+    local mode = lfs.attributes(path, "mode")
+    return mode ~= nil
   end
 
   -- Helper: download file (wget/curl)
@@ -145,9 +193,9 @@ function M.self_update()
     return downloader.download(url, out)
   end
 
-  -- Helper: run shell command
+  -- Helper: run shell command using injected executor
   local function shell(cmd)
-    local ok = os.execute(cmd)
+    local ok, reason, code = executor(cmd)
     return ok == 0 or ok == true
   end
 
@@ -210,7 +258,8 @@ function M.self_update()
       ) -- luacheck: ignore 121
     or ("unzip -q -o '" .. zip_path .. "' -d '" .. extract_dir .. "'")
   if not shell(unzip_cmd .. (is_windows and " >NUL 2>&1" or " >/dev/null 2>&1")) then
-    return false, "Failed to extract release zip"
+    log_error("Failed to extract release zip")
+    return false, nil, "Failed to extract release zip"
   end
   -- Step 4: Find extracted folder
   local extracted = extract_dir .. (is_windows and ("\\almandine-" .. tag) or ("/almandine-" .. tag))
@@ -226,7 +275,8 @@ function M.self_update()
     final_dir = nil
   end
   if not final_dir then
-    return false, "Could not find extracted CLI source in zip"
+    log_error("Could not find extracted CLI source in zip")
+    return false, nil, "Could not find extracted CLI source in zip"
   end
 
   -- Step 5: Backup current install tree (wrapper scripts + src)
@@ -270,6 +320,7 @@ function M.self_update()
   end
 
   -- Windows: Check if files are locked (in use) before proceeding
+  -- Note: This lock check is inherently racy and might not be reliable.
   if is_windows then
     local function is_file_locked(path)
       local lock_handle = io.open(path, "r+")
@@ -302,6 +353,7 @@ function M.self_update()
       end
       -- Write marker file
       local marker = io.open(join(install_root, "install", "update_pending"), "w")
+      log_output("Staging update for next run...")
       if marker then
         marker:write(os.date("%Y-%m-%dT%H:%M:%S"))
         marker:close()
@@ -309,18 +361,21 @@ function M.self_update()
     end
     local locked_file = nil
     for _, file in ipairs(files_to_check) do
-      if is_file_locked(file) then
+      if path_exists(file) and is_file_locked(file) then -- Only check if file exists
         locked_file = file
         break
       end
     end
     if locked_file then
+      log_output("File currently in use: " .. locked_file)
       local staging_dir = join(install_root, "install", "next")
       stage_update_for_next_run(staging_dir, final_dir)
-      return false, "Update staged for next run."
+      -- Return success=true because staging is the expected outcome here
+      return true, "Update staged for next run due to locked file.", nil
     end
   end
 
+  log_output("Replacing current installation...")
   -- Step 6: Replace install tree with new version
   -- Remove old src and wrappers
   local rm = is_windows and "rmdir /s /q" or "rm -rf"
@@ -396,47 +451,115 @@ function M.self_update()
 
   local ok_shell = shell(src_cmd) and shell(sh_cmd) and shell(bat_cmd) and shell(ps1_cmd)
   if not ok_shell then
-    return false,
-      "Failed to copy new files during update. Please check permissions and available disk space, and retry."
+    log_error("Failed to copy new files during update.")
+    -- Attempt rollback (best effort)
+    M._rollback_update(install_root, backup_dir, { printer = printer, executor = executor })
+    return false, nil, "Failed to copy new files during update. Attempted rollback."
   end
 
   -- Step 7: Validate new install
+  log_output("Validating new installation...")
   local ok_new = io.open(join(install_root, "src", "main.lua"), "r")
   if not ok_new then
+    log_error("Update failed: New version validation failed after copy.")
     -- Rollback: restore from backup
-    if is_windows then
-      local src_restore = join(backup_dir, "src")
-      if path_exists(src_restore) then
-        shell(xcopy .. ' "' .. src_restore .. '" "' .. join(install_root, "src") .. '" /E /I /Y /Q >NUL 2>&1')
-      end
-      for _, w in ipairs(wrappers) do
-        if path_exists(w.from) then
-          shell(cp .. ' "' .. join(backup_dir, w.to:match("([^/\\]+)$")) .. '" "' .. w.to .. '" /Y /Q >NUL 2>&1')
-        end
-      end
-    else
-      local src_restore = join(backup_dir, "src")
-      if path_exists(src_restore) then
-        shell(xcopy .. ' "' .. src_restore .. '" "' .. join(install_root, "src") .. '" >/dev/null 2>&1')
-      end
-    end
-    return false, "Update failed: new version not found, rolled back to previous version."
+    M._rollback_update(install_root, backup_dir, { printer = printer, executor = executor })
+    return false, nil, "Update failed: new version validation failed. Rolled back to previous version."
   else
     ok_new:close()
+    log_output("New version validated.")
   end
 
   -- Step 8: Delete backup and temp work dir
+  log_output("Cleaning up temporary files...")
   shell(rm .. " " .. backup_dir .. (is_windows and " >NUL 2>&1" or " >/dev/null 2>&1"))
   shell(rm .. " " .. work_dir .. (is_windows and " >NUL 2>&1" or " >/dev/null 2>&1"))
-  return true, "Update staged for next run."
+  return true, "Update completed successfully.", nil
+end
+
+--- Helper function for rolling back an update attempt.
+-- @param install_root string The base install directory.
+-- @param backup_dir string The directory containing the backup.
+-- @param deps SelfDeps Dependencies { executor?, printer }.
+function M._rollback_update(install_root, backup_dir, deps)
+  local executor = deps.executor or os.execute
+  local printer = deps.printer
+
+  local function log_output(msg) if printer then printer.stdout(msg) end end
+  local function log_error(msg) if printer then printer.stderr(msg) end end
+
+  log_output("Attempting rollback from backup: " .. backup_dir)
+
+  local is_windows = package.config:sub(1, 1) == "\\"
+  local join = function(...) -- Re-define locally for clarity
+    local sep = is_windows and "\\" or "/"
+    local args = { ... }
+    local out = args[1] or ""
+    for i = 2, #args do
+      if out:sub(-1) ~= sep and #out > 0 then out = out .. sep end
+      local seg = args[i]
+      if seg:sub(1, 1) == sep then seg = seg:sub(2) end
+      out = out .. seg
+    end
+    return out
+  end
+
+  local function path_exists(path) return lfs.attributes(path, "mode") ~= nil end
+  local function shell(cmd) return (executor(cmd) == 0 or executor(cmd) == true) end
+
+  local cp = is_windows and "copy" or "cp -f"
+  local xcopy = is_windows and "xcopy" or "cp -r"
+
+  -- Restore src directory
+  local src_restore = join(backup_dir, "src")
+  if path_exists(src_restore) then
+    -- Ensure target install root/src exists before xcopy-ing into it if needed
+    -- Though usually we d only call rollback *after* deleting it, so restore needs to create it
+    -- First remove any partially copied new src
+    local rm = is_windows and "rmdir /s /q" or "rm -rf"
+    shell(rm .. " " .. join(install_root, "src") .. (is_windows and " >NUL 2>&1" or " >/dev/null 2>&1"))
+    -- Now copy backup src
+    local restore_src_cmd = is_windows
+      and xcopy .. ' "' .. src_restore .. '" "' .. join(install_root, "src") .. '" /E /I /Y /Q >NUL 2>&1'
+      or xcopy .. ' "' .. src_restore .. '" "' .. join(install_root, "src") .. '" >/dev/null 2>&1'
+    if not shell(restore_src_cmd) then
+      log_error("Rollback failed: Could not restore src directory.")
+    end
+  else
+    log_error("Rollback warning: Backup src directory not found: " .. src_restore)
+  end
+
+  -- Restore wrappers
+  local wrappers_to_restore = { "almd.sh", "almd.bat", "almd.ps1" }
+  for _, w_name in ipairs(wrappers_to_restore) do
+    local backup_path = join(backup_dir, w_name)
+    local install_path = join(install_root, "install", w_name)
+    if path_exists(backup_path) then
+      local restore_wrap_cmd = is_windows
+        and cp .. ' "' .. backup_path .. '" "' .. install_path .. '" /Y /Q >NUL 2>&1'
+        or cp .. ' "' .. backup_path .. '" "' .. install_path .. '" >/dev/null 2>&1'
+      if not shell(restore_wrap_cmd) then
+        log_error("Rollback failed: Could not restore wrapper: " .. w_name)
+      end
+    else
+      -- If backup doesn't exist, attempt to remove potentially half-copied new one
+      os.remove(install_path)
+    end
+  end
 end
 
 --- Prints usage/help information for the `self` command.
--- @param print_fn [function] Optional. Function to use for printing (default: print)
-function M.help_info(print_fn)
-  print_fn = print_fn or print
-  print_fn("Usage: almd self uninstall")
-  print_fn("Uninstalls the Almandine CLI and removes all associated files.")
+-- @return string Help text.
+function M.help_info()
+  return [[
+Usage: almd self <command>
+
+Manages the Almandine CLI installation itself.
+
+Commands:
+  uninstall   Uninstalls the Almandine CLI and removes associated files.
+  update      Updates the Almandine CLI to the latest version from GitHub.
+]]
 end
 
 return M
