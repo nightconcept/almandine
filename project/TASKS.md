@@ -50,33 +50,33 @@
     - [x] Manual Verification: Run the empty spec file with `busted`; ensure setup/teardown execute without errors in a clean sandbox.
 
 - [ ] **Task 2.2: Develop Strategy for Testing Interaction**
-    - [ ] Analyze how `scaffold.run_almd` (or direct `main.lua` calls) can handle the interactive prompts of `almd init`.
-    - [ ] Options might include:
-        - Modifying `scaffold.run_almd` to accept predefined input streams/responses.
-        - Mocking the `prompt` function within the `InitDeps` table specifically during tests.
-        - Running `init` non-interactively if an option for that is added later (outside current scope).
-    - [ ] Decide on and document the chosen strategy. Implement any necessary helpers in `scaffold.lua` or test setup.
-    - [ ] Manual Verification: Demonstrate the chosen interaction strategy works reliably in a sample test case.
+    - [x] Analyze how `scaffold.run_almd` (or direct `main.lua` calls) can handle the interactive prompts of `almd init`.
+    - [x] Options considered:
+        - Modifying `scaffold.run_almd`: Rejected due to complexity of managing subprocess I/O streams robustly.
+        - Mocking `prompt` within `InitDeps`: **Chosen Strategy.** Allows direct invocation of `init_module.init_project` with controlled inputs/outputs.
+        - Non-interactive mode: Not implemented yet.
+    - [x] **Chosen Strategy:** Tests will `require('src/modules/init.lua')` and call `init_project` directly, passing a mocked `InitDeps` table. The mock `prompt` function will return predefined answers based on the expected sequence. Mock `println` can capture output, and mock `save_manifest` will use `scaffold.write_project_lua` to interact with the sandbox.
+    - [x] Manual Verification: A basic proof-of-concept test case using this strategy will be added in Task 2.3 to demonstrate viability.
 
-- [ ] **Task 2.3: Implement E2E Test: Basic Initialization (Defaults)**
-    - [ ] Implement an `it` block for running `almd init` and accepting default values for all prompts.
-    - [ ] Use the chosen interaction strategy (Task 2.2) to provide input (e.g., just pressing Enter).
-    - [ ] Use `scaffold.read_project_lua` and Busted `assert` functions to verify:
+- [x] **Task 2.3: Implement E2E Test: Basic Initialization (Defaults)**
+    - [x] Implement an `it` block for running `init_project` directly with a mock `InitDeps` in `src/spec/e2e/modules/init_spec.lua`.
+    - [x] Use the chosen interaction strategy (Task 2.2) to provide input (mock `prompt` returns `nil`).
+    - [x] Use `scaffold.read_project_lua` and Busted `assert` functions to verify:
         - `project.lua` is created.
-        - The content matches the expected structure with default values (e.g., name "my-lua-project", version "0.0.1", default "run" script).
-    - [ ] Manual Verification: Run `busted src/spec/e2e/modules/init_spec.lua`; confirm this test passes.
+        - The content matches the expected structure with default values.
+    - [x] Manual Verification: Run `busted src/spec/e2e/modules/init_spec.lua`; confirm test passes.
 
-- [ ] **Task 2.4: Implement E2E Test: Initialization with Custom Values**
-    - [ ] Implement an `it` block for running `almd init` and providing custom values for prompts (name, version, description, license, scripts, dependencies).
-    - [ ] Use the interaction strategy to provide specific custom input.
-    - [ ] Verify `project.lua` is created with the exact custom values provided.
-    - [ ] Manual Verification: Run `busted`; confirm test passes.
+- [x] **Task 2.4: Implement E2E Test: Initialization with Custom Values**
+    - [x] Implement an `it` block for running `init_project` directly with a mock `InitDeps` providing custom values.
+    - [x] Use a stateful mock `prompt` to simulate custom input for name, version, description, license, scripts, and dependencies.
+    - [x] Verify `project.lua` is created with the exact custom values provided (plus defaults like `type` and the `run` script if not overridden).
+    - [x] Manual Verification: Run `busted src/spec/e2e/modules/init_spec.lua`; confirm both tests pass.
 
-- [ ] **Task 2.5: Implement E2E Test: Initialization Over Existing `project.lua`**
-    - [ ] Implement an `it` block where `scaffold.init_project_file` is used first to create a dummy `project.lua`.
-    - [ ] Run `almd init` with custom values.
-    - [ ] Verify the original `project.lua` is overwritten with the newly generated content based on the interactive session.
-    - [ ] Manual Verification: Run `busted`; confirm test passes.
+- [x] **Task 2.5: Implement E2E Test: Initialization Over Existing `project.lua`**
+    - [x] Implement an `it` block where `scaffold.init_project_file` is used first to create a dummy `project.lua`.
+    - [x] Run `almd init` with custom values.
+    - [x] Verify the original `project.lua` is overwritten with the newly generated content based on the interactive session.
+    - [x] Manual Verification: Run `busted`; confirm test passes.
 
 ---
 
