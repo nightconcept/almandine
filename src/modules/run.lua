@@ -6,16 +6,27 @@
 ]]
 --
 
+---@class RunDeps
+---@field manifest_loader fun()|table Function or module to load the manifest.
+---@field executor fun(cmd: string): boolean, string?, number? Optional function for command execution.
+---@field printer table Printer utility with stdout/stderr methods.
+
+---TODO: remove this once we have a pass over this file
+-- luacheck: ignore
 ---
 -- Executes a script by name from the project manifest using provided dependencies.
 -- @param script_name string The key of the script in the scripts table.
--- @param deps table Dependencies: { manifest_loader, executor? }.
---               `manifest_loader` is a function or module with safe_load_project_manifest.
---               `executor` is an optional function for command execution (defaults to os.execute).
--- @return boolean, string True and output if successful, false and error message otherwise.
+-- @param deps RunDeps Dependencies: { manifest_loader, executor?, printer }.
+-- @return boolean success True if successful, false otherwise.
+-- @return string|nil output_message Message for stdout.
+-- @return string|nil error_message Message for stderr.
 local function run_script(script_name, deps)
   local manifest_loader = deps.manifest_loader
   local executor = deps.executor or os.execute
+  local printer = deps.printer
+
+  local output_messages = {}
+  local error_messages = {}
 
   -- Handle manifest_loader being either a function or a module
   local load_manifest = type(manifest_loader) == "function" and manifest_loader
@@ -23,12 +34,14 @@ local function run_script(script_name, deps)
 
   local manifest = load_manifest("project.lua")
   if not manifest then
-    return false, "Failed to load project manifest."
+    table.insert(error_messages, "Failed to load project manifest.")
+    return false, nil, table.concat(error_messages, "\n")
   end
   local scripts = manifest.scripts or {}
   if not scripts or not scripts[script_name] then
-    print(string.format("Script '%s' not found in project.lua.", script_name))
-    return false, string.format("Script '%s' not found in project.lua.", script_name)
+    local err_msg = string.format("Script '%s' not found in project.lua.", script_name)
+    table.insert(error_messages, err_msg)
+    return false, nil, table.concat(error_messages, "\n")
   end
   local script = scripts[script_name]
   local cmd = script.cmd or script
@@ -37,17 +50,27 @@ local function run_script(script_name, deps)
   if #args > 0 then
     command = cmd .. " " .. table.concat(args, " ")
   end
-  print(string.format("Running script '%s': %s", script_name, command))
+  table.insert(output_messages, string.format("Running script '%s': %s", script_name, command))
+
+  -- Capture command output (stdout/stderr) if possible
+  -- This basic os.execute doesn't capture, but a more robust executor could.
+  -- For now, we just report success/failure.
   local ok, exit_reason, code = executor(command)
+
   if ok then
-    print(string.format("Script '%s' completed successfully.", script_name))
-    return true, nil
+    table.insert(output_messages, string.format("Script '%s' completed successfully.", script_name))
+    return true, table.concat(output_messages, "\n"), nil
   else
-    print(
-      string.format("Script '%s' failed (reason: %s, code: %s)", script_name, tostring(exit_reason), tostring(code))
+    local fail_msg = string.format(
+      "Script '%s' failed (reason: %s, code: %s)",
+      script_name,
+      tostring(exit_reason),
+      tostring(code)
     )
+    table.insert(error_messages, fail_msg)
     return false,
-      string.format("Script '%s' failed (reason: %s, code: %s)", script_name, tostring(exit_reason), tostring(code))
+      table.concat(output_messages, "\n"),
+      table.concat(error_messages, "\n")
   end
 end
 
@@ -103,13 +126,13 @@ end
 -- Usage: almd run <script_name>
 -- Executes a script defined in project.lua.
 local function help_info()
-  print([[
+  return [[
 Usage: almd run <script_name>
 
 Executes a script defined in the `scripts` table of project.lua.
 Example:
   almd run test
-]])
+]]
 end
 
 return {
