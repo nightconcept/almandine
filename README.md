@@ -1,7 +1,10 @@
 # Almandine – Lua Package Manager 💎
 
 ![License](https://img.shields.io/github/license/nightconcept/almandine)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nightconcept/almandine/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/nightconcept/almandine/badge.svg)](https://coveralls.io/github/nightconcept/almandine)
+![GitHub last commit](https://img.shields.io/github/last-commit/nightconcept/almandine)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/nightconcept/almandine/badge)](https://scorecard.dev/viewer/?uri=github.com/nightconcept/almandine)
 
 A modern, cross-platform, developer-friendly package manager for Lua projects.
 Easily manage, install, and update Lua dependencies with a single CLI: `almd`.
