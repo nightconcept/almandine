@@ -25,26 +25,32 @@ local url_utils = require("utils.url")
 
 ---@param dep_name string|nil Dependency name to add. If nil, inferred from source URL.
 ---@param dep_source string|table Dependency source string (URL) or table with url/path.
----@param cmd_dest_path_or_dir string|nil Optional destination directory or full path provided via command line (-d).
+---@param dest_dir string|nil Optional destination directory or full path provided via command line (-d).
 ---@param deps AddDeps Table containing dependency injected functions and configuration.
 ---@return boolean success True if core operation completed successfully (download, manifest update).
 ---@return string? error Error message if a fatal operation failed.
 ---@return boolean warning True if a non-fatal warning occurred (e.g. hash failure).
 ---@return string? warning_message The warning message if a warning occurred.
-local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
+local function add_dependency(dep_name, dep_source, dest_dir, deps)
   local verbose = deps.verbose or false
   local final_warning_occurred = false
   local final_warning_message = nil
 
-  -- 1. Load Manifest & Ensure Library Directory
+  -- TODO: Standardize the number of returns. Have the return state continually update so that it's obvious what we are returning
+  -- in each return statement.
+
+  -- TODO: Cleanup the return statements so that most of them show only if verbose. Only the final states should really be shown to the Update staged for next run.
+  -- Compare with pnpm to see what it shows in all these cases.
+
+  -- Load Manifest & Ensure Library Directory
   deps.ensure_lib_dir()
   local manifest, manifest_err = deps.load_manifest()
   if not manifest then
     print("Error loading manifest: " .. (manifest_err or "Unknown error"))
-    return false, manifest_err, false -- Fatal error
+    return false, manifest_err, false
   end
 
-  -- 2. Process Input Source (URL/Table)
+  -- Process Input Source (URL/Table)
   local input_url
   local input_path -- Path provided explicitly in dep_source table (rare)
 
@@ -52,14 +58,14 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     input_url = dep_source.url
     input_path = dep_source.path -- Path from source table, not -d flag
     if not input_url then
-      return false, "Dependency source table must contain a 'url' field.", false -- Fatal error
+      return false, "Dependency source table must contain a 'url' field.", false
     end
   else
     input_url = dep_source
     input_path = nil
   end
 
-  -- 3. Determine Dependency Name and Filename
+  -- Determine Dependency Name and Filename
   local filename
   if dep_name then
     -- Use provided name (-n)
@@ -76,23 +82,23 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
       dep_name = name_from_file
     else
       -- This case might be hard to reach if filename extraction worked, but safeguarding.
-      return false, "Could not infer dependency name from URL/filename: " .. input_url, false -- Fatal error
+      return false, "Could not infer dependency name from URL/filename: " .. input_url, false
     end
   end
   -- At this point, both dep_name and filename should be set.
 
-  -- 4. Normalize URL & Get Download Info
+  -- Normalize URL & Get Download Info
   -- Returns: download_url, error
   local _, _, commit_hash, download_url, norm_err = url_utils.normalize_github_url(input_url)
   if norm_err then
-    return false, string.format("Failed to process URL '%s': %s", input_url, norm_err), false -- Fatal error
+    return false, string.format("Failed to process URL '%s': %s", input_url, norm_err), false
   end
   if not download_url then
-    -- Should be caught by normalize_github_url errors usually, but double-check
-    return false, string.format("Could not determine download URL for '%s'", input_url), false -- Fatal error
+    -- TODO: Should be caught by normalize_github_url errors usually, but double-check
+    return false, string.format("Could not determine download URL for '%s'", input_url), false
   end
 
-  -- 5. Create Source Identifier for Manifest
+  -- Create Source Identifier for Manifest
   local source_identifier, sid_err = url_utils.create_github_source_identifier(input_url)
   if not source_identifier then
     -- Treat this as a non-fatal warning for now, allows proceeding with original URL
@@ -106,19 +112,18 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     source_identifier = input_url -- Fallback to the original URL
   end
 
-  -- 6. Determine Final Target Path
+  -- Determine Final Target Path
   local target_path
-  if cmd_dest_path_or_dir then
+  if dest_dir then
     -- User provided -d flag
-    local ends_with_sep = cmd_dest_path_or_dir:match("[/]$")
-    local path_type = filesystem_utils.get_path_type(cmd_dest_path_or_dir)
+    local ends_with_sep = dest_dir:match("[/]$")
+    local path_type = filesystem_utils.get_path_type(dest_dir)
 
     if path_type == "directory" or ends_with_sep then
-      -- Remove trailing slash from dir path before joining to prevent double slashes
-      local dir_to_join = cmd_dest_path_or_dir:gsub("[/\\]$", "") -- Remove trailing / or \
+      local dir_to_join = dest_dir:gsub("[/\\]$", "") -- Remove trailing / or \
       target_path = filesystem_utils.join_path(dir_to_join, filename)
     else
-      target_path = cmd_dest_path_or_dir -- Treat as full path
+      target_path = dest_dir -- Treat as full path
     end
   elseif input_path then
     -- Path provided via table source (rare)
@@ -128,7 +133,7 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     target_path = filesystem_utils.join_path("src", "lib", filename)
   end
 
-  -- 7. Ensure Target Directory Exists
+  -- Ensure Target Directory Exists
   local target_dir_path = target_path:match("(.+)[\\/]")
   if target_dir_path then
     local dir_ok, dir_err = filesystem_utils.ensure_dir_exists(target_dir_path)
@@ -136,11 +141,11 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
       local err_msg =
         string.format("Failed to ensure target directory '%s' exists: %s", target_dir_path, dir_err or "unknown error")
       print(err_msg)
-      return false, err_msg, false -- Fatal error
+      return false, err_msg, false
     end
   end
 
-  -- 8. Prepare Manifest Update (but don't save yet)
+  -- Prepare Manifest Update (but don't save yet)
   manifest.dependencies = manifest.dependencies or {}
   manifest.dependencies[dep_name] = {
     source = source_identifier,
@@ -150,7 +155,7 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
     string.format("Preparing to add dependency '%s': source='%s', path='%s'", dep_name, source_identifier, target_path)
   )
 
-  -- 9. Download Dependency
+  -- Download Dependency
   print(string.format("Downloading '%s' from '%s' to '%s'...", dep_name, download_url, target_path))
   local download_ok, download_err = deps.downloader.download(download_url, target_path, verbose)
 
@@ -168,10 +173,10 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
         remove_err or "unknown error"
       ))
     end
-    return false, "Download failed: " .. (download_err or "Unknown error"), false -- Fatal error
+    return false, "Download failed: " .. (download_err or "Unknown error"), false
   end
 
-  -- 10. Download Succeeded: Save Manifest
+  -- Download Succeeded: Save Manifest
   print(string.format("Successfully downloaded '%s' to '%s'.", dep_name, target_path))
   local ok_save, err_save = deps.save_manifest(manifest)
   if not ok_save then
@@ -185,10 +190,10 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
   end
   print("Updated project.lua.")
 
-  -- 11. Update Lockfile
+  -- Update Lockfile
   local existing_lockfile_data, load_err = deps.lockfile.load_lockfile()
   if load_err and not load_err:match("Could not read lockfile") then
-    -- Warn but continue, we'll create a new lockfile or overwrite based on current state.
+    -- Warn but continue, create a new lockfile or overwrite based on current state.
     local load_warn_msg = "Could not load existing lockfile to merge changes: " .. tostring(load_err)
     print("Warning: " .. load_warn_msg)
     -- Aggregate warnings
@@ -224,16 +229,13 @@ local function add_dependency(dep_name, dep_source, cmd_dest_path_or_dir, deps)
       -- Aggregate warning
       final_warning_occurred = true
       final_warning_message = (final_warning_message and final_warning_message .. "\n" or "") .. hash_warning_msg
-      -- Do NOT print warning here, let main.lua handle it
     else
       -- Some other fatal error occurred during hashing (file not found, command failed, parse error)
-      -- Treat this as fatal for the add operation?
-      -- For now, let's treat it as a non-fatal warning like tool_not_found, but use the error message.
+      -- Treat as non-fatal warning
       lockfile_hash_string = "hash_error:" .. (hash_fatal_err or "unknown_fatal_error")
       local hash_fail_warn_msg = string.format("Failed to calculate sha256 hash for '%s': %s", target_path, hash_fatal_err or "unknown error")
       final_warning_occurred = true
       final_warning_message = (final_warning_message and final_warning_message .. "\n" or "") .. hash_fail_warn_msg
-      -- Do NOT print warning here, let main.lua handle it
     end
   end
 

@@ -1,4 +1,9 @@
--- End-to-End Tests for the `add` command
+--[[
+  add_spec
+  @module add_spec
+
+  End-to-End Tests for the `add` command
+]]
 
 describe("E2E: `almd add` command", function()
   -- Require the scaffold helper
@@ -6,13 +11,14 @@ describe("E2E: `almd add` command", function()
   -- Use dot notation assuming busted runs relative to src/
   local scaffold = require("spec.e2e.helpers.scaffold")
   local assert = require("luassert")
-  local url_utils = require("utils.url") -- Required for helper function
+  local url_utils = require("utils.url")
 
   -- Variables to hold sandbox info between tests
   local sandbox_path
   local cleanup_func
-  local initial_project_data -- Optional: Can be customized per test if needed
+  local initial_project_data -- Optional: Can be customized per test if needed. TODO: Move to base scaffold functions
 
+  -- TODO: Remove entire luacheck ignore
   --luacheck: ignore
   local LOCKSOURCE_GITHUB_RAW = "https://raw.githubusercontent.com/Oval-Tutu/shove/81f7f879a812e4479493a88e646831d0f0409560/shove.lua"
 
@@ -49,6 +55,7 @@ describe("E2E: `almd add` command", function()
   end)
 
   -- Helper function for verifying successful add cases
+  -- TODO: Add params definitions
   local function _verify_add(params)
     -- Construct command arguments
     local cmd_args = { "add", params.url }
@@ -72,6 +79,7 @@ describe("E2E: `almd add` command", function()
       initial_dependencies = initial_project_data_before.dependencies or {}
     end
 
+    -- TODO: Also run for coverage rather than success. Have run_almd also call the main path.
     -- Run the add command
     local success, output = scaffold.run_almd(sandbox_path, cmd_args)
 
