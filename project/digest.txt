@@ -2,7 +2,6 @@ Directory structure:
 └── almandine/
     ├── README.md
     ├── LICENSE
-    ├── coverage
     ├── devenv.lock
     ├── devenv.nix
     ├── devenv.yaml
@@ -20,9 +19,9 @@ Directory structure:
     │   │   ├── add/
     │   │   │   ├── add.go
     │   │   │   └── add_test.go
-    │   │   ├── initcmd/
-    │   │   │   ├── initcmd.go
-    │   │   │   └── initcmd_test.go
+    │   │   ├── init/
+    │   │   │   ├── init.go
+    │   │   │   └── init_test.go
     │   │   ├── install/
     │   │   │   ├── install.go
     │   │   │   └── install_test.go
@@ -66,7 +65,6 @@ Directory structure:
     │   ├── dependabot.yml
     │   └── workflows/
     │       ├── ci.yml
-    │       ├── release.yml
     │       └── scorecard.yml
     └── .roo/
 
@@ -155,7 +153,7 @@ go test ./...
 Prepare for commit.
 
 ```sh
-gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/* .
+gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,project/digest.txt .
 go fmt ./...
 go vet ./...
 go mod tidy -v
@@ -204,535 +202,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
-
-================================================
-File: coverage
-================================================
-mode: atomic
-github.com/nightconcept/almandine/cmd/almd/main.go:26.13,31.38 1 0
-github.com/nightconcept/almandine/cmd/almd/main.go:31.38,35.4 2 0
-github.com/nightconcept/almandine/cmd/almd/main.go:46.2,46.41 1 0
-github.com/nightconcept/almandine/cmd/almd/main.go:46.41,48.3 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:17.36,48.2 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:50.41,54.13 3 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:54.13,56.3 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:58.2,59.16 2 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:59.16,61.49 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:61.49,63.4 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:64.3,64.17 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:64.17,66.4 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:68.2,68.13 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:68.13,70.3 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:72.2,75.22 3 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:75.22,77.58 2 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:77.58,79.15 2 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:79.15,81.5 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:82.9,84.4 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:85.8,86.14 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:86.14,88.4 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:93.2,94.16 2 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:94.16,96.3 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:98.2,101.16 2 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:101.16,103.3 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:105.2,105.13 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:105.13,107.3 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:110.2,112.16 3 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:112.16,115.3 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:117.2,117.12 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:117.12,119.14 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:119.14,121.4 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:122.3,123.13 2 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:128.2,128.13 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:128.13,130.35 2 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:130.35,132.4 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:133.3,133.39 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:133.39,135.4 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:141.2,141.56 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:141.56,144.3 2 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:146.2,148.21 2 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:148.21,150.3 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:152.2,152.20 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:152.20,156.55 4 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:156.55,159.4 2 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:162.2,164.16 3 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:164.16,166.3 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:167.2,167.13 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:167.13,169.3 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:172.2,173.16 2 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:173.16,175.3 1 0
-github.com/nightconcept/almandine/internal/cli/self/self.go:177.2,178.12 2 0
-github.com/nightconcept/almandine/internal/core/hasher/hasher.go:11.54,14.16 3 4
-github.com/nightconcept/almandine/internal/core/hasher/hasher.go:14.16,16.3 1 0
-github.com/nightconcept/almandine/internal/core/hasher/hasher.go:17.2,19.50 3 4
-github.com/nightconcept/almandine/internal/core/project/project.go:38.28,44.2 1 1
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:34.22,39.2 1 11
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:43.50,47.57 3 7
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:47.57,49.3 1 1
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:49.8,49.23 1 6
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:49.23,51.3 1 0
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:53.2,53.62 1 6
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:53.62,55.3 1 1
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:57.2,57.25 1 5
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:57.25,59.3 1 0
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:61.2,61.23 1 5
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:61.23,63.3 1 0
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:64.2,64.16 1 5
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:68.51,71.16 3 2
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:71.16,73.3 1 0
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:74.2,74.15 1 2
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:74.15,74.35 1 2
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:76.2,77.43 2 2
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:77.43,79.3 1 0
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:80.2,80.12 1 2
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:84.90,85.23 1 4
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:85.23,87.3 1 1
-github.com/nightconcept/almandine/internal/core/lockfile/lockfile.go:88.2,92.3 1 4
-github.com/nightconcept/almandine/internal/core/config/config.go:16.64,19.16 3 5
-github.com/nightconcept/almandine/internal/core/config/config.go:19.16,21.3 1 1
-github.com/nightconcept/almandine/internal/core/config/config.go:23.2,24.52 2 4
-github.com/nightconcept/almandine/internal/core/config/config.go:24.52,26.3 1 1
-github.com/nightconcept/almandine/internal/core/config/config.go:27.2,27.19 1 3
-github.com/nightconcept/almandine/internal/core/config/config.go:32.68,34.58 2 2
-github.com/nightconcept/almandine/internal/core/config/config.go:34.58,36.3 1 0
-github.com/nightconcept/almandine/internal/core/config/config.go:41.2,43.16 3 2
-github.com/nightconcept/almandine/internal/core/config/config.go:43.16,45.3 1 0
-github.com/nightconcept/almandine/internal/core/config/config.go:46.2,46.15 1 2
-github.com/nightconcept/almandine/internal/core/config/config.go:46.15,46.35 1 2
-github.com/nightconcept/almandine/internal/core/config/config.go:48.2,49.12 2 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:15.102,17.24 1 14
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:17.24,19.3 1 6
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:19.8,21.3 1 8
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:23.2,24.16 2 14
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:24.16,27.3 1 0
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:28.2,29.17 2 14
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:29.17,31.3 1 7
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:32.2,32.19 1 7
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:36.36,40.38 1 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:40.38,50.18 6 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:50.18,52.5 1 0
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:55.4,56.18 2 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:56.18,58.5 1 0
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:61.4,62.18 2 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:62.18,64.5 1 0
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:67.4,68.18 2 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:68.18,70.5 1 0
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:72.4,83.8 9 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:83.8,85.23 2 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:85.23,87.6 1 0
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:89.5,89.25 1 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:89.25,90.11 1 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:93.5,94.23 2 0
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:94.23,96.6 1 0
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:97.5,97.36 1 0
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:100.4,100.44 1 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:100.44,102.5 1 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:104.4,110.8 4 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:110.8,112.23 2 3
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:112.23,114.6 1 0
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:116.5,116.22 1 3
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:116.22,117.11 1 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:120.5,121.23 2 1
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:121.23,123.6 1 0
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:124.5,124.38 1 1
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:127.4,128.29 2 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:128.29,129.44 1 1
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:129.44,131.6 1 1
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:132.10,134.5 1 1
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:135.4,139.43 3 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:139.43,144.5 1 1
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:147.4,161.18 3 2
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:161.18,163.5 1 0
-github.com/nightconcept/almandine/internal/cli/initcmd/initcmd.go:165.4,166.14 2 2
-github.com/nightconcept/almandine/internal/core/downloader/downloader.go:13.47,15.16 2 5
-github.com/nightconcept/almandine/internal/core/downloader/downloader.go:15.16,17.3 1 1
-github.com/nightconcept/almandine/internal/core/downloader/downloader.go:18.2,18.15 1 4
-github.com/nightconcept/almandine/internal/core/downloader/downloader.go:18.15,18.40 1 4
-github.com/nightconcept/almandine/internal/core/downloader/downloader.go:20.2,20.38 1 4
-github.com/nightconcept/almandine/internal/core/downloader/downloader.go:20.38,22.3 1 2
-github.com/nightconcept/almandine/internal/core/downloader/downloader.go:24.2,25.16 2 2
-github.com/nightconcept/almandine/internal/core/downloader/downloader.go:25.16,27.3 1 1
-github.com/nightconcept/almandine/internal/core/downloader/downloader.go:29.2,29.18 1 1
-github.com/nightconcept/almandine/internal/core/source/github_api.go:32.85,43.16 7 6
-github.com/nightconcept/almandine/internal/core/source/github_api.go:43.16,45.3 1 0
-github.com/nightconcept/almandine/internal/core/source/github_api.go:47.2,52.16 3 6
-github.com/nightconcept/almandine/internal/core/source/github_api.go:52.16,54.3 1 1
-github.com/nightconcept/almandine/internal/core/source/github_api.go:55.2,55.15 1 5
-github.com/nightconcept/almandine/internal/core/source/github_api.go:55.15,55.40 1 5
-github.com/nightconcept/almandine/internal/core/source/github_api.go:57.2,57.38 1 5
-github.com/nightconcept/almandine/internal/core/source/github_api.go:57.38,60.3 2 1
-github.com/nightconcept/almandine/internal/core/source/github_api.go:62.2,63.16 2 4
-github.com/nightconcept/almandine/internal/core/source/github_api.go:63.16,65.3 1 0
-github.com/nightconcept/almandine/internal/core/source/github_api.go:67.2,68.55 2 4
-github.com/nightconcept/almandine/internal/core/source/github_api.go:68.55,70.3 1 1
-github.com/nightconcept/almandine/internal/core/source/github_api.go:72.2,72.23 1 3
-github.com/nightconcept/almandine/internal/core/source/github_api.go:72.23,78.3 1 1
-github.com/nightconcept/almandine/internal/core/source/github_api.go:80.2,80.28 1 2
-github.com/nightconcept/almandine/internal/core/source/source.go:17.51,21.2 3 16
-github.com/nightconcept/almandine/internal/core/source/source.go:37.66,38.45 1 22
-github.com/nightconcept/almandine/internal/core/source/source.go:38.45,43.19 3 7
-github.com/nightconcept/almandine/internal/core/source/source.go:43.19,45.4 1 1
-github.com/nightconcept/almandine/internal/core/source/source.go:46.3,46.31 1 6
-github.com/nightconcept/almandine/internal/core/source/source.go:46.31,48.4 1 1
-github.com/nightconcept/almandine/internal/core/source/source.go:50.3,54.30 4 5
-github.com/nightconcept/almandine/internal/core/source/source.go:54.30,56.4 1 1
-github.com/nightconcept/almandine/internal/core/source/source.go:58.3,63.79 5 4
-github.com/nightconcept/almandine/internal/core/source/source.go:63.79,65.4 1 1
-github.com/nightconcept/almandine/internal/core/source/source.go:67.3,72.28 5 3
-github.com/nightconcept/almandine/internal/core/source/source.go:72.28,81.4 4 1
-github.com/nightconcept/almandine/internal/core/source/source.go:81.9,83.4 1 2
-github.com/nightconcept/almandine/internal/core/source/source.go:85.3,94.9 1 3
-github.com/nightconcept/almandine/internal/core/source/source.go:98.2,99.16 2 15
-github.com/nightconcept/almandine/internal/core/source/source.go:99.16,101.3 1 1
-github.com/nightconcept/almandine/internal/core/source/source.go:103.2,107.27 4 14
-github.com/nightconcept/almandine/internal/core/source/source.go:107.27,111.25 2 4
-github.com/nightconcept/almandine/internal/core/source/source.go:111.25,113.4 1 2
-github.com/nightconcept/almandine/internal/core/source/source.go:115.3,122.45 6 2
-github.com/nightconcept/almandine/internal/core/source/source.go:122.45,125.4 1 0
-github.com/nightconcept/almandine/internal/core/source/source.go:126.3,126.44 1 2
-github.com/nightconcept/almandine/internal/core/source/source.go:126.44,128.4 1 0
-github.com/nightconcept/almandine/internal/core/source/source.go:130.3,139.9 1 2
-github.com/nightconcept/almandine/internal/core/source/source.go:142.2,142.115 1 10
-github.com/nightconcept/almandine/internal/core/source/source.go:142.115,144.3 1 8
-github.com/nightconcept/almandine/internal/core/source/source.go:147.2,147.115 1 2
-github.com/nightconcept/almandine/internal/core/source/source.go:151.60,160.66 2 8
-github.com/nightconcept/almandine/internal/core/source/source.go:160.66,162.25 1 2
-github.com/nightconcept/almandine/internal/core/source/source.go:162.25,164.4 1 1
-github.com/nightconcept/almandine/internal/core/source/source.go:165.3,182.9 7 1
-github.com/nightconcept/almandine/internal/core/source/source.go:186.2,186.24 1 6
-github.com/nightconcept/almandine/internal/core/source/source.go:186.24,188.3 1 0
-github.com/nightconcept/almandine/internal/core/source/source.go:190.2,201.104 4 6
-github.com/nightconcept/almandine/internal/core/source/source.go:201.104,202.25 1 4
-github.com/nightconcept/almandine/internal/core/source/source.go:202.25,204.4 1 1
-github.com/nightconcept/almandine/internal/core/source/source.go:205.3,210.24 5 3
-github.com/nightconcept/almandine/internal/core/source/source.go:210.24,212.4 1 1
-github.com/nightconcept/almandine/internal/core/source/source.go:214.3,214.106 1 2
-github.com/nightconcept/almandine/internal/core/source/source.go:216.8,241.26 3 2
-github.com/nightconcept/almandine/internal/core/source/source.go:241.26,245.29 4 1
-github.com/nightconcept/almandine/internal/core/source/source.go:245.29,247.5 1 1
-github.com/nightconcept/almandine/internal/core/source/source.go:247.10,249.5 1 0
-github.com/nightconcept/almandine/internal/core/source/source.go:250.9,258.4 1 1
-github.com/nightconcept/almandine/internal/core/source/source.go:259.3,259.106 1 1
-github.com/nightconcept/almandine/internal/core/source/source.go:262.2,262.26 1 3
-github.com/nightconcept/almandine/internal/core/source/source.go:262.26,264.3 1 0
-github.com/nightconcept/almandine/internal/core/source/source.go:265.2,265.15 1 3
-github.com/nightconcept/almandine/internal/core/source/source.go:265.15,269.3 1 0
-github.com/nightconcept/almandine/internal/core/source/source.go:271.2,282.8 2 3
-github.com/nightconcept/almandine/internal/cli/list/list.go:32.37,36.17 3 7
-github.com/nightconcept/almandine/internal/cli/list/list.go:36.17,37.26 1 1
-github.com/nightconcept/almandine/internal/cli/list/list.go:37.26,41.5 1 1
-github.com/nightconcept/almandine/internal/cli/list/list.go:43.4,43.81 1 0
-github.com/nightconcept/almandine/internal/cli/list/list.go:46.3,47.17 2 6
-github.com/nightconcept/almandine/internal/cli/list/list.go:47.17,51.4 1 0
-github.com/nightconcept/almandine/internal/cli/list/list.go:53.3,53.16 1 6
-github.com/nightconcept/almandine/internal/cli/list/list.go:53.16,55.4 1 0
-github.com/nightconcept/almandine/internal/cli/list/list.go:57.3,62.17 3 6
-github.com/nightconcept/almandine/internal/cli/list/list.go:62.17,64.4 1 0
-github.com/nightconcept/almandine/internal/cli/list/list.go:67.3,81.34 11 6
-github.com/nightconcept/almandine/internal/cli/list/list.go:81.34,88.4 3 3
-github.com/nightconcept/almandine/internal/cli/list/list.go:90.3,91.51 2 3
-github.com/nightconcept/almandine/internal/cli/list/list.go:91.51,99.45 2 5
-github.com/nightconcept/almandine/internal/cli/list/list.go:99.45,103.5 3 4
-github.com/nightconcept/almandine/internal/cli/list/list.go:103.10,106.5 2 1
-github.com/nightconcept/almandine/internal/cli/list/list.go:111.4,111.54 1 5
-github.com/nightconcept/almandine/internal/cli/list/list.go:111.54,113.5 1 4
-github.com/nightconcept/almandine/internal/cli/list/list.go:113.10,113.33 1 1
-github.com/nightconcept/almandine/internal/cli/list/list.go:113.33,115.34 2 1
-github.com/nightconcept/almandine/internal/cli/list/list.go:115.34,117.6 1 0
-github.com/nightconcept/almandine/internal/cli/list/list.go:117.11,119.6 1 1
-github.com/nightconcept/almandine/internal/cli/list/list.go:120.10,123.34 2 0
-github.com/nightconcept/almandine/internal/cli/list/list.go:123.34,125.6 1 0
-github.com/nightconcept/almandine/internal/cli/list/list.go:125.11,127.6 1 0
-github.com/nightconcept/almandine/internal/cli/list/list.go:128.5,128.96 1 0
-github.com/nightconcept/almandine/internal/cli/list/list.go:130.4,130.43 1 5
-github.com/nightconcept/almandine/internal/cli/list/list.go:139.3,139.35 1 3
-github.com/nightconcept/almandine/internal/cli/list/list.go:139.35,141.44 2 5
-github.com/nightconcept/almandine/internal/cli/list/list.go:141.44,143.5 1 4
-github.com/nightconcept/almandine/internal/cli/list/list.go:143.10,143.51 1 1
-github.com/nightconcept/almandine/internal/cli/list/list.go:143.51,145.5 1 0
-github.com/nightconcept/almandine/internal/cli/list/list.go:149.4,149.109 1 5
-github.com/nightconcept/almandine/internal/cli/list/list.go:151.3,151.13 1 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:21.44,23.16 2 2
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:23.16,25.3 1 0
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:26.2,26.31 1 2
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:30.35,35.38 1 6
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:35.38,37.27 2 6
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:37.27,39.5 1 0
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:41.4,45.18 3 6
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:45.18,47.5 1 1
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:49.4,49.35 1 5
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:49.35,51.5 1 1
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:53.4,54.11 2 4
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:54.11,56.5 1 1
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:58.4,64.61 4 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:64.61,66.5 1 0
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:70.4,71.52 2 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:71.52,72.28 1 1
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:72.28,75.6 1 0
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:77.10,83.22 4 2
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:83.22,85.6 1 0
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:85.11,86.10 1 2
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:86.10,88.28 2 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:88.28,90.13 2 0
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:92.7,92.111 1 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:92.111,93.13 1 1
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:95.7,96.26 2 2
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:96.26,98.13 2 0
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:100.7,100.17 1 2
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:100.17,101.13 1 1
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:104.7,104.69 1 1
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:104.69,106.13 2 0
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:109.7,109.44 1 1
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:115.4,117.22 3 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:117.22,119.5 1 0
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:119.10,120.26 1 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:120.26,121.56 1 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:121.56,123.68 2 2
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:123.68,125.8 1 0
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:125.13,128.8 1 2
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:142.4,151.116 6 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:151.116,153.5 1 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:155.4,163.46 6 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:163.46,165.5 1 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:167.4,167.20 1 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:167.20,169.5 1 1
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:170.4,170.42 1 3
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:170.42,172.5 1 1
-github.com/nightconcept/almandine/internal/cli/remove/remove.go:174.4,174.14 1 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:26.58,28.2 1 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:31.47,33.2 1 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:57.46,60.22 3 6
-github.com/nightconcept/almandine/internal/cli/add/add.go:60.22,62.4 1 6
-github.com/nightconcept/almandine/internal/cli/add/add.go:62.9,65.4 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:67.3,77.17 7 6
-github.com/nightconcept/almandine/internal/cli/add/add.go:77.17,80.4 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:82.3,82.14 1 6
-github.com/nightconcept/almandine/internal/cli/add/add.go:82.14,88.4 5 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:91.3,91.14 1 6
-github.com/nightconcept/almandine/internal/cli/add/add.go:91.14,93.4 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:94.3,96.17 3 6
-github.com/nightconcept/almandine/internal/cli/add/add.go:96.17,99.4 2 1
-github.com/nightconcept/almandine/internal/cli/add/add.go:100.3,100.14 1 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:100.14,102.4 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:105.3,111.23 5 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:111.23,114.4 2 2
-github.com/nightconcept/almandine/internal/cli/add/add.go:114.9,115.87 1 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:115.87,118.5 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:119.4,120.49 2 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:123.3,123.77 1 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:123.77,126.4 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:128.3,128.14 1 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:128.14,131.4 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:134.3,138.14 4 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:138.14,141.4 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:144.3,145.14 2 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:145.14,147.4 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:149.3,149.66 1 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:149.66,152.4 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:156.3,156.14 1 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:156.14,158.4 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:160.3,160.77 1 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:160.77,164.4 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:166.3,167.16 2 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:167.16,169.33 1 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:169.33,170.16 1 2
-github.com/nightconcept/almandine/internal/cli/add/add.go:170.16,172.6 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:173.5,174.26 2 2
-github.com/nightconcept/almandine/internal/cli/add/add.go:174.26,176.54 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:176.54,178.7 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:179.6,179.137 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:180.11,181.17 1 2
-github.com/nightconcept/almandine/internal/cli/add/add.go:181.17,183.7 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:189.3,192.21 4 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:192.21,196.4 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:197.3,197.14 1 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:197.14,199.4 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:202.3,202.14 1 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:202.14,204.4 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:207.3,211.25 4 5
-github.com/nightconcept/almandine/internal/cli/add/add.go:211.25,212.34 1 1
-github.com/nightconcept/almandine/internal/cli/add/add.go:212.34,219.5 4 1
-github.com/nightconcept/almandine/internal/cli/add/add.go:219.10,222.5 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:226.3,226.31 1 4
-github.com/nightconcept/almandine/internal/cli/add/add.go:226.31,228.4 1 4
-github.com/nightconcept/almandine/internal/cli/add/add.go:231.3,238.86 2 4
-github.com/nightconcept/almandine/internal/cli/add/add.go:238.86,241.4 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:243.3,243.14 1 4
-github.com/nightconcept/almandine/internal/cli/add/add.go:243.14,245.4 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:248.3,248.14 1 4
-github.com/nightconcept/almandine/internal/cli/add/add.go:248.14,250.4 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:252.3,255.25 4 4
-github.com/nightconcept/almandine/internal/cli/add/add.go:255.25,258.4 2 1
-github.com/nightconcept/almandine/internal/cli/add/add.go:261.3,262.46 2 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:262.46,263.22 1 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:263.22,265.5 1 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:266.4,266.26 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:266.26,267.77 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:267.77,269.6 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:271.4,271.15 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:274.3,274.192 1 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:274.192,275.41 1 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:275.41,276.16 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:276.16,278.6 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:279.5,279.61 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:280.10,282.16 1 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:282.16,284.6 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:285.5,288.28 4 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:288.28,289.17 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:289.17,291.7 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:292.6,292.36 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:293.11,294.17 1 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:294.17,296.7 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:297.6,297.57 1 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:300.9,301.50 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:301.50,303.5 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:303.10,303.22 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:303.22,305.5 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:306.4,306.34 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:310.3,313.72 2 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:313.72,317.4 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:319.3,319.14 1 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:319.14,321.4 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:324.3,330.86 7 3
-github.com/nightconcept/almandine/internal/cli/add/add.go:330.86,333.22 2 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:333.22,335.5 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:335.10,337.5 1 0
-github.com/nightconcept/almandine/internal/cli/add/add.go:339.3,344.13 5 3
-github.com/nightconcept/almandine/internal/cli/install/install.go:23.39,39.38 1 10
-github.com/nightconcept/almandine/internal/cli/install/install.go:39.38,43.15 3 10
-github.com/nightconcept/almandine/internal/cli/install/install.go:43.15,45.14 2 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:45.14,47.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:50.4,51.15 2 10
-github.com/nightconcept/almandine/internal/cli/install/install.go:51.15,52.33 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:52.33,54.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:54.11,56.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:60.4,61.18 2 10
-github.com/nightconcept/almandine/internal/cli/install/install.go:61.18,62.39 1 1
-github.com/nightconcept/almandine/internal/cli/install/install.go:62.39,64.6 1 1
-github.com/nightconcept/almandine/internal/cli/install/install.go:65.5,65.75 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:67.4,67.15 1 9
-github.com/nightconcept/almandine/internal/cli/install/install.go:67.15,69.5 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:72.4,73.18 2 9
-github.com/nightconcept/almandine/internal/cli/install/install.go:73.18,75.5 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:76.4,76.15 1 9
-github.com/nightconcept/almandine/internal/cli/install/install.go:76.15,78.5 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:79.4,79.25 1 9
-github.com/nightconcept/almandine/internal/cli/install/install.go:79.25,81.5 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:82.4,82.27 1 9
-github.com/nightconcept/almandine/internal/cli/install/install.go:82.27,84.5 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:87.4,94.33 3 9
-github.com/nightconcept/almandine/internal/cli/install/install.go:94.33,95.39 1 4
-github.com/nightconcept/almandine/internal/cli/install/install.go:95.39,98.6 2 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:99.5,99.16 1 4
-github.com/nightconcept/almandine/internal/cli/install/install.go:99.16,101.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:102.5,102.56 1 4
-github.com/nightconcept/almandine/internal/cli/install/install.go:102.56,108.17 2 4
-github.com/nightconcept/almandine/internal/cli/install/install.go:108.17,110.7 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:112.10,113.16 1 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:113.16,115.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:116.5,116.42 1 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:116.42,118.13 2 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:118.13,120.15 2 1
-github.com/nightconcept/almandine/internal/cli/install/install.go:122.6,127.17 2 4
-github.com/nightconcept/almandine/internal/cli/install/install.go:127.17,129.7 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:131.5,131.44 1 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:131.44,134.6 2 1
-github.com/nightconcept/almandine/internal/cli/install/install.go:137.4,137.15 1 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:137.15,139.5 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:142.4,159.53 3 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:159.53,161.5 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:163.4,163.59 1 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:163.59,164.16 1 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:164.16,166.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:168.5,169.19 2 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:169.19,171.14 2 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:174.5,177.101 3 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:177.101,178.17 1 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:178.17,180.7 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:181.6,182.20 2 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:182.20,184.7 1 1
-github.com/nightconcept/almandine/internal/cli/install/install.go:184.12,185.18 1 7
-github.com/nightconcept/almandine/internal/cli/install/install.go:185.18,187.8 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:188.7,189.119 2 7
-github.com/nightconcept/almandine/internal/cli/install/install.go:191.11,191.64 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:191.64,193.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:195.5,207.61 2 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:207.61,210.17 3 6
-github.com/nightconcept/almandine/internal/cli/install/install.go:210.17,212.7 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:213.11,214.17 1 2
-github.com/nightconcept/almandine/internal/cli/install/install.go:214.17,216.7 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:218.5,218.56 1 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:221.4,221.41 1 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:221.41,223.37 2 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:223.37,225.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:229.4,231.41 2 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:231.41,233.5 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:235.4,235.40 1 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:235.40,240.14 3 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:240.14,243.17 3 1
-github.com/nightconcept/almandine/internal/cli/install/install.go:243.17,245.7 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:249.5,249.53 1 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:249.53,252.17 3 2
-github.com/nightconcept/almandine/internal/cli/install/install.go:252.17,254.7 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:258.5,258.21 1 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:258.21,259.82 1 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:259.82,262.18 3 1
-github.com/nightconcept/almandine/internal/cli/install/install.go:262.18,264.8 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:265.12,265.27 1 4
-github.com/nightconcept/almandine/internal/cli/install/install.go:265.27,269.7 3 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:273.5,273.85 1 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:273.85,275.62 2 4
-github.com/nightconcept/almandine/internal/cli/install/install.go:275.62,277.7 1 4
-github.com/nightconcept/almandine/internal/cli/install/install.go:279.6,279.64 1 4
-github.com/nightconcept/almandine/internal/cli/install/install.go:279.64,282.18 3 3
-github.com/nightconcept/almandine/internal/cli/install/install.go:282.18,284.8 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:285.12,285.144 1 1
-github.com/nightconcept/almandine/internal/cli/install/install.go:285.144,288.18 3 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:288.18,290.8 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:294.5,294.20 1 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:294.20,298.6 3 7
-github.com/nightconcept/almandine/internal/cli/install/install.go:298.11,298.23 1 1
-github.com/nightconcept/almandine/internal/cli/install/install.go:298.23,300.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:303.4,303.44 1 8
-github.com/nightconcept/almandine/internal/cli/install/install.go:303.44,306.5 2 1
-github.com/nightconcept/almandine/internal/cli/install/install.go:308.4,308.15 1 7
-github.com/nightconcept/almandine/internal/cli/install/install.go:308.15,310.52 2 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:310.52,312.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:316.4,316.54 1 7
-github.com/nightconcept/almandine/internal/cli/install/install.go:316.54,318.5 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:320.4,321.51 2 7
-github.com/nightconcept/almandine/internal/cli/install/install.go:321.51,322.16 1 7
-github.com/nightconcept/almandine/internal/cli/install/install.go:322.16,324.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:326.5,327.19 2 7
-github.com/nightconcept/almandine/internal/cli/install/install.go:327.19,329.14 2 2
-github.com/nightconcept/almandine/internal/cli/install/install.go:331.5,331.16 1 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:331.16,333.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:335.5,336.87 2 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:336.87,338.17 2 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:338.17,340.7 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:341.11,343.20 2 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:343.20,345.15 2 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:347.6,348.17 2 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:348.17,350.7 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:353.5,354.63 2 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:354.63,356.14 2 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:358.5,358.80 1 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:358.80,360.14 2 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:362.5,362.16 1 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:362.16,364.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:366.5,371.16 2 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:371.16,373.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:374.5,374.24 1 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:377.4,377.29 1 7
-github.com/nightconcept/almandine/internal/cli/install/install.go:377.29,379.50 2 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:379.50,381.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:382.5,382.16 1 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:382.16,384.6 1 0
-github.com/nightconcept/almandine/internal/cli/install/install.go:385.5,385.108 1 5
-github.com/nightconcept/almandine/internal/cli/install/install.go:386.10,387.44 1 2
-github.com/nightconcept/almandine/internal/cli/install/install.go:387.44,390.6 2 2
-github.com/nightconcept/almandine/internal/cli/install/install.go:392.4,392.14 1 5
 
 
 
@@ -920,7 +389,7 @@ File: go.mod
 ================================================
 module github.com/nightconcept/almandine
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/BurntSushi/toml v1.5.0
@@ -1370,8 +839,8 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/nightconcept/almandine/internal/cli/add"
-	"github.com/nightconcept/almandine/internal/cli/initcmd"
-	"github.com/nightconcept/almandine/internal/cli/install" // Changed from update to install
+	initcmd "github.com/nightconcept/almandine/internal/cli/init"
+	"github.com/nightconcept/almandine/internal/cli/install"
 	"github.com/nightconcept/almandine/internal/cli/list"
 	"github.com/nightconcept/almandine/internal/cli/remove"
 	"github.com/nightconcept/almandine/internal/cli/self"
@@ -1392,12 +861,12 @@ func main() {
 			return nil
 		},
 		Commands: []*cli.Command{
-			initcmd.GetInitCommand(),
-			add.AddCommand,
-			remove.RemoveCommand(),
-			install.NewInstallCommand(), // Changed from update.NewUpdateCommand()
-			list.ListCmd,
-			self.NewSelfCommand(),
+			initcmd.InitCmd(),
+			add.AddCmd(),
+			remove.RemoveCmd(),
+			install.InstallCmd(),
+			list.ListCmd(),
+			self.SelfCmd(),
 		},
 	}
 
@@ -1411,10 +880,9 @@ func main() {
 ================================================
 File: internal/cli/add/add.go
 ================================================
-// Title: Almandine CLI Add Command
-// Purpose: Implements the 'add' command for the Almandine CLI, which downloads
-// a specified dependency, saves it to the project, and updates project
-// configuration and lock files.
+// Package add implements the 'add' command for Almandine CLI.
+// It downloads external dependencies, saves them to the project,
+// and maintains project configuration and lock files.
 package add
 
 import (
@@ -1435,327 +903,235 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Helper function to get filename without extension
+// getFileNameWithoutExtension returns the filename portion without its extension.
 func getFileNameWithoutExtension(fileName string) string {
 	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
 }
 
-// Helper function to get file extension
+// getFileExtension returns just the extension portion of a filename.
 func getFileExtension(fileName string) string {
 	return filepath.Ext(fileName)
 }
 
-// AddCommand defines the structure for the "add" command.
-var AddCommand = &cli.Command{
-	Name:      "add",
-	Usage:     "Downloads a dependency and adds it to the project",
-	ArgsUsage: "<source_url>",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:    "directory",
-			Aliases: []string{"d"},
-			Usage:   "Specify the target directory for the dependency",
-			Value:   "src/lib/",
+// AddCmd provides the CLI command definition for 'add'.
+// It downloads a dependency from a source URL and integrates it into the project,
+// updating both project.toml and almd-lock.toml accordingly.
+func AddCmd() *cli.Command {
+	return &cli.Command{
+		Name:      "add",
+		Usage:     "Downloads a dependency and adds it to the project",
+		ArgsUsage: "<source_url>",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "directory",
+				Aliases: []string{"d"},
+				Usage:   "Specify the target directory for the dependency",
+				Value:   "src/lib/",
+			},
+			&cli.StringFlag{
+				Name:    "name",
+				Aliases: []string{"n"},
+				Usage:   "Specify the name for the dependency (defaults to filename from URL)",
+			},
+			&cli.BoolFlag{
+				Name:  "verbose",
+				Usage: "Enable verbose output",
+			},
 		},
-		&cli.StringFlag{
-			Name:    "name",
-			Aliases: []string{"n"},
-			Usage:   "Specify the name for the dependency (defaults to filename from URL)",
-		},
-		&cli.BoolFlag{
-			Name:  "verbose",
-			Usage: "Enable verbose output",
-		},
-	},
-	Action: func(cCtx *cli.Context) (err error) { // MODIFIED: Named return error
-		startTime := time.Now()
-		sourceURLInput := ""
-		if cCtx.NArg() > 0 {
-			sourceURLInput = cCtx.Args().Get(0) // .First() is equivalent but .Get(0) is more explicit
-		} else {
-			err = cli.Exit("Error: <source_url> argument is required.", 1) // MODIFIED
-			return
-		}
-
-		targetDir := cCtx.String("directory")
-		customName := cCtx.String("name")
-		verbose := cCtx.Bool("verbose")
-
-		// Silence default verbose output, will be replaced by pnpm style
-		_ = verbose // Keep verbose for potential future use or more detailed debugging
-
-		// Task 2.2: Parse the source URL
-		var parsedInfo *source.ParsedSourceInfo
-		parsedInfo, err = source.ParseSourceURL(sourceURLInput) // Assign to named return 'err'
-		if err != nil {
-			err = cli.Exit(fmt.Sprintf("Error parsing source URL '%s': %v", sourceURLInput, err), 1) // MODIFIED
-			return
-		}
-
-		if verbose {
-			fmt.Printf("Parsed Source Info:\n")
-			fmt.Printf("  Raw Download URL: %s\n", parsedInfo.RawURL)
-			fmt.Printf("  Canonical URL for Manifest: %s\n", parsedInfo.CanonicalURL)
-			fmt.Printf("  Extracted Ref (commit/branch/tag): %s\n", parsedInfo.Ref)
-			fmt.Printf("  Suggested Filename from URL: %s\n", parsedInfo.SuggestedFilename)
-		}
-
-		// Task 2.3: Download the file using the RawURL
-		if verbose {
-			fmt.Printf("Downloading from %s...\n", parsedInfo.RawURL)
-		}
-		var fileContent []byte
-		fileContent, err = downloader.DownloadFile(parsedInfo.RawURL) // Assign to named return 'err'
-		if err != nil {
-			err = cli.Exit(fmt.Sprintf("Error downloading file from '%s': %v", parsedInfo.RawURL, err), 1) // MODIFIED
-			return
-		}
-		if verbose {
-			fmt.Printf("Downloaded %d bytes successfully.\n", len(fileContent))
-		}
-
-		// Task 2.4: Determine target path and save file
-		var dependencyNameInManifest string
-		var fileNameOnDisk string
-
-		suggestedBaseName := getFileNameWithoutExtension(parsedInfo.SuggestedFilename)
-		suggestedExtension := getFileExtension(parsedInfo.SuggestedFilename)
-
-		if customName != "" {
-			dependencyNameInManifest = customName
-			fileNameOnDisk = customName + suggestedExtension // Ensure extension is preserved
-		} else {
-			if suggestedBaseName == "" || suggestedBaseName == "." || suggestedBaseName == "/" {
-				err = cli.Exit(fmt.Sprintf("Error: Could not infer a valid base filename from URL's suggested filename: '%s'. Use -n to specify a name.", parsedInfo.SuggestedFilename), 1) // MODIFIED
-				return
-			}
-			dependencyNameInManifest = suggestedBaseName
-			fileNameOnDisk = parsedInfo.SuggestedFilename
-		}
-
-		if fileNameOnDisk == "" || fileNameOnDisk == "." || fileNameOnDisk == "/" {
-			err = cli.Exit("Error: Could not determine a valid final filename for saving. Inferred name was empty or invalid.", 1) // MODIFIED
-			return
-		}
-
-		if verbose {
-			fmt.Printf("Effective filename for saving: %s\n", fileNameOnDisk)
-			fmt.Printf("Dependency name in manifest/lockfile: %s\n", dependencyNameInManifest)
-		}
-
-		// Construct the full path relative to the current directory (project root)
-		projectRoot := "."
-		fullPath := filepath.Join(projectRoot, targetDir, fileNameOnDisk)
-		relativeDestPath := filepath.ToSlash(filepath.Join(targetDir, fileNameOnDisk))
-
-		if verbose {
-			fmt.Printf("Resolved full path for saving: %s\n", fullPath)
-			fmt.Printf("Relative destination path for manifest: %s\n", relativeDestPath)
-		}
-
-		// Create the target directory if it doesn't exist
-		dirToCreate := filepath.Dir(fullPath)
-		if verbose {
-			fmt.Printf("Ensuring directory exists: %s\n", dirToCreate)
-		}
-		// Use a temporary variable for MkdirAll's error to not shadow the named return 'err'
-		if mkdirErr := os.MkdirAll(dirToCreate, 0755); mkdirErr != nil {
-			err = cli.Exit(fmt.Sprintf("Error creating directory '%s': %v", dirToCreate, mkdirErr), 1) // MODIFIED
-			return
-		}
-
-		// Save the downloaded content to the file
-		// This is a critical point: if this succeeds but subsequent steps fail, we should try to clean up this file.
-		if verbose {
-			fmt.Printf("Saving file to %s...\n", fullPath)
-		}
-		// Use a temporary variable for WriteFile's error
-		if writeErr := os.WriteFile(fullPath, fileContent, 0644); writeErr != nil {
-			// No file to clean up yet, as it wasn't written.
-			err = cli.Exit(fmt.Sprintf("Error writing file '%s': %v", fullPath, writeErr), 1) // MODIFIED
-			return
-		}
-		// File has been written. From this point on, if an error occurs, we must attempt to clean it up.
-		fileWritten := true
-		defer func() {
-			// 'err' here refers to the named return parameter of the Action func.
-			if err != nil && fileWritten { // If an error occurred (i.e., Action is returning an error) and file was written
-				if verbose {
-					fmt.Printf("Attempting to clean up downloaded file '%s' due to error: %v\n", fullPath, err)
-				}
-				cleanupErr := os.Remove(fullPath)
-				if cleanupErr != nil {
-					var errWriter io.Writer = os.Stderr
-					if cCtx.App != nil && cCtx.App.ErrWriter != nil {
-						errWriter = cCtx.App.ErrWriter
-					}
-					_, _ = fmt.Fprintf(errWriter, "Warning: Failed to clean up downloaded file '%s' during error handling: %v\n", fullPath, cleanupErr)
-				} else {
-					if verbose {
-						fmt.Printf("Successfully cleaned up downloaded file '%s'.\n", fullPath)
-					}
-				}
-			}
-		}()
-
-		// Task 2.5: Calculate hash of the downloaded content
-		var fileHashSHA256 string
-		var hashErr error
-		fileHashSHA256, hashErr = hasher.CalculateSHA256(fileContent)
-		if hashErr != nil {
-			// Assign to named return 'err'
-			err = cli.Exit(fmt.Sprintf("Error calculating SHA256 hash: %v. File '%s' was saved but is now being cleaned up.", hashErr, fullPath), 1) // MODIFIED
-			return
-		}
-		if verbose {
-			fmt.Printf("SHA256 hash of downloaded file: %s\n", fileHashSHA256)
-		}
-
-		// Task 2.7: Update project.toml
-		if verbose {
-			fmt.Println("Updating project.toml...")
-		}
-		// projectTomlPath variable is no longer needed as LoadProjectToml and WriteProjectToml
-		// now correctly use projectRoot to construct the path internally.
-		var proj *project.Project // MODIFIED: Use pointer type
-		var loadTomlErr error
-		// Pass projectRoot to LoadProjectToml, not the full path to the file
-		proj, loadTomlErr = config.LoadProjectToml(projectRoot)
-		if loadTomlErr != nil {
-			if os.IsNotExist(loadTomlErr) {
-				// Construct the expected full path for a more accurate error message if needed,
-				// though LoadProjectToml itself will return the error from os.ReadFile(filepath.Join(projectRoot, config.ProjectTomlName))
-				expectedProjectTomlPath := filepath.Join(projectRoot, config.ProjectTomlName)
-				detailedError := fmt.Errorf("project.toml not found at '%s' (no such file or directory): %w", expectedProjectTomlPath, loadTomlErr)
-				err = cli.Exit(fmt.Sprintf("Error: %s. File '%s' was saved but is now being cleaned up.", detailedError, fullPath), 1)
-				return
+		Action: func(cCtx *cli.Context) (err error) {
+			startTime := time.Now()
+			sourceURLInput := ""
+			if cCtx.NArg() > 0 {
+				sourceURLInput = cCtx.Args().Get(0)
 			} else {
-				err = cli.Exit(fmt.Sprintf("Error loading %s: %v. File '%s' was saved but is now being cleaned up.", config.ProjectTomlName, loadTomlErr, fullPath), 1)
+				err = cli.Exit("Error: <source_url> argument is required.", 1)
 				return
 			}
-		}
 
-		// Ensure dependencies map is initialized
-		if proj.Dependencies == nil {
-			proj.Dependencies = make(map[string]project.Dependency)
-		}
+			targetDir := cCtx.String("directory")
+			customName := cCtx.String("name")
+			verbose := cCtx.Bool("verbose")
 
-		// For project.toml, use the canonical source identifier
-		proj.Dependencies[dependencyNameInManifest] = project.Dependency{
-			Source: parsedInfo.CanonicalURL,
-			Path:   relativeDestPath,
-		}
+			_ = verbose // Keeping verbose flag for future expansion of detailed logging
 
-		// Use a temporary variable for WriteProjectToml's error
-		// Pass projectRoot to WriteProjectToml, not the full path to the file
-		if writeTomlErr := config.WriteProjectToml(projectRoot, proj); writeTomlErr != nil { // proj is already a pointer
-			err = cli.Exit(fmt.Sprintf("Error writing %s: %v. File '%s' was saved but is now being cleaned up. %s may be in an inconsistent state.", config.ProjectTomlName, writeTomlErr, fullPath, config.ProjectTomlName), 1)
-			return
-		}
-
-		if verbose {
-			fmt.Printf("Successfully updated %s for dependency '%s'.\n", config.ProjectTomlName, dependencyNameInManifest)
-		}
-
-		// Task 2.8: Implement Lockfile Update
-		if verbose {
-			fmt.Println("Updating almd-lock.toml...")
-		}
-
-		var lf *lockfile.Lockfile // MODIFIED: Use pointer type and correct package
-		var loadLockErr error
-		lf, loadLockErr = lockfile.Load(projectRoot) // Load or initialize if not found
-		if loadLockErr != nil {
-			err = cli.Exit(fmt.Sprintf("Error loading/initializing %s: %v. File '%s' saved and %s updated, but lockfile operation failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", lockfile.LockfileName, loadLockErr, fullPath, config.ProjectTomlName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1)
-			return
-		}
-
-		// Determine integrity hash: commit:<commit_hash> or sha256:<hash>
-		var integrityHash string
-		isLikelyCommitSHA := func(ref string) bool {
-			if len(ref) != 40 { // Standard Git SHA-1 length
-				return false
+			var parsedInfo *source.ParsedSourceInfo
+			parsedInfo, err = source.ParseSourceURL(sourceURLInput)
+			if err != nil {
+				err = cli.Exit(fmt.Sprintf("Error parsing source URL '%s': %v", sourceURLInput, err), 1)
+				return
 			}
-			for _, r := range ref {
-				if (r < '0' || r > '9') && (r < 'a' || r > 'f') && (r < 'A' || r > 'F') {
+
+			var fileContent []byte
+			fileContent, err = downloader.DownloadFile(parsedInfo.RawURL)
+			if err != nil {
+				err = cli.Exit(fmt.Sprintf("Error downloading file from '%s': %v", parsedInfo.RawURL, err), 1)
+				return
+			}
+
+			// Determine the final filenames for both the manifest and disk storage
+			var dependencyNameInManifest string
+			var fileNameOnDisk string
+
+			suggestedBaseName := getFileNameWithoutExtension(parsedInfo.SuggestedFilename)
+			suggestedExtension := getFileExtension(parsedInfo.SuggestedFilename)
+
+			if customName != "" {
+				dependencyNameInManifest = customName
+				fileNameOnDisk = customName + suggestedExtension
+			} else {
+				if suggestedBaseName == "" || suggestedBaseName == "." || suggestedBaseName == "/" {
+					err = cli.Exit(fmt.Sprintf("Error: Could not infer a valid base filename from URL's suggested filename: '%s'. Use -n to specify a name.", parsedInfo.SuggestedFilename), 1)
+					return
+				}
+				dependencyNameInManifest = suggestedBaseName
+				fileNameOnDisk = parsedInfo.SuggestedFilename
+			}
+
+			if fileNameOnDisk == "" || fileNameOnDisk == "." || fileNameOnDisk == "/" {
+				err = cli.Exit("Error: Could not determine a valid final filename for saving. Inferred name was empty or invalid.", 1)
+				return
+			}
+
+			projectRoot := "."
+			fullPath := filepath.Join(projectRoot, targetDir, fileNameOnDisk)
+			relativeDestPath := filepath.ToSlash(filepath.Join(targetDir, fileNameOnDisk))
+
+			// Create directories before writing file to ensure proper cleanup on failure
+			dirToCreate := filepath.Dir(fullPath)
+			if mkdirErr := os.MkdirAll(dirToCreate, 0755); mkdirErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error creating directory '%s': %v", dirToCreate, mkdirErr), 1)
+				return
+			}
+
+			// Track if file was written to ensure proper cleanup on errors
+			fileWritten := false
+			if writeErr := os.WriteFile(fullPath, fileContent, 0644); writeErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error writing file '%s': %v", fullPath, writeErr), 1)
+				return
+			}
+			fileWritten = true
+
+			// Cleanup downloaded file if any subsequent operations fail
+			defer func() {
+				if err != nil && fileWritten {
+					cleanupErr := os.Remove(fullPath)
+					if cleanupErr != nil {
+						var errWriter io.Writer = os.Stderr
+						if cCtx.App != nil && cCtx.App.ErrWriter != nil {
+							errWriter = cCtx.App.ErrWriter
+						}
+						_, _ = fmt.Fprintf(errWriter, "Warning: Failed to clean up downloaded file '%s' during error handling: %v\n", fullPath, cleanupErr)
+					}
+				}
+			}()
+
+			// Calculate content hash for integrity verification
+			var fileHashSHA256 string
+			var hashErr error
+			fileHashSHA256, hashErr = hasher.CalculateSHA256(fileContent)
+			if hashErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error calculating SHA256 hash: %v. File '%s' was saved but is now being cleaned up.", hashErr, fullPath), 1)
+				return
+			}
+
+			var proj *project.Project
+			var loadTomlErr error
+			proj, loadTomlErr = config.LoadProjectToml(projectRoot)
+			if loadTomlErr != nil {
+				if os.IsNotExist(loadTomlErr) {
+					expectedProjectTomlPath := filepath.Join(projectRoot, config.ProjectTomlName)
+					detailedError := fmt.Errorf("project.toml not found at '%s' (no such file or directory): %w", expectedProjectTomlPath, loadTomlErr)
+					err = cli.Exit(fmt.Sprintf("Error: %s. File '%s' was saved but is now being cleaned up.", detailedError, fullPath), 1)
+					return
+				} else {
+					err = cli.Exit(fmt.Sprintf("Error loading %s: %v. File '%s' was saved but is now being cleaned up.", config.ProjectTomlName, loadTomlErr, fullPath), 1)
+					return
+				}
+			}
+
+			// Ensure dependencies map is initialized
+			if proj.Dependencies == nil {
+				proj.Dependencies = make(map[string]project.Dependency)
+			}
+
+			proj.Dependencies[dependencyNameInManifest] = project.Dependency{
+				Source: parsedInfo.CanonicalURL,
+				Path:   relativeDestPath,
+			}
+
+			if writeTomlErr := config.WriteProjectToml(projectRoot, proj); writeTomlErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error writing %s: %v. File '%s' was saved but is now being cleaned up. %s may be in an inconsistent state.", config.ProjectTomlName, writeTomlErr, fullPath, config.ProjectTomlName), 1)
+				return
+			}
+
+			var lf *lockfile.Lockfile
+			var loadLockErr error
+			lf, loadLockErr = lockfile.Load(projectRoot)
+			if loadLockErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error loading/initializing %s: %v. File '%s' saved and %s updated, but lockfile operation failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", lockfile.LockfileName, loadLockErr, fullPath, config.ProjectTomlName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1)
+				return
+			}
+
+			// Determine integrity hash based on commit SHA or content hash
+			var integrityHash string
+			isLikelyCommitSHA := func(ref string) bool {
+				if len(ref) != 40 {
 					return false
 				}
-			}
-			return true
-		}
-
-		if parsedInfo.Provider == "github" && parsedInfo.Owner != "" && parsedInfo.Repo != "" && parsedInfo.PathInRepo != "" && parsedInfo.Ref != "" && !strings.HasPrefix(parsedInfo.Ref, "error:") {
-			if isLikelyCommitSHA(parsedInfo.Ref) {
-				if verbose {
-					fmt.Printf("Using provided ref '%s' as commit SHA for lockfile hash.\\n", parsedInfo.Ref)
-				}
-				integrityHash = fmt.Sprintf("commit:%s", parsedInfo.Ref)
-			} else {
-				// Ref is likely a branch or tag, try to get the specific commit SHA
-				if verbose {
-					fmt.Printf("Attempting to resolve ref '%s' to a specific commit SHA for path '%s' in repo '%s/%s'...\\n", parsedInfo.Ref, parsedInfo.PathInRepo, parsedInfo.Owner, parsedInfo.Repo)
-				}
-				var commitSHA string
-				var getCommitErr error
-				commitSHA, getCommitErr = source.GetLatestCommitSHAForFile(parsedInfo.Owner, parsedInfo.Repo, parsedInfo.PathInRepo, parsedInfo.Ref)
-				if getCommitErr != nil {
-					if verbose {
-						fmt.Printf("Warning: Failed to get specific commit SHA for '%s@%s': %v. Falling back to SHA256 content hash for lockfile.\\n", parsedInfo.PathInRepo, parsedInfo.Ref, getCommitErr)
+				for _, r := range ref {
+					if (r < '0' || r > '9') && (r < 'a' || r > 'f') && (r < 'A' || r > 'F') {
+						return false
 					}
-					integrityHash = fileHashSHA256
+				}
+				return true
+			}
+
+			if parsedInfo.Provider == "github" && parsedInfo.Owner != "" && parsedInfo.Repo != "" && parsedInfo.PathInRepo != "" && parsedInfo.Ref != "" && !strings.HasPrefix(parsedInfo.Ref, "error:") {
+				if isLikelyCommitSHA(parsedInfo.Ref) {
+					integrityHash = fmt.Sprintf("commit:%s", parsedInfo.Ref)
 				} else {
-					if verbose {
-						fmt.Printf("Successfully resolved ref '%s' to commit SHA '%s'.\\n", parsedInfo.Ref, commitSHA)
+					var commitSHA string
+					var getCommitErr error
+					commitSHA, getCommitErr = source.GetLatestCommitSHAForFile(parsedInfo.Owner, parsedInfo.Repo, parsedInfo.PathInRepo, parsedInfo.Ref)
+					if getCommitErr != nil {
+						integrityHash = fileHashSHA256
+					} else {
+						integrityHash = fmt.Sprintf("commit:%s", commitSHA)
 					}
-					integrityHash = fmt.Sprintf("commit:%s", commitSHA)
+				}
+			} else {
+				integrityHash = fileHashSHA256
+			}
+
+			lf.AddOrUpdatePackage(dependencyNameInManifest, parsedInfo.RawURL, relativeDestPath, integrityHash)
+
+			if saveLockErr := lockfile.Save(projectRoot, lf); saveLockErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error saving %s: %v. File '%s' saved and %s updated, but saving %s failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", lockfile.LockfileName, saveLockErr, fullPath, config.ProjectTomlName, lockfile.LockfileName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1)
+				return
+			}
+
+			_, _ = color.New(color.FgWhite).Println("Packages: +1")
+			_, _ = color.New(color.FgGreen).Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+			fmt.Println("Progress: resolved 1, downloaded 1, added 1, done")
+			fmt.Println()
+			_, _ = color.New(color.FgWhite, color.Bold).Println("dependencies:")
+			dependencyVersionStr := parsedInfo.Ref
+			if dependencyVersionStr == "" || strings.HasPrefix(dependencyVersionStr, "error:") {
+				parts := strings.Split(parsedInfo.CanonicalURL, "@")
+				if len(parts) > 1 {
+					dependencyVersionStr = parts[len(parts)-1]
+				} else {
+					dependencyVersionStr = "latest"
 				}
 			}
-		} else {
-			if verbose && parsedInfo.Provider == "github" {
-				fmt.Printf("Insufficient information or invalid ref ('%s') to fetch specific commit SHA for GitHub source. Falling back to SHA256 content hash for lockfile.\\n", parsedInfo.Ref)
-			} else if verbose {
-				fmt.Printf("Source is not GitHub or ref is missing. Falling back to SHA256 content hash for lockfile.\\n")
-			}
-			integrityHash = fileHashSHA256 // Fallback to SHA256
-		}
+			_, _ = color.New(color.FgGreen).Printf("+ %s %s\n", dependencyNameInManifest, dependencyVersionStr)
+			fmt.Println()
+			duration := time.Since(startTime)
+			fmt.Printf("Done in %.1fs\n", duration.Seconds())
 
-		// For lockfile, use the exact raw download URL and calculated integrity hash
-		lf.AddOrUpdatePackage(dependencyNameInManifest, parsedInfo.RawURL, relativeDestPath, integrityHash)
-
-		// Use a temporary variable for lockfile.Save's error
-		if saveLockErr := lockfile.Save(projectRoot, lf); saveLockErr != nil {
-			// Assign to named return 'err'
-			err = cli.Exit(fmt.Sprintf("Error saving %s: %v. File '%s' saved and %s updated, but saving %s failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", lockfile.LockfileName, saveLockErr, fullPath, config.ProjectTomlName, lockfile.LockfileName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1) // MODIFIED
-			return
-		}
-
-		if verbose {
-			fmt.Printf("Successfully updated %s for dependency '%s'.\n", lockfile.LockfileName, dependencyNameInManifest)
-		}
-
-		// pnpm-style output
-		_, _ = color.New(color.FgWhite).Println("Packages: +1")
-		_, _ = color.New(color.FgGreen).Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++") // Simple progress bar
-		fmt.Println("Progress: resolved 1, downloaded 1, added 1, done")
-		fmt.Println()
-		_, _ = color.New(color.FgWhite, color.Bold).Println("dependencies:")
-		dependencyVersionStr := parsedInfo.Ref
-		if dependencyVersionStr == "" || strings.HasPrefix(dependencyVersionStr, "error:") {
-			// Fallback if ref is not available or an error
-			parts := strings.Split(parsedInfo.CanonicalURL, "@")
-			if len(parts) > 1 {
-				dependencyVersionStr = parts[len(parts)-1]
-			} else {
-				dependencyVersionStr = "latest" // Or some other placeholder
-			}
-		}
-		_, _ = color.New(color.FgGreen).Printf("+ %s %s\n", dependencyNameInManifest, dependencyVersionStr)
-		fmt.Println()
-		duration := time.Since(startTime)
-		fmt.Printf("Done in %.1fs\n", duration.Seconds())
-
-		return nil // err is nil, so defer func() will not trigger cleanup
-	},
+			return nil
+		},
+	}
 }
 
 
@@ -1763,10 +1139,11 @@ var AddCommand = &cli.Command{
 ================================================
 File: internal/cli/add/add_test.go
 ================================================
-// Title: Almandine CLI Add Command Tests
-// Purpose: Contains test cases for the 'add' command of the Almandine CLI,
-// covering various scenarios including successful additions, error handling,
-// and interactions with project configuration and lock files.
+// Package add provides the 'add' command implementation for the Almandine CLI.
+// Tests in this file verify the dependency addition behavior across various scenarios:
+// - GitHub repository integration with version tags and commit hashes
+// - Error handling for missing files, download failures, and write permissions
+// - File management including cleanup on partial failures
 package add
 
 import (
@@ -1788,14 +1165,17 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// SetTestModeBypassHostValidation enables mock server testing without GitHub host validation.
+// This is needed because the test mock server uses http:// instead of https://, which would
+// normally be rejected by the GitHub client's host validation.
 func init() {
-	// Enable host validation bypass for testing with mock server
 	source.SetTestModeBypassHostValidation(true)
 }
 
-// setupAddTestEnvironment creates a temporary directory for testing and optionally
-// initializes a project.toml file within it.
-// It returns the path to the temporary directory.
+// setupAddTestEnvironment creates an isolated test environment with a project.toml.
+// It returns the path to a temporary directory that will be automatically cleaned up
+// after the test completes. The initialProjectTomlContent parameter allows tests to
+// start with a specific project configuration.
 func setupAddTestEnvironment(t *testing.T, initialProjectTomlContent string) (tempDir string) {
 	t.Helper()
 	tempDir = t.TempDir()
@@ -1808,9 +1188,9 @@ func setupAddTestEnvironment(t *testing.T, initialProjectTomlContent string) (te
 	return tempDir
 }
 
-// runAddCommand executes the 'add' command within a specific working directory.
-// It changes the current working directory to workDir for the duration of the command execution.
-// addCmdArgs should be the arguments for the 'add' command itself (e.g., URL, flags).
+// runAddCommand executes the 'add' command in a specific working directory.
+// It temporarily changes the working directory and suppresses the CLI's default
+// exit behavior to allow test assertions on command failures.
 func runAddCommand(t *testing.T, workDir string, addCmdArgs ...string) error {
 	t.Helper()
 
@@ -1825,7 +1205,7 @@ func runAddCommand(t *testing.T, workDir string, addCmdArgs ...string) error {
 	app := &cli.App{
 		Name: "almd-test-add",
 		Commands: []*cli.Command{
-			AddCommand,
+			AddCmd(),
 		},
 		// Suppress help printer during tests unless specifically testing help output
 		Writer:    os.Stderr, // Default, or io.Discard for cleaner test logs
@@ -1842,9 +1222,9 @@ func runAddCommand(t *testing.T, workDir string, addCmdArgs ...string) error {
 	return app.Run(cliArgs)
 }
 
-// startMockServer starts an httptest.Server that serves specific responses
-// for a map of expected paths.
-// Other paths will result in a 404.
+// startMockServer creates a test HTTP server that simulates GitHub's API and raw content
+// responses. It takes a map of paths to their corresponding responses, allowing tests to
+// simulate both successful and error scenarios for API calls and file downloads.
 func startMockServer(t *testing.T, pathResponses map[string]struct {
 	Body string
 	Code int
@@ -1873,7 +1253,8 @@ func startMockServer(t *testing.T, pathResponses map[string]struct {
 	return server
 }
 
-// readProjectToml reads and unmarshals a project.toml file into a project.Project struct.
+// readProjectToml parses and validates the project configuration files. They ensure the
+// files are properly formatted and contain the expected content after command execution.
 func readProjectToml(t *testing.T, tomlPath string) project.Project {
 	t.Helper()
 	bytes, err := os.ReadFile(tomlPath)
@@ -1885,7 +1266,8 @@ func readProjectToml(t *testing.T, tomlPath string) project.Project {
 	return projCfg
 }
 
-// readAlmdLockToml reads and unmarshals an almd-lock.toml file into a project.LockFile struct.
+// readAlmdLockToml parses and validates the project configuration files. They ensure the
+// files are properly formatted and contain the expected content after command execution.
 func readAlmdLockToml(t *testing.T, lockPath string) project.LockFile {
 	t.Helper()
 	bytes, err := os.ReadFile(lockPath)
@@ -1897,9 +1279,10 @@ func readAlmdLockToml(t *testing.T, lockPath string) project.LockFile {
 	return lockCfg
 }
 
+// TestAddCommand_Success_ExplicitNameAndDir verifies the happy path for adding a
+// dependency with explicit name (-n) and directory (-d) flags. This represents the
+// most common usage pattern where users want control over dependency placement.
 func TestAddCommand_Success_ExplicitNameAndDir(t *testing.T) {
-	// --- Test Setup ---
-	// This test implements Task 3.4.2
 	initialTomlContent := `
 [package]
 name = "test-project"
@@ -1908,11 +1291,8 @@ version = "0.1.0"
 	tempDir := setupAddTestEnvironment(t, initialTomlContent)
 
 	mockContent := "// This is a mock lua library content\nlocal lib = {}\nfunction lib.hello() print('hello from lua lib') end\nreturn lib\n"
-	// Adjust mockServerPath to fit the expected /<owner>/<repo>/<ref>/<file...> structure
-	// and use .lua extension as requested.
 	mockFileURLPath := "/testowner/testrepo/v1.0.0/mylib_script.lua"
 	mockCommitSHA := "fixedmockshaforexplicittest1234567890"
-	// Path for the GetLatestCommitSHAForFile call (matches what GetLatestCommitSHAForFile constructs)
 	mockAPIPathForCommits := fmt.Sprintf("/repos/%s/%s/commits?path=%s&sha=%s&per_page=1", "testowner", "testrepo", "mylib_script.lua", "v1.0.0")
 	mockAPIResponseBody := fmt.Sprintf(`[{"sha": "%s"}]`, mockCommitSHA)
 
@@ -1925,16 +1305,14 @@ version = "0.1.0"
 	}
 	mockServer := startMockServer(t, pathResps)
 
-	// IMPORTANT: Override GithubAPIBaseURL to point to our mock server for this test
 	originalGHAPIBaseURL := source.GithubAPIBaseURL
 	source.GithubAPIBaseURL = mockServer.URL
 	defer func() { source.GithubAPIBaseURL = originalGHAPIBaseURL }()
 
 	dependencyURL := mockServer.URL + mockFileURLPath
-	dependencyName := "mylib"        // As per Task 3.4.2
-	dependencyDir := "vendor/custom" // As per Task 3.4.2
+	dependencyName := "mylib"
+	dependencyDir := "vendor/custom"
 
-	// --- Run Command ---
 	err := runAddCommand(t, tempDir,
 		"-n", dependencyName,
 		"-d", dependencyDir,
@@ -1942,13 +1320,8 @@ version = "0.1.0"
 	)
 	require.NoError(t, err, "almd add command failed")
 
-	// --- Assertions ---
-
-	// 1. Verify downloaded file content and path
-	// The filename should be the explicit name + extension from source URL path,
-	// based on the observed behavior of the `add` command.
-	extractedSourceFileExtension := filepath.Ext(mockFileURLPath)           // .lua
-	expectedFileNameOnDisk := dependencyName + extractedSourceFileExtension // mylib.lua
+	extractedSourceFileExtension := filepath.Ext(mockFileURLPath)
+	expectedFileNameOnDisk := dependencyName + extractedSourceFileExtension
 
 	downloadedFilePath := filepath.Join(tempDir, dependencyDir, expectedFileNameOnDisk)
 	require.FileExists(t, downloadedFilePath, "Downloaded file does not exist at expected path: %s", downloadedFilePath)
@@ -1957,7 +1330,6 @@ version = "0.1.0"
 	require.NoError(t, readErr, "Failed to read downloaded file: %s", downloadedFilePath)
 	assert.Equal(t, mockContent, string(contentBytes), "Downloaded file content mismatch")
 
-	// 2. Verify project.toml was updated correctly
 	projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
 	projCfg := readProjectToml(t, projectTomlPath)
 
@@ -1965,13 +1337,10 @@ version = "0.1.0"
 	depEntry, ok := projCfg.Dependencies[dependencyName]
 	require.True(t, ok, "Dependency entry not found in project.toml for: %s", dependencyName)
 
-	// Expected canonical source based on the new mockServerPath structure
-	// Format: github:<owner>/<repo>/<path_to_file_in_repo>@<ref>
 	expectedCanonicalSource := "github:testowner/testrepo/mylib_script.lua@v1.0.0"
 	assert.Equal(t, expectedCanonicalSource, depEntry.Source, "Dependency source mismatch in project.toml")
 	assert.Equal(t, filepath.ToSlash(filepath.Join(dependencyDir, expectedFileNameOnDisk)), depEntry.Path, "Dependency path mismatch in project.toml")
 
-	// 3. Verify almd-lock.toml was created/updated correctly
 	lockFilePath := filepath.Join(tempDir, "almd-lock.toml")
 	require.FileExists(t, lockFilePath, "almd-lock.toml was not created")
 	lockCfg := readAlmdLockToml(t, lockFilePath)
@@ -1984,14 +1353,14 @@ version = "0.1.0"
 	assert.Equal(t, dependencyURL, lockPkgEntry.Source, "Package source mismatch in almd-lock.toml (raw URL)")
 	assert.Equal(t, filepath.ToSlash(filepath.Join(dependencyDir, expectedFileNameOnDisk)), lockPkgEntry.Path, "Package path mismatch in almd-lock.toml")
 
-	// Hash should now reflect the commit SHA from the mocked API call.
 	expectedHash := "commit:" + mockCommitSHA
 	assert.Equal(t, expectedHash, lockPkgEntry.Hash, "Package hash mismatch in almd-lock.toml")
 }
 
+// TestAddCommand_Success_InferredName_DefaultDir verifies that dependencies can be
+// added without explicit naming, testing the package's name inference logic and
+// default directory placement when no -d flag is provided.
 func TestAddCommand_Success_InferredName_DefaultDir(t *testing.T) {
-	// --- Test Setup ---
-	// This test implements Task 3.4.3
 	initialTomlContent := `
 [package]
 name = "test-project-inferred"
@@ -2000,8 +1369,6 @@ version = "0.1.0"
 	tempDir := setupAddTestEnvironment(t, initialTomlContent)
 
 	mockContent := "// This is a mock lua library for inferred name test\nlocal lib = {}\nreturn lib\n"
-	// Adjust mockServerPath to fit the expected /<owner>/<repo>/<ref>/<file...> structure
-	// for the test mode URL parser.
 	mockFileURLPath_Inferred := "/inferredowner/inferredrepo/mainbranch/test_dependency_file.lua"
 	mockCommitSHA_Inferred := "fixedmockshaforinferredtest1234567890"
 	mockAPIPathForCommits_Inferred := fmt.Sprintf("/repos/%s/%s/commits?path=%s&sha=%s&per_page=1", "inferredowner", "inferredrepo", "test_dependency_file.lua", "mainbranch")
@@ -2016,26 +1383,19 @@ version = "0.1.0"
 	}
 	mockServer := startMockServer(t, pathResps_Inferred)
 
-	// IMPORTANT: Override GithubAPIBaseURL to point to our mock server for this test
 	originalGHAPIBaseURL_Inferred := source.GithubAPIBaseURL
 	source.GithubAPIBaseURL = mockServer.URL
 	defer func() { source.GithubAPIBaseURL = originalGHAPIBaseURL_Inferred }()
 
 	dependencyURL := mockServer.URL + mockFileURLPath_Inferred
 
-	// --- Run Command ---
-	// No -n (name) or -d (directory) flags, testing inference and defaults
 	err := runAddCommand(t, tempDir, dependencyURL)
 	require.NoError(t, err, "almd add command failed")
 
-	// --- Assertions ---
+	sourceFileName := filepath.Base(mockFileURLPath_Inferred)
+	inferredDepName := strings.TrimSuffix(sourceFileName, filepath.Ext(sourceFileName))
 
-	// 1. Verify downloaded file content and path (inferred name, default directory)
-	sourceFileName := filepath.Base(mockFileURLPath_Inferred)                           // "test_dependency_file.lua"
-	inferredDepName := strings.TrimSuffix(sourceFileName, filepath.Ext(sourceFileName)) // "test_dependency_file"
-
-	expectedDiskFileName := sourceFileName // "test_dependency_file.lua"
-	// The add command defaults to "src/lib" when -d is not specified.
+	expectedDiskFileName := sourceFileName
 	expectedDirOnDisk := "src/lib"
 	downloadedFilePath := filepath.Join(tempDir, expectedDirOnDisk, expectedDiskFileName)
 
@@ -2044,7 +1404,6 @@ version = "0.1.0"
 	require.NoError(t, readErr, "Failed to read downloaded file: %s", downloadedFilePath)
 	assert.Equal(t, mockContent, string(contentBytes), "Downloaded file content mismatch")
 
-	// 2. Verify project.toml was updated correctly
 	projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
 	projCfg := readProjectToml(t, projectTomlPath)
 
@@ -2052,15 +1411,12 @@ version = "0.1.0"
 	depEntry, ok := projCfg.Dependencies[inferredDepName]
 	require.True(t, ok, "Dependency entry not found in project.toml for inferred name: %s", inferredDepName)
 
-	// Because the mockServerPath now conforms to the /<owner>/<repo>/<ref>/<file...> structure,
-	// the canonical source identifier will be a GitHub-like string.
 	expectedCanonicalSource := "github:inferredowner/inferredrepo/test_dependency_file.lua@mainbranch"
 	assert.Equal(t, expectedCanonicalSource, depEntry.Source, "Dependency source mismatch in project.toml")
 
 	expectedPathInToml := filepath.ToSlash(filepath.Join(expectedDirOnDisk, expectedDiskFileName))
 	assert.Equal(t, expectedPathInToml, depEntry.Path, "Dependency path mismatch in project.toml")
 
-	// 3. Verify almd-lock.toml was created/updated correctly
 	lockFilePath := filepath.Join(tempDir, "almd-lock.toml")
 	require.FileExists(t, lockFilePath, "almd-lock.toml was not created")
 	lockCfg := readAlmdLockToml(t, lockFilePath)
@@ -2073,14 +1429,14 @@ version = "0.1.0"
 	assert.Equal(t, dependencyURL, lockPkgEntry.Source, "Package source mismatch in almd-lock.toml (raw URL)")
 	assert.Equal(t, expectedPathInToml, lockPkgEntry.Path, "Package path mismatch in almd-lock.toml")
 
-	// Hash should now reflect the commit SHA from the mocked API call.
 	expectedHash := "commit:" + mockCommitSHA_Inferred
 	assert.Equal(t, expectedHash, lockPkgEntry.Hash, "Package hash mismatch in almd-lock.toml")
 }
 
+// TestAddCommand_GithubURLWithCommitHash verifies handling of GitHub URLs that
+// specify exact commit hashes instead of tags/branches. This is important for
+// users who need to pin dependencies to specific commits for reproducibility.
 func TestAddCommand_GithubURLWithCommitHash(t *testing.T) {
-	// --- Test Setup ---
-	// This test implements parts of Task 3.4.4 (specifically direct commit hash in URL)
 	initialTomlContent := `
 [package]
 name = "test-project-commit-hash"
@@ -2089,30 +1445,15 @@ version = "0.1.0"
 	tempDir := setupAddTestEnvironment(t, initialTomlContent)
 
 	mockContent := "// Mock Lib with specific commit\nlocal lib = { info = \"version_commit123\" }\nreturn lib\n"
-	// URL includes a commit hash directly
 	directCommitSHA := "commitabc123def456ghi789jkl012mno345pqr"
-	mockFileURLPath := fmt.Sprintf("/ghowner/ghrepo/%s/mylib.lua", directCommitSHA) // Path includes commit SHA
-
-	// The canonical URL should also reflect this direct commit SHA if parsed correctly
-	// The source.ParseSourceURL logic is what determines this.
-	// If the URL is github.com/.../blob/<hash>/file, it becomes github:owner/repo/file@hash
-	// If the URL is raw.githubusercontent.com/.../<hash>/file, it also becomes github:owner/repo/file@hash
+	mockFileURLPath := fmt.Sprintf("/ghowner/ghrepo/%s/mylib.lua", directCommitSHA)
 
 	pathResps := map[string]struct {
 		Body string
 		Code int
 	}{
-		// This is the raw download URL path
 		mockFileURLPath: {Body: mockContent, Code: http.StatusOK},
-		// No separate GitHub API call for /commits is strictly needed here if the commit SHA is directly in the download URL
-		// and source.ParseSourceURL correctly extracts it as the 'Ref' for canonical URL and for lockfile hash logic.
-		// However, if the internal logic *always* tries to call GetLatestCommitSHAForFile, we might need to mock it.
-		// For simplicity, let's assume direct extraction works or that GetLatestCommitSHAForFile isn't called for raw URLs with SHAs.
-		// If tests fail related to API calls, this mock might need to be added:
-		// mockAPIPathForCommits := fmt.Sprintf("/repos/ghowner/ghrepo/commits?path=mylib.lua&sha=%s&per_page=1", directCommitSHA)
-		// pathResps[mockAPIPathForCommits] = struct{Body string; Code int}{Body: fmt.Sprintf(`[{"sha": "%s"}]`, directCommitSHA), Code: http.StatusOK}
 	}
-	// Correction: The GitHub API call for commits is indeed made, so we must mock it.
 	mockAPIPathForCommits := fmt.Sprintf("/repos/ghowner/ghrepo/commits?path=mylib.lua&sha=%s&per_page=1", directCommitSHA)
 	pathResps[mockAPIPathForCommits] = struct {
 		Body string
@@ -2123,27 +1464,18 @@ version = "0.1.0"
 	}
 	mockServer := startMockServer(t, pathResps)
 
-	// Override GithubAPIBaseURL and RawGithubContentURLBase to point to our mock server.
-	// The source URL parser needs to recognize this as a "GitHub" URL to trigger commit hash logic.
 	originalGHAPIBaseURL := source.GithubAPIBaseURL
-	// originalRawGHContentURLBase := source.RawGithubContentURLBase // This variable does not exist
-	source.GithubAPIBaseURL = mockServer.URL // For API calls like /commits
-	// source.RawGithubContentURLBase = mockServer.URL // This variable does not exist
+	source.GithubAPIBaseURL = mockServer.URL
 
 	defer func() {
 		source.GithubAPIBaseURL = originalGHAPIBaseURL
-		// source.RawGithubContentURLBase = originalRawGHContentURLBase // This variable does not exist
 	}()
 
-	// Construct a URL that our source parser will identify as a GitHub raw content URL with a commit hash.
-	// When testModeBypassHostValidation is true, ParseSourceURL expects a path like /<owner>/<repo>/<ref>/<file...>
-	// and u.String() (the full mock URL) becomes the RawURL for download.
-	dependencyURL := mockServer.URL + mockFileURLPath // mockFileURLPath is /ghowner/ghrepo/<hash>/mylib.lua
+	dependencyURL := mockServer.URL + mockFileURLPath
 
 	dependencyName := "mylibcommit"
 	dependencyDir := "libs/gh"
 
-	// --- Run Command ---
 	err := runAddCommand(t, tempDir,
 		"-n", dependencyName,
 		"-d", dependencyDir,
@@ -2151,45 +1483,39 @@ version = "0.1.0"
 	)
 	require.NoError(t, err, "almd add command failed for GitHub URL with commit hash")
 
-	// --- Assertions ---
-	expectedFileNameOnDisk := dependencyName + ".lua" // mylibcommit.lua
+	expectedFileNameOnDisk := dependencyName + ".lua"
 	downloadedFilePath := filepath.Join(tempDir, dependencyDir, expectedFileNameOnDisk)
 
-	// 1. Verify downloaded file
 	require.FileExists(t, downloadedFilePath)
 	contentBytes, _ := os.ReadFile(downloadedFilePath)
 	assert.Equal(t, mockContent, string(contentBytes))
 
-	// 2. Verify project.toml
 	projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
 	projCfg := readProjectToml(t, projectTomlPath)
 	depEntry, ok := projCfg.Dependencies[dependencyName]
 	require.True(t, ok, "Dependency entry not found in project.toml")
 
-	// The canonical source should be github:ghowner/ghrepo/mylib.lua@commitabc...
 	expectedCanonicalSource := fmt.Sprintf("github:ghowner/ghrepo/mylib.lua@%s", directCommitSHA)
 	assert.Equal(t, expectedCanonicalSource, depEntry.Source)
 	assert.Equal(t, filepath.ToSlash(filepath.Join(dependencyDir, expectedFileNameOnDisk)), depEntry.Path)
 
-	// 3. Verify almd-lock.toml
 	lockFilePath := filepath.Join(tempDir, "almd-lock.toml")
 	require.FileExists(t, lockFilePath)
 	lockCfg := readAlmdLockToml(t, lockFilePath)
 	lockPkgEntry, ok := lockCfg.Package[dependencyName]
 	require.True(t, ok, "Package entry not found in almd-lock.toml")
 
-	// The source in lockfile should be the exact download URL used
 	assert.Equal(t, dependencyURL, lockPkgEntry.Source)
 	assert.Equal(t, filepath.ToSlash(filepath.Join(dependencyDir, expectedFileNameOnDisk)), lockPkgEntry.Path)
 
-	// Hash should be commit:<commit_sha>
 	expectedHashWithCommit := "commit:" + directCommitSHA
 	assert.Equal(t, expectedHashWithCommit, lockPkgEntry.Hash, "Package hash mismatch in almd-lock.toml (direct commit hash)")
 }
 
+// TestAddCommand_DownloadFailure verifies proper error handling and cleanup when
+// a dependency download fails. The test ensures no partial state is left behind
+// in the project configuration or filesystem.
 func TestAddCommand_DownloadFailure(t *testing.T) {
-	// --- Test Setup ---
-	// This test implements Task 3.4.5
 	initialTomlContent := `
 [package]
 name = "test-project-dlfail"
@@ -2197,7 +1523,6 @@ version = "0.1.0"
 `
 	tempDir := setupAddTestEnvironment(t, initialTomlContent)
 
-	// Mock server to return a 404 error
 	mockFileURLPath := "/owner/repo/main/nonexistent.lua"
 	pathResps := map[string]struct {
 		Body string
@@ -2208,16 +1533,10 @@ version = "0.1.0"
 	mockServer := startMockServer(t, pathResps)
 	dependencyURL := mockServer.URL + mockFileURLPath
 
-	// --- Run Command ---
 	err := runAddCommand(t, tempDir, dependencyURL)
 
-	// --- Assertions ---
 	require.Error(t, err, "almd add command should return an error on download failure")
 
-	// Check that the error message indicates a download failure from the mock server.
-	// The exact error message from downloader.DownloadFile includes the URL and the HTTP status.
-	// Example: "downloading from http...: server returned HTTP status 404 Not Found"
-	// For the test, we make it more specific to the mock server's intent.
 	if exitErr, ok := err.(cli.ExitCoder); ok {
 		assert.Contains(t, exitErr.Error(), "Error downloading file", "Error message should indicate download failure")
 		assert.Contains(t, exitErr.Error(), "status code 404", "Error message should indicate 404 status")
@@ -2225,30 +1544,26 @@ version = "0.1.0"
 		assert.Fail(t, "Expected cli.ExitError for command failure")
 	}
 
-	// Verify no dependency file was created
-	expectedFilePath := filepath.Join(tempDir, "src/lib/nonexistent.lua") // Default dir and inferred name
+	expectedFilePath := filepath.Join(tempDir, "src/lib/nonexistent.lua")
 	_, statErr := os.Stat(expectedFilePath)
 	assert.True(t, os.IsNotExist(statErr), "Dependency file should not have been created on download failure")
 
-	// Verify project.toml was not modified (or created if it was somehow missing and add tried to create it before failing)
-	// We assume project.toml existed as per initialTomlContent.
 	projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
-	projCfg := readProjectToml(t, projectTomlPath) // This will fail if project.toml doesn't exist
+	projCfg := readProjectToml(t, projectTomlPath)
 	assert.Equal(t, "test-project-dlfail", projCfg.Package.Name, "project.toml package name should be unchanged")
 	assert.Len(t, projCfg.Dependencies, 0, "project.toml should have no dependencies after a failed add")
 
-	// Verify almd-lock.toml was not created
 	lockFilePath := filepath.Join(tempDir, "almd-lock.toml")
 	_, statErrLock := os.Stat(lockFilePath)
 	assert.True(t, os.IsNotExist(statErrLock), "almd-lock.toml should not have been created on download failure")
 }
 
+// TestAddCommand_ProjectTomlNotFound verifies the error handling when attempting
+// to add a dependency to a project without a project.toml file. This protects
+// against accidental dependency additions outside of Almandine projects.
 func TestAddCommand_ProjectTomlNotFound(t *testing.T) {
-	// --- Test Setup ---
-	// This test implements Sub-Task 3.4.6
-	tempDir := setupAddTestEnvironment(t, "") // Ensure no project.toml is created
+	tempDir := setupAddTestEnvironment(t, "")
 
-	// Mock server for the URL, as the command expects a URL.
 	mockContent := "// Some content"
 	mockFileURLPath := "/owner/repo/main/somefile.lua"
 	pathResps := map[string]struct {
@@ -2260,50 +1575,35 @@ func TestAddCommand_ProjectTomlNotFound(t *testing.T) {
 	mockServer := startMockServer(t, pathResps)
 	dependencyURL := mockServer.URL + mockFileURLPath
 
-	// --- Run Command ---
 	err := runAddCommand(t, tempDir, dependencyURL)
 
-	// --- Assertions ---
-	// Based on Task 3.4.6, we expect an error if project.toml is not found.
-	// IMPORTANT: The current implementation of `add.go` *does not* error out if project.toml is missing;
-	// it creates one in memory. This test is written against the task's explicit requirement for an error.
-	// Thus, this test is expected to FAIL with the current `add.go` implementation, highlighting the discrepancy.
 	require.Error(t, err, "almd add command should return an error when project.toml is not found")
 
-	// If `add.go` were modified to error out when project.toml is missing (e.g., by not handling os.IsNotExist
-	// specifically by creating a new project, but by returning an error from `config.LoadProjectToml`),
-	// we would expect an error message related to that.
 	if exitErr, ok := err.(cli.ExitCoder); ok {
-		// This assertion will likely fail with current `add.go` as no error is returned.
-		// If `add.go` is changed, this string might need adjustment.
 		assert.Contains(t, exitErr.Error(), "project.toml", "Error message should indicate project.toml was not found or could not be loaded")
 		assert.Contains(t, exitErr.Error(), "no such file or directory", "Error message details should reflect os.IsNotExist")
 	} else {
-		// This path will be taken if `err` is not nil but not a `cli.ExitError`,
-		// or if `err` is nil (test fails at `require.Error`).
 		assert.Fail(t, "Expected a cli.ExitError if command was to fail as per task requirements")
 	}
 
-	// Verify no dependency file was created
-	expectedFilePath := filepath.Join(tempDir, "src/lib/somefile.lua") // Default dir and inferred name
+	expectedFilePath := filepath.Join(tempDir, "src/lib/somefile.lua")
 	_, statErr := os.Stat(expectedFilePath)
 	assert.True(t, os.IsNotExist(statErr), "Dependency file should not have been created if project.toml is missing and command errored")
 
-	// Verify almd-lock.toml was not created
 	lockFilePath := filepath.Join(tempDir, "almd-lock.toml")
 	_, statErrLock := os.Stat(lockFilePath)
 	assert.True(t, os.IsNotExist(statErrLock), "almd-lock.toml should not have been created if project.toml is missing and command errored")
 
-	// Verify project.toml was not created by the add command (as it was the source of the supposed error)
 	projectTomlPathMain := filepath.Join(tempDir, config.ProjectTomlName)
 	_, statErrProject := os.Stat(projectTomlPathMain)
 	assert.True(t, os.IsNotExist(statErrProject), "project.toml should not have been created by the add command if it was missing and an error was expected")
 }
 
+// TestAddCommand_CleanupOnFailure_LockfileWriteError verifies that the command
+// properly cleans up any downloaded files and maintains project.toml consistency
+// when it fails to write the lockfile. This is crucial for preventing partial
+// or inconsistent project states that could break dependency management.
 func TestAddCommand_CleanupOnFailure_LockfileWriteError(t *testing.T) {
-	// This test implements Task 3.4.7
-
-	// --- Test Setup ---
 	initialTomlContent := `
 [package]
 name = "test-cleanup-project"
@@ -2314,7 +1614,6 @@ version = "0.1.0"
 
 	mockContent := "// Mock library content for cleanup test\\nlocal m = {}\\nfunction m.do() return 'ok' end\\nreturn m"
 
-	// Adjusted mockFileURLPath to conform to the test mode parser's expected GitHub-like format
 	mockOwner := "testowner"
 	mockRepo := "testrepo"
 	mockRef := "main"
@@ -2322,7 +1621,6 @@ version = "0.1.0"
 	mockFileURLPath := fmt.Sprintf("/%s/%s/%s/%s", mockOwner, mockRepo, mockRef, mockFileName)
 
 	mockCommitSHA := "mockcleanupcommitsha1234567890"
-	// Mock for GitHub API call to get commit SHA
 	mockAPIPathForCommits := fmt.Sprintf("/repos/%s/%s/commits?path=%s&sha=%s&per_page=1", mockOwner, mockRepo, mockFileName, mockRef)
 	mockAPIResponseBody := fmt.Sprintf(`[{"sha": "%s"}]`, mockCommitSHA)
 
@@ -2331,19 +1629,17 @@ version = "0.1.0"
 		Code int
 	}{
 		mockFileURLPath:       {Body: mockContent, Code: http.StatusOK},
-		mockAPIPathForCommits: {Body: mockAPIResponseBody, Code: http.StatusOK}, // Added mock for commit API
+		mockAPIPathForCommits: {Body: mockAPIResponseBody, Code: http.StatusOK},
 	}
 	mockServer := startMockServer(t, pathResps)
 
-	// IMPORTANT: Override GithubAPIBaseURL to point to our mock server for this test to ensure commit API mock is hit.
-	// This was seen in other tests in internal/cli/add/add_test.go
 	originalGHAPIBaseURL := source.GithubAPIBaseURL
 	source.GithubAPIBaseURL = mockServer.URL
 	defer func() { source.GithubAPIBaseURL = originalGHAPIBaseURL }()
 
 	dependencyURL := mockServer.URL + mockFileURLPath
 
-	sourceFileName := mockFileName // Use the defined mockFileName
+	sourceFileName := mockFileName
 	expectedDepName := strings.TrimSuffix(sourceFileName, filepath.Ext(sourceFileName))
 	defaultLibsDir := "src/lib"
 	expectedDownloadedFilePath := filepath.Join(tempDir, defaultLibsDir, sourceFileName)
@@ -2352,26 +1648,20 @@ version = "0.1.0"
 	err := os.Mkdir(lockFilePath, 0755)
 	require.NoError(t, err, "Test setup: Failed to create %s as a directory", lockfile.LockfileName)
 
-	// --- Run Command ---
 	cmdErr := runAddCommand(t, tempDir, dependencyURL)
 
-	// --- Assertions ---
 	require.Error(t, cmdErr, "almd add command should return an error due to lockfile write failure")
 
 	if exitErr, ok := cmdErr.(cli.ExitCoder); ok {
 		errorOutput := strings.ToLower(exitErr.Error())
 		assert.Contains(t, errorOutput, "lockfile", "Error message should mention 'lockfile'")
 		assert.Contains(t, errorOutput, lockfile.LockfileName, "Error message should mention the lockfile name")
-		// Check for OS-specific parts of the error like "is a directory" or a TOML encoding error for the lockfile
-		// This makes the test more robust if the exact wording changes slightly.
 		assert.Condition(t, func() bool {
 			return strings.Contains(errorOutput, "is a directory") ||
-				strings.Contains(errorOutput, "toml") || // If TOML marshal fails due to directory
-				strings.Contains(errorOutput, "permission denied") // Another possible OS error
+				strings.Contains(errorOutput, "toml") ||
+				strings.Contains(errorOutput, "permission denied")
 		}, "Error message details should indicate a write/type issue with the lockfile path: %s", errorOutput)
 	} else {
-		// Handle cases where the error might not be a cli.ExitCoder but a direct error
-		// (though urfave/cli usually wraps errors in ExitCoder for command actions).
 		lowerCmdErr := strings.ToLower(cmdErr.Error())
 		assert.Contains(t, lowerCmdErr, "lockfile", "Direct error message should mention 'lockfile': %v", cmdErr)
 		assert.Fail(t, "Expected command error to be a cli.ExitCoder, got %T: %v", cmdErr, cmdErr)
@@ -2385,7 +1675,6 @@ version = "0.1.0"
 	depEntry, ok := projCfg.Dependencies[expectedDepName]
 	require.True(t, ok, "Dependency '%s' should still be listed in project.toml. Current dependencies: %v", expectedDepName, projCfg.Dependencies)
 
-	// The canonical source will now be a GitHub-like source string
 	expectedCanonicalSource := fmt.Sprintf("github:%s/%s/%s@%s", mockOwner, mockRepo, mockFileName, mockRef)
 	assert.Equal(t, expectedCanonicalSource, depEntry.Source, "Dependency source in project.toml for '%s' is incorrect", expectedDepName)
 	assert.Equal(t, filepath.ToSlash(filepath.Join(defaultLibsDir, sourceFileName)), depEntry.Path,
@@ -2402,9 +1691,9 @@ version = "0.1.0"
 
 
 ================================================
-File: internal/cli/initcmd/initcmd.go
+File: internal/cli/init/init.go
 ================================================
-package initcmd
+package init
 
 import (
 	"bufio"
@@ -2417,9 +1706,9 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Helper function to prompt user and get input with a default value
+// promptWithDefault asks the user for input and returns the entered value or a default if input is empty.
+// Returns an error if reading input fails.
 func promptWithDefault(reader *bufio.Reader, promptText string, defaultValue string) (string, error) {
-	// Show default if not empty
 	if defaultValue != "" {
 		fmt.Printf("%s (default: %s): ", promptText, defaultValue)
 	} else {
@@ -2428,18 +1717,17 @@ func promptWithDefault(reader *bufio.Reader, promptText string, defaultValue str
 
 	input, err := reader.ReadString('\n')
 	if err != nil {
-		// Return specific error for prompt context
 		return "", fmt.Errorf("failed to read input for '%s': %w", promptText, err)
 	}
 	input = strings.TrimSpace(input)
 	if input == "" {
-		return defaultValue, nil // Return default if input is empty
+		return defaultValue, nil
 	}
 	return input, nil
 }
 
-// GetInitCommand returns the definition for the "init" command.
-func GetInitCommand() *cli.Command {
+// InitCmd returns the definition for the "init" command.
+func InitCmd() *cli.Command {
 	return &cli.Command{
 		Name:  "init",
 		Usage: "Initialize a new Almandine project (creates project.toml)",
@@ -2451,25 +1739,21 @@ func GetInitCommand() *cli.Command {
 			var packageName, version, license, description string
 			var err error
 
-			// Prompt for package name
 			packageName, err = promptWithDefault(reader, "Package name", "my-almandine-project")
 			if err != nil {
 				return cli.Exit(err.Error(), 1)
 			}
 
-			// Prompt for version
 			version, err = promptWithDefault(reader, "Version", "0.1.0")
 			if err != nil {
 				return cli.Exit(err.Error(), 1)
 			}
 
-			// Prompt for license
 			license, err = promptWithDefault(reader, "License", "MIT")
 			if err != nil {
 				return cli.Exit(err.Error(), 1)
 			}
 
-			// Prompt for description (optional, default is empty)
 			description, err = promptWithDefault(reader, "Description (optional)", "")
 			if err != nil {
 				return cli.Exit(err.Error(), 1)
@@ -2482,74 +1766,12 @@ func GetInitCommand() *cli.Command {
 			fmt.Printf("Description:  %s\n", description)
 			fmt.Println("--------------------------")
 
-			// --- Task 1.3: Implement Interactive Prompts for Scripts ---
 			scripts := make(map[string]string)
-			fmt.Println("\nEnter scripts (leave script name empty to finish):")
-
-			for {
-				scriptName, errLFSN := promptWithDefault(reader, "Script name", "") // Renamed err to avoid conflict
-				if errLFSN != nil {
-					return cli.Exit(fmt.Sprintf("Error reading script name: %v", errLFSN), 1)
-				}
-
-				if scriptName == "" {
-					break
-				}
-
-				scriptCmd, errLFSC := promptWithDefault(reader, fmt.Sprintf("Command for script '%s'", scriptName), "") // Renamed err
-				if errLFSC != nil {
-					return cli.Exit(fmt.Sprintf("Error reading command for script '%s': %v", scriptName, errLFSC), 1)
-				}
-				scripts[scriptName] = scriptCmd
-			}
 
 			if _, exists := scripts["run"]; !exists {
 				scripts["run"] = "lua src/main.lua"
 			}
 
-			fmt.Println("-------------------------")
-
-			// --- Task 1.4: Implement Interactive Prompts for Dependencies (Placeholders) ---
-			dependencies := make(map[string]string)
-			fmt.Println("\nEnter dependencies (leave dependency name empty to finish):")
-
-			for {
-				depName, errLFDN := promptWithDefault(reader, "Dependency name", "") // Renamed err
-				if errLFDN != nil {
-					return cli.Exit(fmt.Sprintf("Error reading dependency name: %v", errLFDN), 1)
-				}
-
-				if depName == "" {
-					break
-				}
-
-				depSource, errLFDS := promptWithDefault(reader, fmt.Sprintf("Source/Version for dependency '%s'", depName), "") // Renamed err
-				if errLFDS != nil {
-					return cli.Exit(fmt.Sprintf("Error reading source for dependency '%s': %v", depName, errLFDS), 1)
-				}
-				dependencies[depName] = depSource
-			}
-
-			fmt.Println("\n--- Collected Dependencies ---")
-			if len(dependencies) > 0 {
-				for name, source := range dependencies {
-					fmt.Printf("%s = \"%s\"\n", name, source)
-				}
-			} else {
-				fmt.Println("(No dependencies defined)")
-			}
-			fmt.Println("----------------------------")
-
-			// Transform collected placeholder dependencies into the correct structure
-			projectDependencies := make(map[string]project.Dependency)
-			for name, source := range dependencies {
-				projectDependencies[name] = project.Dependency{
-					Source: source, // The collected placeholder string
-					Path:   "",     // Path is not determined at init for placeholders
-				}
-			}
-
-			// Populate the project structure
 			projectData := project.Project{
 				Package: &project.PackageInfo{
 					Name:        packageName,
@@ -2557,12 +1779,9 @@ func GetInitCommand() *cli.Command {
 					License:     license,
 					Description: description,
 				},
-				Scripts:      scripts,
-				Dependencies: projectDependencies, // Use the transformed map
+				Scripts: scripts,
 			}
 
-			// Write to project.toml using the centralized function
-			// Pass "." for current directory, as WriteProjectToml expects a directory path.
 			err = config.WriteProjectToml(".", &projectData)
 			if err != nil {
 				return cli.Exit(fmt.Sprintf("Error writing project.toml: %v", err), 1)
@@ -2577,10 +1796,11 @@ func GetInitCommand() *cli.Command {
 
 
 ================================================
-File: internal/cli/initcmd/initcmd_test.go
+File: internal/cli/init/init_test.go
 ================================================
-// Package commands_test contains tests for the commands package.
-package initcmd
+// Package init provides functionality for initializing new Almandine projects.
+// Tests in this package verify the project initialization behavior and configuration generation.
+package init
 
 import (
 	"bytes"
@@ -2596,13 +1816,12 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Helper function to simulate user input for prompts
+// simulateInput creates a pipe and writes the given inputs to simulate user input for prompts.
 func simulateInput(inputs []string) (*os.File, *os.File, error) {
 	r, w, err := os.Pipe()
 	if err != nil {
 		return nil, nil, err
 	}
-	// Write all inputs separated by newlines
 	inputString := strings.Join(inputs, "\n") + "\n"
 	_, err = w.WriteString(inputString)
 	if err != nil {
@@ -2610,36 +1829,35 @@ func simulateInput(inputs []string) (*os.File, *os.File, error) {
 		_ = w.Close()
 		return nil, nil, err
 	}
-	_ = w.Close() // Close writer to signal EOF for reader
+	_ = w.Close()
 	return r, w, nil
 }
 
-// Helper function to capture stdout
+// captureOutput creates a pipe and buffer to capture stdout for testing.
 func captureOutput() (*os.File, *os.File, *bytes.Buffer, error) {
 	r, w, err := os.Pipe()
 	if err != nil {
 		return nil, nil, nil, err
 	}
 	var buf bytes.Buffer
-	// Use a MultiWriter to capture stdout and also print it if needed for debugging
 	_, _ = w.Write([]byte{})
 	return r, w, &buf, nil
 }
 
+// TestInitCommand verifies that the init command correctly handles custom user inputs
+// and generates a valid project configuration with specified values. This test ensures
+// the interactive prompts work and the resulting TOML file contains the expected content.
 func TestInitCommand(t *testing.T) {
-	// --- Test Setup ---
 	tempDir, err := os.MkdirTemp("", "almandine_init_test")
 	require.NoError(t, err, "Failed to create temporary directory")
-	defer func() { _ = os.RemoveAll(tempDir) }() // Clean up afterwards
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	originalWd, err := os.Getwd()
 	require.NoError(t, err, "Failed to get current working directory")
 	err = os.Chdir(tempDir)
 	require.NoError(t, err, "Failed to change to temporary directory")
-	defer func() { _ = os.Chdir(originalWd) }() // Change back
+	defer func() { _ = os.Chdir(originalWd) }()
 
-	// Prepare simulated user input (simulate pressing Enter for defaults where applicable)
-	// Order: name, version, license, description, script name, script cmd, empty script name, dep name, dep src, empty dep name
 	simulatedInputs := []string{
 		"test-project",         // Package name
 		"1.2.3",                // Version
@@ -2651,39 +1869,33 @@ func TestInitCommand(t *testing.T) {
 		"",                     // Empty dependency name (finish dependencies)
 	}
 
-	// Redirect Stdin
 	oldStdin := os.Stdin
 	rStdin, _, err := simulateInput(simulatedInputs)
 	require.NoError(t, err, "Failed to simulate stdin")
 	os.Stdin = rStdin
-	defer func() { os.Stdin = oldStdin; _ = rStdin.Close() }() // Restore Stdin
+	defer func() { os.Stdin = oldStdin; _ = rStdin.Close() }()
 
-	// Capture Stdout (optional, but can be useful for debugging output)
 	oldStdout := os.Stdout
 	rStdout, wStdout, _, err := captureOutput()
 	require.NoError(t, err, "Failed to capture stdout")
 	os.Stdout = wStdout
-	defer func() { os.Stdout = oldStdout; _ = wStdout.Close(); _ = rStdout.Close() }() // Restore Stdout
+	defer func() { os.Stdout = oldStdout; _ = wStdout.Close(); _ = rStdout.Close() }()
 
-	// --- Run Command ---
 	app := &cli.App{
 		Name: "almandine-test",
 		Commands: []*cli.Command{
-			GetInitCommand(),
+			InitCmd(),
 		},
 	}
 
 	runErr := app.Run([]string{"almandine-test", "init"})
 
-	// --- Assertions ---
 	assert.NoError(t, runErr, "Init command returned an error")
 
-	// Check if project.toml was created
 	tomlPath := filepath.Join(tempDir, "project.toml")
 	_, err = os.Stat(tomlPath)
 	require.NoError(t, err, "project.toml was not created")
 
-	// Read and parse the created project.toml
 	tomlBytes, err := os.ReadFile(tomlPath)
 	require.NoError(t, err, "Failed to read project.toml")
 
@@ -2691,35 +1903,21 @@ func TestInitCommand(t *testing.T) {
 	err = toml.Unmarshal(tomlBytes, &generatedConfig)
 	require.NoError(t, err, "Failed to unmarshal project.toml")
 
-	// Verify Package Metadata
 	assert.Equal(t, "test-project", generatedConfig.Package.Name, "Package name mismatch")
 	assert.Equal(t, "1.2.3", generatedConfig.Package.Version, "Version mismatch")
 	assert.Equal(t, "Apache-2.0", generatedConfig.Package.License, "License mismatch")
 	assert.Equal(t, "A test project", generatedConfig.Package.Description, "Description mismatch")
 
-	// Verify Scripts (should include the default 'run' and the provided 'build')
 	expectedScripts := map[string]string{
 		"run": "lua src/main.lua",
 	}
 	assert.Equal(t, expectedScripts, generatedConfig.Scripts, "Scripts mismatch")
-
-	// Verify Dependencies
-	expectedDependencies := map[string]project.Dependency{
-		"my-dep": {
-			Source: "github.com/user/repo",
-			Path:   "", // Path is initially empty for placeholder dependencies
-		},
-	}
-	assert.Equal(t, expectedDependencies, generatedConfig.Dependencies, "Dependencies mismatch")
-
-	// Optional: Check stdout content if needed (example)
-	// stdoutContent := capturedOutput.String()
-	// assert.Contains(t, stdoutContent, "Wrote to project.toml", "Expected confirmation message in output")
 }
 
-// Test case for empty description and no extra scripts/dependencies (uses defaults)
+// TestInitCommand_DefaultsAndEmpty verifies that the init command properly handles
+// default values and empty inputs. This ensures the command maintains backward
+// compatibility and provides sensible defaults when users skip optional inputs.
 func TestInitCommand_DefaultsAndEmpty(t *testing.T) {
-	// --- Test Setup ---
 	tempDir, err := os.MkdirTemp("", "almandine_init_test_defaults")
 	require.NoError(t, err, "Failed to create temporary directory")
 	defer func() { _ = os.RemoveAll(tempDir) }()
@@ -2730,8 +1928,6 @@ func TestInitCommand_DefaultsAndEmpty(t *testing.T) {
 	require.NoError(t, err, "Failed to change to temporary directory")
 	defer func() { _ = os.Chdir(originalWd) }()
 
-	// Simulate pressing Enter for all prompts except name (use default)
-	// name, version (default), license (default), description (empty), empty script, empty dep
 	simulatedInputs := []string{
 		"default-proj", // Package name
 		"",             // Version (use default)
@@ -2753,16 +1949,14 @@ func TestInitCommand_DefaultsAndEmpty(t *testing.T) {
 	os.Stdout = wStdout
 	defer func() { os.Stdout = oldStdout; _ = wStdout.Close(); _ = rStdout.Close() }()
 
-	// --- Run Command ---
 	app := &cli.App{
 		Name: "almandine-test",
 		Commands: []*cli.Command{
-			GetInitCommand(),
+			InitCmd(),
 		},
 	}
 	runErr := app.Run([]string{"almandine-test", "init"})
 
-	// --- Assertions ---
 	assert.NoError(t, runErr, "Init command returned an error")
 
 	tomlPath := filepath.Join(tempDir, "project.toml")
@@ -2773,20 +1967,17 @@ func TestInitCommand_DefaultsAndEmpty(t *testing.T) {
 	err = toml.Unmarshal(tomlBytes, &generatedConfig)
 	require.NoError(t, err, "Failed to unmarshal project.toml")
 
-	// Verify Package Metadata (Defaults and empty description)
 	assert.Equal(t, "default-proj", generatedConfig.Package.Name, "Package name mismatch")
 	assert.Equal(t, "0.1.0", generatedConfig.Package.Version, "Version mismatch (default expected)")
 	assert.Equal(t, "MIT", generatedConfig.Package.License, "License mismatch (default expected)")
-	assert.Equal(t, "", generatedConfig.Package.Description, "Description should be empty") // Check omitempty worked
+	assert.Equal(t, "", generatedConfig.Package.Description, "Description should be empty")
 
-	// Verify Scripts (should only include the default 'run')
 	expectedScripts := map[string]string{
 		"run": "lua src/main.lua",
 	}
 	assert.Equal(t, expectedScripts, generatedConfig.Scripts, "Scripts mismatch (only default expected)")
 
-	// Verify Dependencies (should be empty or nil)
-	assert.Nil(t, generatedConfig.Dependencies, "Dependencies should be nil/omitted") // Or assert.Empty(...) if preferred
+	assert.Nil(t, generatedConfig.Dependencies, "Dependencies should be nil/omitted")
 }
 
 
@@ -2794,6 +1985,7 @@ func TestInitCommand_DefaultsAndEmpty(t *testing.T) {
 ================================================
 File: internal/cli/install/install.go
 ================================================
+// Package install implements the dependency installation functionality.
 package install
 
 import (
@@ -2813,10 +2005,14 @@ import (
 	"github.com/nightconcept/almandine/internal/core/source"
 )
 
-var isCommitSHARegex = regexp.MustCompile(`^[0-9a-f]{7,40}$`) // Common Git SHA lengths
+// isCommitSHARegex matches valid Git commit SHAs of varying lengths (7-40 chars).
+// This range covers both short and full-length commit hashes.
+var isCommitSHARegex = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
 
-// NewInstallCommand creates a new cli.Command for the "install" command.
-func NewInstallCommand() *cli.Command {
+// InstallCmd creates a new install command that handles dependency management.
+// It supports installing specific dependencies or all dependencies defined in project.toml,
+// with options for forced updates and verbose output.
+func InstallCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "install",
 		Usage:     "Installs or updates project dependencies based on project.toml",
@@ -2834,7 +2030,7 @@ func NewInstallCommand() *cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 			verbose := c.Bool("verbose")
-			force := c.Bool("force") // Keep force for later use
+			force := c.Bool("force")
 
 			if verbose {
 				_, _ = fmt.Fprintln(os.Stdout, "Executing 'install' command...")
@@ -2852,7 +2048,7 @@ func NewInstallCommand() *cli.Command {
 				}
 			}
 
-			// Load project.toml
+			// Load project.toml and validate its existence before proceeding
 			projCfg, err := config.LoadProjectToml(".")
 			if err != nil {
 				if errors.Is(err, os.ErrNotExist) {
@@ -2879,7 +2075,8 @@ func NewInstallCommand() *cli.Command {
 				lf.ApiVersion = lockfile.APIVersion
 			}
 
-			// --- Task 6.3: Dependency Iteration and Configuration Retrieval ---
+			// dependencyToProcess tracks the source configuration for each dependency
+			// that needs to be processed during the install/update operation
 			type dependencyToProcess struct {
 				Name   string
 				Source string
@@ -2887,7 +2084,7 @@ func NewInstallCommand() *cli.Command {
 			}
 			var dependenciesToProcessList []dependencyToProcess
 
-			if len(dependencyNames) == 0 { // Install/update all dependencies defined in project.toml
+			if len(dependencyNames) == 0 {
 				if len(projCfg.Dependencies) == 0 {
 					_, _ = fmt.Fprintln(os.Stdout, "No dependencies found in project.toml to install/update.")
 					return nil
@@ -2905,7 +2102,7 @@ func NewInstallCommand() *cli.Command {
 						_, _ = fmt.Fprintf(os.Stdout, "  Targeting: %s (Source: %s, Path: %s)\n", name, depDetails.Source, depDetails.Path)
 					}
 				}
-			} else { // Install/update specific dependencies
+			} else {
 				if verbose {
 					_, _ = fmt.Fprintf(os.Stdout, "Processing %d specified dependencies...\n", len(dependencyNames))
 				}
@@ -2934,21 +2131,22 @@ func NewInstallCommand() *cli.Command {
 				_, _ = fmt.Fprintf(os.Stdout, "Total dependencies to process: %d\n", len(dependenciesToProcessList))
 			}
 
-			// --- Task 6.4: Target Version Resolution and Lockfile State Retrieval ---
+			// dependencyInstallState tracks both the target state (from project.toml) and
+			// current state (from lockfile) for each dependency, along with resolution details
 			type dependencyInstallState struct {
 				Name              string
-				ProjectTomlSource string // Original source string from project.toml
-				ProjectTomlPath   string // Path from project.toml
-				TargetRawURL      string // Resolved raw URL for download
-				TargetCommitHash  string // Resolved definitive commit hash (or tag/branch if not resolvable to commit)
-				LockedRawURL      string // Raw URL from almd-lock.toml
-				LockedCommitHash  string // Hash from almd-lock.toml (could be commit:<sha> or sha256:<hash>)
+				ProjectTomlSource string
+				ProjectTomlPath   string
+				TargetRawURL      string
+				TargetCommitHash  string
+				LockedRawURL      string
+				LockedCommitHash  string
 				Provider          string
 				Owner             string
 				Repo              string
 				PathInRepo        string
-				NeedsAction       bool   // Flag to indicate if this dependency needs to be installed/updated
-				ActionReason      string // Reason why an action is needed
+				NeedsAction       bool
+				ActionReason      string
 			}
 			var installStates []dependencyInstallState
 
@@ -2956,6 +2154,10 @@ func NewInstallCommand() *cli.Command {
 				_, _ = fmt.Fprintln(os.Stdout, "\nResolving target versions and current lock states...")
 			}
 
+			// Commit resolution for GitHub dependencies:
+			// For non-commit refs (branch/tag), we attempt to resolve to a specific commit
+			// to ensure reproducible builds and detect updates. For already-specific commits,
+			// we use them directly.
 			for _, depToProcess := range dependenciesToProcessList {
 				if verbose {
 					_, _ = fmt.Fprintf(os.Stdout, "Processing dependency: %s (Source: %s)\n", depToProcess.Name, depToProcess.Source)
@@ -2967,7 +2169,7 @@ func NewInstallCommand() *cli.Command {
 					continue
 				}
 
-				var resolvedCommitHash = parsedSourceInfo.Ref // Default to the ref from parsing
+				var resolvedCommitHash = parsedSourceInfo.Ref
 				var finalTargetRawURL = parsedSourceInfo.RawURL
 
 				if parsedSourceInfo.Provider == "github" && !isCommitSHARegex.MatchString(parsedSourceInfo.Ref) {
@@ -3021,7 +2223,11 @@ func NewInstallCommand() *cli.Command {
 				}
 			}
 
-			// --- Task 6.5: Comparison Logic and Update Decision ---
+			// For dependencies requiring action, determine why they need updating:
+			// 1. Forced updates (--force flag)
+			// 2. Missing from lockfile
+			// 3. Missing local file
+			// 4. Changed target commit or content hash
 			var dependenciesThatNeedAction []dependencyInstallState
 
 			if verbose && len(installStates) > 0 {
@@ -3108,7 +2314,7 @@ func NewInstallCommand() *cli.Command {
 				}
 			}
 
-			// --- Task 6.6: Perform Install/Update (If Required) ---
+			// Perform install/update for identified dependencies
 			if verbose && len(dependenciesThatNeedAction) > 0 {
 				_, _ = fmt.Fprintln(os.Stdout, "\nPerforming install/update for identified dependencies...")
 			}
@@ -3170,6 +2376,8 @@ func NewInstallCommand() *cli.Command {
 				successfulActions++
 			}
 
+			// Handle successful installations by updating the lockfile
+			// with new source URLs and integrity hashes
 			if successfulActions > 0 {
 				lf.ApiVersion = lockfile.APIVersion
 				if err := lockfile.Save(".", lf); err != nil {
@@ -3297,7 +2505,7 @@ func runInstallCommand(t *testing.T, workDir string, installCmdArgs ...string) e
 	app := &cli.App{
 		Name: "almd-test-install",
 		Commands: []*cli.Command{
-			installcmd.NewInstallCommand(),
+			installcmd.InstallCmd(),
 		},
 		Writer:    os.Stderr,
 		ErrWriter: os.Stderr,
@@ -4191,131 +3399,133 @@ type dependencyDisplayInfo struct {
 }
 
 // ListCmd defines the structure for the 'list' command.
-var ListCmd = &cli.Command{
-	Name:    "list",
-	Aliases: []string{"ls"},
-	Usage:   "Displays project dependencies and their status.",
-	Action: func(c *cli.Context) error {
-		projectTomlPath := "project.toml" // This is relative to CWD, LoadProjectToml expects root
+func ListCmd() *cli.Command {
+	return &cli.Command{
+		Name:    "list",
+		Aliases: []string{"ls"},
+		Usage:   "Displays project dependencies and their status.",
+		Action: func(c *cli.Context) error {
+			projectTomlPath := "project.toml" // This is relative to CWD, LoadProjectToml expects root
 
-		proj, err := config.LoadProjectToml(".")
-		if err != nil {
-			if os.IsNotExist(err) {
-				// Return an error that the test can catch, consistent with other error exits.
-				// The test TestListCommand_ProjectTomlNotFound expects an error.
-				return cli.Exit(fmt.Sprintf("Error: %s not found. No project configuration loaded.", projectTomlPath), 1)
+			proj, err := config.LoadProjectToml(".")
+			if err != nil {
+				if os.IsNotExist(err) {
+					// Return an error that the test can catch, consistent with other error exits.
+					// The test TestListCommand_ProjectTomlNotFound expects an error.
+					return cli.Exit(fmt.Sprintf("Error: %s not found. No project configuration loaded.", projectTomlPath), 1)
+				}
+				// For other errors during loading
+				return cli.Exit(fmt.Sprintf("Error loading %s: %v", projectTomlPath, err), 1)
 			}
-			// For other errors during loading
-			return cli.Exit(fmt.Sprintf("Error loading %s: %v", projectTomlPath, err), 1)
-		}
 
-		lf, err := lockfile.Load(".")
-		if err != nil {
-			// lockfile.Load handles "not found" by returning a new lf and no error.
-			// Any error here is likely a more serious issue.
-			return cli.Exit(fmt.Sprintf("Error loading %s: %v", lockfile.LockfileName, err), 1)
-		}
-		// Ensure lf is not nil, though lockfile.Load should guarantee this if err is nil.
-		if lf == nil {
-			lf = lockfile.New()
-		}
+			lf, err := lockfile.Load(".")
+			if err != nil {
+				// lockfile.Load handles "not found" by returning a new lf and no error.
+				// Any error here is likely a more serious issue.
+				return cli.Exit(fmt.Sprintf("Error loading %s: %v", lockfile.LockfileName, err), 1)
+			}
+			// Ensure lf is not nil, though lockfile.Load should guarantee this if err is nil.
+			if lf == nil {
+				lf = lockfile.New()
+			}
 
-		var displayDeps []dependencyDisplayInfo
+			var displayDeps []dependencyDisplayInfo
 
-		// Display project information
-		// Get current working directory for display, or use a placeholder if error
-		wd, err := os.Getwd()
-		if err != nil {
-			wd = "." // Default to current directory symbol if error
-		}
+			// Display project information
+			// Get current working directory for display, or use a placeholder if error
+			wd, err := os.Getwd()
+			if err != nil {
+				wd = "." // Default to current directory symbol if error
+			}
 
-		// Updated Color definitions (Task 10.1, User Feedback)
-		projectNameColor := color.New(color.FgMagenta, color.Bold, color.Underline).SprintFunc()
-		projectVersionColor := color.New(color.FgMagenta).SprintFunc() // Version not specified for bold/underline
-		projectPathColor := color.New(color.FgHiBlack, color.Bold, color.Underline).SprintFunc()
-		dependenciesHeaderColor := color.New(color.FgCyan, color.Bold).SprintFunc()
-		// PRD Colors for dependency line: Name (White), Hash (Yellow), Path (DimGray)
-		depNameColor := color.New(color.FgWhite).SprintFunc()
-		depHashColor := color.New(color.FgYellow).SprintFunc()
-		depPathColor := color.New(color.FgHiBlack).SprintFunc()
-		// Standard color for "@"
-		atStr := "@"
+			// Updated Color definitions (Task 10.1, User Feedback)
+			projectNameColor := color.New(color.FgMagenta, color.Bold, color.Underline).SprintFunc()
+			projectVersionColor := color.New(color.FgMagenta).SprintFunc() // Version not specified for bold/underline
+			projectPathColor := color.New(color.FgHiBlack, color.Bold, color.Underline).SprintFunc()
+			dependenciesHeaderColor := color.New(color.FgCyan, color.Bold).SprintFunc()
+			// PRD Colors for dependency line: Name (White), Hash (Yellow), Path (DimGray)
+			depNameColor := color.New(color.FgWhite).SprintFunc()
+			depHashColor := color.New(color.FgYellow).SprintFunc()
+			depPathColor := color.New(color.FgHiBlack).SprintFunc()
+			// Standard color for "@"
+			atStr := "@"
 
-		fmt.Printf("%s%s%s %s\n", projectNameColor(proj.Package.Name), atStr, projectVersionColor(proj.Package.Version), projectPathColor(wd))
-		fmt.Println() // Empty line
+			fmt.Printf("%s%s%s %s\n", projectNameColor(proj.Package.Name), atStr, projectVersionColor(proj.Package.Version), projectPathColor(wd))
+			fmt.Println() // Empty line
 
-		if len(proj.Dependencies) == 0 {
-			// Handle Task 8.5: No dependencies found
-			fmt.Println(dependenciesHeaderColor("dependencies:")) // Still print the header
-			// Task 8.5: If project.toml has no [dependencies] table or it's empty,
-			// print an appropriate message.
-			fmt.Println("No dependencies found in project.toml.")
+			if len(proj.Dependencies) == 0 {
+				// Handle Task 8.5: No dependencies found
+				fmt.Println(dependenciesHeaderColor("dependencies:")) // Still print the header
+				// Task 8.5: If project.toml has no [dependencies] table or it's empty,
+				// print an appropriate message.
+				fmt.Println("No dependencies found in project.toml.")
+				return nil
+			}
+
+			fmt.Println(dependenciesHeaderColor("dependencies:"))
+			for name, depDetails := range proj.Dependencies {
+				info := dependencyDisplayInfo{
+					Name:          name,
+					ProjectSource: depDetails.Source,
+					ProjectPath:   depDetails.Path,
+				}
+
+				// Check lockfile
+				if lockEntry, ok := lf.Package[name]; ok {
+					info.IsLocked = true
+					info.LockedSource = lockEntry.Source
+					info.LockedHash = lockEntry.Hash
+				} else {
+					info.IsLocked = false
+					info.FileStatusInfo = "not locked"
+				}
+
+				// Check file existence
+				// project.toml paths are relative to the project root.
+				// The CWD for `almd` execution is assumed to be the project root.
+				if _, err := os.Stat(depDetails.Path); err == nil {
+					info.FileExists = true
+				} else if os.IsNotExist(err) {
+					info.FileExists = false
+					if info.FileStatusInfo != "" {
+						info.FileStatusInfo += ", missing"
+					} else {
+						info.FileStatusInfo = "missing"
+					}
+				} else {
+					// Other error (e.g., permission denied)
+					info.FileExists = false
+					if info.FileStatusInfo != "" {
+						info.FileStatusInfo += ", error checking file"
+					} else {
+						info.FileStatusInfo = "error checking file"
+					}
+					fmt.Fprintf(os.Stderr, "Warning: could not check status of %s: %v\n", depDetails.Path, err)
+				}
+				displayDeps = append(displayDeps, info)
+			}
+
+			// Default Output Formatting (Task 8.4)
+			// TODO: Add handling for --long, --json, --porcelain flags later based on PRD.
+			// For now, implementing only the default format.
+
+			// The earlier check for len(proj.Dependencies) == 0 handles the "no dependencies" case.
+			// If we reach here, displayDeps should have items if proj.Dependencies had items.
+			for _, dep := range displayDeps {
+				lockedHash := "not locked"
+				if dep.IsLocked && dep.LockedHash != "" {
+					lockedHash = dep.LockedHash
+				} else if dep.IsLocked && dep.LockedHash == "" {
+					lockedHash = "locked (no hash)"
+				}
+
+				// PRD format: Name Hash Path
+				// Apply PRD colors: Dependency Name (White), Hash (Yellow), Path (DimGray)
+				fmt.Printf("%s %s %s\n", depNameColor(dep.Name), depHashColor(lockedHash), depPathColor(dep.ProjectPath))
+			}
 			return nil
-		}
-
-		fmt.Println(dependenciesHeaderColor("dependencies:"))
-		for name, depDetails := range proj.Dependencies {
-			info := dependencyDisplayInfo{
-				Name:          name,
-				ProjectSource: depDetails.Source,
-				ProjectPath:   depDetails.Path,
-			}
-
-			// Check lockfile
-			if lockEntry, ok := lf.Package[name]; ok {
-				info.IsLocked = true
-				info.LockedSource = lockEntry.Source
-				info.LockedHash = lockEntry.Hash
-			} else {
-				info.IsLocked = false
-				info.FileStatusInfo = "not locked"
-			}
-
-			// Check file existence
-			// project.toml paths are relative to the project root.
-			// The CWD for `almd` execution is assumed to be the project root.
-			if _, err := os.Stat(depDetails.Path); err == nil {
-				info.FileExists = true
-			} else if os.IsNotExist(err) {
-				info.FileExists = false
-				if info.FileStatusInfo != "" {
-					info.FileStatusInfo += ", missing"
-				} else {
-					info.FileStatusInfo = "missing"
-				}
-			} else {
-				// Other error (e.g., permission denied)
-				info.FileExists = false
-				if info.FileStatusInfo != "" {
-					info.FileStatusInfo += ", error checking file"
-				} else {
-					info.FileStatusInfo = "error checking file"
-				}
-				fmt.Fprintf(os.Stderr, "Warning: could not check status of %s: %v\n", depDetails.Path, err)
-			}
-			displayDeps = append(displayDeps, info)
-		}
-
-		// Default Output Formatting (Task 8.4)
-		// TODO: Add handling for --long, --json, --porcelain flags later based on PRD.
-		// For now, implementing only the default format.
-
-		// The earlier check for len(proj.Dependencies) == 0 handles the "no dependencies" case.
-		// If we reach here, displayDeps should have items if proj.Dependencies had items.
-		for _, dep := range displayDeps {
-			lockedHash := "not locked"
-			if dep.IsLocked && dep.LockedHash != "" {
-				lockedHash = dep.LockedHash
-			} else if dep.IsLocked && dep.LockedHash == "" {
-				lockedHash = "locked (no hash)"
-			}
-
-			// PRD format: Name Hash Path
-			// Apply PRD colors: Dependency Name (White), Hash (Yellow), Path (DimGray)
-			fmt.Printf("%s %s %s\n", depNameColor(dep.Name), depHashColor(lockedHash), depPathColor(dep.ProjectPath))
-		}
-		return nil
-	},
+		},
+	}
 }
 
 
@@ -4400,7 +3610,7 @@ func runListCommand(t *testing.T, testDir string, appArgs ...string) (string, er
 
 	app := &cli.App{
 		Commands: []*cli.Command{
-			ListCmd, // Assumes ListCmd is defined in the current 'list' package
+			ListCmd(), // Assumes NewListCommand is defined in the current 'list' package
 		},
 		// Prevent os.Exit from being called by urfave/cli during tests
 		ExitErrHandler: func(context *cli.Context, err error) {
@@ -4791,8 +4001,8 @@ func isDirEmpty(path string) (bool, error) {
 	return len(entries) == 0, nil
 }
 
-// RemoveCommand defines the structure for the 'remove' CLI command.
-func RemoveCommand() *cli.Command {
+// RemoveCmd defines the structure for the 'remove' CLI command.
+func RemoveCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "remove",
 		Usage:     "Remove a dependency from the project",
@@ -5376,7 +4586,7 @@ func runRemoveCommand(t *testing.T, workDir string, removeCmdArgs ...string) err
 	app := &cli.App{
 		Name: "almd-test-remove",
 		Commands: []*cli.Command{
-			RemoveCommand(),
+			RemoveCmd(),
 		},
 		Writer:         os.Stderr,
 		ErrWriter:      os.Stderr,
@@ -5409,8 +4619,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// NewSelfCommand creates a new command for self-management.
-func NewSelfCommand() *cli.Command {
+// SelfCmd creates a new command for self-management.
+func SelfCmd() *cli.Command {
 	return &cli.Command{
 		Name:  "self",
 		Usage: "Manage the almd CLI application itself",
@@ -7360,7 +6570,7 @@ Almandine (`almd` as the CLI command) is a lightweight package manager for Go pr
 
 -   **`init` command:**
     -   **Goal:** Interactively initialize a new Almandine project by creating a `project.toml` manifest file in the current directory.
-    -   **Implementation:** Implemented as a `urfave/cli` command (in `internal/cli/initcmd/initcmd.go`).
+    -   **Implementation:** Implemented as a `urfave/cli` command (in `internal/cli/init/init.go`).
     -   **Functionality:**
         -   **Interactive Prompts:** Prompts the user for core project metadata:
             -   `package` name (defaults to `my-go-project` or derived from current dir).
@@ -7525,9 +6735,9 @@ Standard Go project layout combined with Almandine specifics:
         -   `add/`         # Logic for the 'add' command
             -   `add.go`
             -   `add_test.go`
-        -   `initcmd/`     # Logic for the 'init' command
-            -   `initcmd.go`
-            -   `initcmd_test.go`
+        -   `init/`     # Logic for the 'init' command
+            -   `init.go`
+            -   `init_test.go`
         -   `remove/`      # Logic for the 'remove' command
             -   `remove.go`
         -   `...`          # Other command packages/modules
@@ -7943,7 +7153,7 @@ File: project/TASKS.md
     -   [x] Basic `init` test case (as in `commands/init_test.go`).
     -   [x] `init` test case with defaults and empty inputs (as in `commands/init_test.go`).
     -   [x] **Sub-Task 3.3.1: Fix `TestInitCommand` failure "project.toml\project.toml: The system cannot find the path specified." (2025-05-08)**
-        -   [x] Changed `config.WriteProjectToml("project.toml", ...)` to `config.WriteProjectToml(".", ...)` in `internal/cli/initcmd/initcmd.go` to correctly specify the current directory for `project.toml` creation.
+        -   [x] Changed `config.WriteProjectToml("project.toml", ...)` to `config.WriteProjectToml(".", ...)` in `internal/cli/init/init.go` to correctly specify the current directory for `project.toml` creation.
 
 -   [ ] **Task 3.4: Implement `add` Command Unit Test Cases**
     -   [x] **Sub-Task 3.4.1: Setup for `add` tests in `commands/add_test.go`**
@@ -8623,92 +7833,6 @@ jobs:
           COVERALLS_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: |
           goveralls -coverprofile=coverage.out -service=github -repotoken $COVERALLS_TOKEN
-
-
-
-================================================
-File: .github/workflows/release.yml
-================================================
-name: Release and Generate Changelog
-
-on:
-  push:
-    tags:
-      - 'v*.*.*'
-
-jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up zip
-        run: sudo apt-get update && sudo apt-get install -y zip
-
-      - name: Gather release files
-        run: |
-          mkdir release
-          cp -r src release/
-          cp -r install release/
-          [ -f project.lua ] && cp project.lua release/ || true
-          [ -f almd-lock.lua ] && cp almd-lock.lua release/ || true
-        shell: bash
-
-      - name: Create distributable zip
-        run: |
-          cd release
-          zip -r ../almd-release.zip .
-        shell: bash
-
-      - name: Get previous release tag
-        id: prevtag
-        run: |
-          PREV_TAG=$(git tag --sort=-creatordate | grep '^v' | grep -v "${GITHUB_REF_NAME}" | head -n1)
-          echo "prev_tag=$PREV_TAG" >> $GITHUB_OUTPUT
-        shell: bash
-
-      - name: Generate changelog
-        id: changelog
-        run: |
-          if [ -n "${{ steps.prevtag.outputs.prev_tag }}" ]; then
-            git log --pretty=format:'- %s (%an)' ${{ steps.prevtag.outputs.prev_tag }}..HEAD > changelog.md
-          else
-            git log --pretty=format:'- %s (%an)' > changelog.md
-          fi
-        shell: bash
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          body_path: changelog.md
-          draft: false
-          prerelease: false
-
-      - name: Upload release asset (zip)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./almd-release.zip
-          asset_name: almd-release.zip
-          asset_content_type: application/zip
-
-      - name: Upload release asset (changelog)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./changelog.md
-          asset_name: changelog.md
-          asset_content_type: text/markdown
 
 
 

@@ -1,3 +1,4 @@
+// Package install implements the dependency installation functionality.
 package install
 
 import (
@@ -17,10 +18,14 @@ import (
 	"github.com/nightconcept/almandine/internal/core/source"
 )
 
-var isCommitSHARegex = regexp.MustCompile(`^[0-9a-f]{7,40}$`) // Common Git SHA lengths
+// isCommitSHARegex matches valid Git commit SHAs of varying lengths (7-40 chars).
+// This range covers both short and full-length commit hashes.
+var isCommitSHARegex = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
 
-// NewInstallCommand creates a new cli.Command for the "install" command.
-func NewInstallCommand() *cli.Command {
+// InstallCmd creates a new install command that handles dependency management.
+// It supports installing specific dependencies or all dependencies defined in project.toml,
+// with options for forced updates and verbose output.
+func InstallCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "install",
 		Usage:     "Installs or updates project dependencies based on project.toml",
@@ -38,7 +43,7 @@ func NewInstallCommand() *cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 			verbose := c.Bool("verbose")
-			force := c.Bool("force") // Keep force for later use
+			force := c.Bool("force")
 
 			if verbose {
 				_, _ = fmt.Fprintln(os.Stdout, "Executing 'install' command...")
@@ -56,7 +61,7 @@ func NewInstallCommand() *cli.Command {
 				}
 			}
 
-			// Load project.toml
+			// Load project.toml and validate its existence before proceeding
 			projCfg, err := config.LoadProjectToml(".")
 			if err != nil {
 				if errors.Is(err, os.ErrNotExist) {
@@ -83,7 +88,8 @@ func NewInstallCommand() *cli.Command {
 				lf.ApiVersion = lockfile.APIVersion
 			}
 
-			// --- Task 6.3: Dependency Iteration and Configuration Retrieval ---
+			// dependencyToProcess tracks the source configuration for each dependency
+			// that needs to be processed during the install/update operation
 			type dependencyToProcess struct {
 				Name   string
 				Source string
@@ -91,7 +97,7 @@ func NewInstallCommand() *cli.Command {
 			}
 			var dependenciesToProcessList []dependencyToProcess
 
-			if len(dependencyNames) == 0 { // Install/update all dependencies defined in project.toml
+			if len(dependencyNames) == 0 {
 				if len(projCfg.Dependencies) == 0 {
 					_, _ = fmt.Fprintln(os.Stdout, "No dependencies found in project.toml to install/update.")
 					return nil
@@ -109,7 +115,7 @@ func NewInstallCommand() *cli.Command {
 						_, _ = fmt.Fprintf(os.Stdout, "  Targeting: %s (Source: %s, Path: %s)\n", name, depDetails.Source, depDetails.Path)
 					}
 				}
-			} else { // Install/update specific dependencies
+			} else {
 				if verbose {
 					_, _ = fmt.Fprintf(os.Stdout, "Processing %d specified dependencies...\n", len(dependencyNames))
 				}
@@ -138,21 +144,22 @@ func NewInstallCommand() *cli.Command {
 				_, _ = fmt.Fprintf(os.Stdout, "Total dependencies to process: %d\n", len(dependenciesToProcessList))
 			}
 
-			// --- Task 6.4: Target Version Resolution and Lockfile State Retrieval ---
+			// dependencyInstallState tracks both the target state (from project.toml) and
+			// current state (from lockfile) for each dependency, along with resolution details
 			type dependencyInstallState struct {
 				Name              string
-				ProjectTomlSource string // Original source string from project.toml
-				ProjectTomlPath   string // Path from project.toml
-				TargetRawURL      string // Resolved raw URL for download
-				TargetCommitHash  string // Resolved definitive commit hash (or tag/branch if not resolvable to commit)
-				LockedRawURL      string // Raw URL from almd-lock.toml
-				LockedCommitHash  string // Hash from almd-lock.toml (could be commit:<sha> or sha256:<hash>)
+				ProjectTomlSource string
+				ProjectTomlPath   string
+				TargetRawURL      string
+				TargetCommitHash  string
+				LockedRawURL      string
+				LockedCommitHash  string
 				Provider          string
 				Owner             string
 				Repo              string
 				PathInRepo        string
-				NeedsAction       bool   // Flag to indicate if this dependency needs to be installed/updated
-				ActionReason      string // Reason why an action is needed
+				NeedsAction       bool
+				ActionReason      string
 			}
 			var installStates []dependencyInstallState
 
@@ -160,6 +167,10 @@ func NewInstallCommand() *cli.Command {
 				_, _ = fmt.Fprintln(os.Stdout, "\nResolving target versions and current lock states...")
 			}
 
+			// Commit resolution for GitHub dependencies:
+			// For non-commit refs (branch/tag), we attempt to resolve to a specific commit
+			// to ensure reproducible builds and detect updates. For already-specific commits,
+			// we use them directly.
 			for _, depToProcess := range dependenciesToProcessList {
 				if verbose {
 					_, _ = fmt.Fprintf(os.Stdout, "Processing dependency: %s (Source: %s)\n", depToProcess.Name, depToProcess.Source)
@@ -171,7 +182,7 @@ func NewInstallCommand() *cli.Command {
 					continue
 				}
 
-				var resolvedCommitHash = parsedSourceInfo.Ref // Default to the ref from parsing
+				var resolvedCommitHash = parsedSourceInfo.Ref
 				var finalTargetRawURL = parsedSourceInfo.RawURL
 
 				if parsedSourceInfo.Provider == "github" && !isCommitSHARegex.MatchString(parsedSourceInfo.Ref) {
@@ -225,7 +236,11 @@ func NewInstallCommand() *cli.Command {
 				}
 			}
 
-			// --- Task 6.5: Comparison Logic and Update Decision ---
+			// For dependencies requiring action, determine why they need updating:
+			// 1. Forced updates (--force flag)
+			// 2. Missing from lockfile
+			// 3. Missing local file
+			// 4. Changed target commit or content hash
 			var dependenciesThatNeedAction []dependencyInstallState
 
 			if verbose && len(installStates) > 0 {
@@ -312,7 +327,7 @@ func NewInstallCommand() *cli.Command {
 				}
 			}
 
-			// --- Task 6.6: Perform Install/Update (If Required) ---
+			// Perform install/update for identified dependencies
 			if verbose && len(dependenciesThatNeedAction) > 0 {
 				_, _ = fmt.Fprintln(os.Stdout, "\nPerforming install/update for identified dependencies...")
 			}
@@ -374,6 +389,8 @@ func NewInstallCommand() *cli.Command {
 				successfulActions++
 			}
 
+			// Handle successful installations by updating the lockfile
+			// with new source URLs and integrity hashes
 			if successfulActions > 0 {
 				lf.ApiVersion = lockfile.APIVersion
 				if err := lockfile.Save(".", lf); err != nil {

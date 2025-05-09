@@ -12,8 +12,8 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/nightconcept/almandine/internal/cli/add"
-	"github.com/nightconcept/almandine/internal/cli/initcmd"
-	"github.com/nightconcept/almandine/internal/cli/install" // Changed from update to install
+	initcmd "github.com/nightconcept/almandine/internal/cli/init"
+	"github.com/nightconcept/almandine/internal/cli/install"
 	"github.com/nightconcept/almandine/internal/cli/list"
 	"github.com/nightconcept/almandine/internal/cli/remove"
 	"github.com/nightconcept/almandine/internal/cli/self"
@@ -34,12 +34,12 @@ func main() {
 			return nil
 		},
 		Commands: []*cli.Command{
-			initcmd.GetInitCommand(),
-			add.AddCommand,
-			remove.RemoveCommand(),
-			install.NewInstallCommand(), // Changed from update.NewUpdateCommand()
-			list.ListCmd,
-			self.NewSelfCommand(),
+			initcmd.InitCmd(),
+			add.AddCmd(),
+			remove.RemoveCmd(),
+			install.InstallCmd(),
+			list.ListCmd(),
+			self.SelfCmd(),
 		},
 	}
 

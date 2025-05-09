@@ -26,8 +26,8 @@ func isDirEmpty(path string) (bool, error) {
 	return len(entries) == 0, nil
 }
 
-// RemoveCommand defines the structure for the 'remove' CLI command.
-func RemoveCommand() *cli.Command {
+// RemoveCmd defines the structure for the 'remove' CLI command.
+func RemoveCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "remove",
 		Usage:     "Remove a dependency from the project",

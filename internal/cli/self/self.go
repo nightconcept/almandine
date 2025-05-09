@@ -13,8 +13,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// NewSelfCommand creates a new command for self-management.
-func NewSelfCommand() *cli.Command {
+// SelfCmd creates a new command for self-management.
+func SelfCmd() *cli.Command {
 	return &cli.Command{
 		Name:  "self",
 		Usage: "Manage the almd CLI application itself",

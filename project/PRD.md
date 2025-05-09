@@ -18,7 +18,7 @@ Almandine (`almd` as the CLI command) is a lightweight package manager for Go pr
 
 -   **`init` command:**
     -   **Goal:** Interactively initialize a new Almandine project by creating a `project.toml` manifest file in the current directory.
-    -   **Implementation:** Implemented as a `urfave/cli` command (in `internal/cli/initcmd/initcmd.go`).
+    -   **Implementation:** Implemented as a `urfave/cli` command (in `internal/cli/init/init.go`).
     -   **Functionality:**
         -   **Interactive Prompts:** Prompts the user for core project metadata:
             -   `package` name (defaults to `my-go-project` or derived from current dir).
@@ -183,9 +183,9 @@ Standard Go project layout combined with Almandine specifics:
         -   `add/`         # Logic for the 'add' command
             -   `add.go`
             -   `add_test.go`
-        -   `initcmd/`     # Logic for the 'init' command
-            -   `initcmd.go`
-            -   `initcmd_test.go`
+        -   `init/`     # Logic for the 'init' command
+            -   `init.go`
+            -   `init_test.go`
         -   `remove/`      # Logic for the 'remove' command
             -   `remove.go`
         -   `...`          # Other command packages/modules

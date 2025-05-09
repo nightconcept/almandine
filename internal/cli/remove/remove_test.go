@@ -428,7 +428,7 @@ func runRemoveCommand(t *testing.T, workDir string, removeCmdArgs ...string) err
 	app := &cli.App{
 		Name: "almd-test-remove",
 		Commands: []*cli.Command{
-			RemoveCommand(),
+			RemoveCmd(),
 		},
 		Writer:         os.Stderr,
 		ErrWriter:      os.Stderr,

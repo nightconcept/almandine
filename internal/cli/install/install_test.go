@@ -100,7 +100,7 @@ func runInstallCommand(t *testing.T, workDir string, installCmdArgs ...string) e
 	app := &cli.App{
 		Name: "almd-test-install",
 		Commands: []*cli.Command{
-			installcmd.NewInstallCommand(),
+			installcmd.InstallCmd(),
 		},
 		Writer:    os.Stderr,
 		ErrWriter: os.Stderr,

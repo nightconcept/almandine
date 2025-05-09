@@ -75,7 +75,7 @@ func runListCommand(t *testing.T, testDir string, appArgs ...string) (string, er
 
 	app := &cli.App{
 		Commands: []*cli.Command{
-			ListCmd, // Assumes ListCmd is defined in the current 'list' package
+			ListCmd(), // Assumes NewListCommand is defined in the current 'list' package
 		},
 		// Prevent os.Exit from being called by urfave/cli during tests
 		ExitErrHandler: func(context *cli.Context, err error) {
