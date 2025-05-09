@@ -27,7 +27,7 @@ Easily manage, install, and update Lua single-file dependencies with a single CL
 - [devenv](https://devenv.sh/)
 
 ### Windows
-- Go 1.23+
+- Go 1.24
 - [pre-commit](https://pre-commit.com/)
 - [xc](https://github.com/joerdav/xc) task runner
 
