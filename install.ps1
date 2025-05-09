@@ -2,6 +2,7 @@
 # Fetches and installs almd CLI from the latest (or specified) GitHub release, or locally with -local
 
 $Repo = "nightconcept/almandine"
+$AppHome = "$env:USERPROFILE\.almd"
 $WrapperDir = "$env:LOCALAPPDATA\Programs\almd"
 $TmpDir = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), [System.Guid]::NewGuid().ToString())
 $Version = $null
@@ -46,9 +47,9 @@ function GithubApi($url) {
 
 if ($LocalMode) {
   Write-Host "[DEV] Installing from local repository ..."
+  New-Item -ItemType Directory -Path $AppHome -Force | Out-Null
   New-Item -ItemType Directory -Path $WrapperDir -Force | Out-Null
-  Copy-Item -Path ./src -Destination (Join-Path $WrapperDir 'src') -Recurse -Force
-  Copy-Item -Path ./install/almd.ps1 -Destination (Join-Path $WrapperDir 'almd.ps1') -Force
+  Copy-Item -Path ./build/almd.exe -Destination (Join-Path $WrapperDir 'almd.exe') -Force
   Write-Host "\n[DEV] Local installation complete!"
   Write-Host "Make sure $WrapperDir is in your Path environment variable. You may need to restart your terminal or system."
   exit 0
@@ -95,16 +96,18 @@ if (!(Test-Path $ExtractedDir)) {
   }
 }
 
-Write-Host "Installing Almandine to $WrapperDir ..."
+Write-Host "Installing Almandine ..."
 # Check for previous install and warn if present
-if (Test-Path $WrapperDir) {
+if (Test-Path $AppHome) {
   Write-Host ""
-  Write-Host "⚠️  WARNING: Previous Almandine install detected at $WrapperDir. It will be OVERWRITTEN! ⚠️" -ForegroundColor Yellow
+  Write-Host "⚠️  WARNING: Previous Almandine install detected at $AppHome. It will be OVERWRITTEN! ⚠️" -ForegroundColor Yellow
   Write-Host ""
 }
+New-Item -ItemType Directory -Path $AppHome -Force | Out-Null
 New-Item -ItemType Directory -Path $WrapperDir -Force | Out-Null
-Copy-Item -Path (Join-Path $ExtractedDir 'src') -Destination (Join-Path $WrapperDir 'src') -Recurse -Force
-Copy-Item -Path (Join-Path $ExtractedDir 'src/install/almd.ps1') -Destination (Join-Path $WrapperDir 'almd.ps1') -Force
+
+# Copy the binary to the wrapper directory
+Copy-Item -Path (Join-Path $ExtractedDir 'almd.exe') -Destination (Join-Path $WrapperDir 'almd.exe') -Force
 
 Write-Host "\nInstallation complete!"
 Write-Host "Make sure $WrapperDir is in your Path environment variable. You may need to restart your terminal or system."

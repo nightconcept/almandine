@@ -1,20 +1,28 @@
 { pkgs, inputs, ... }:
+
+let
+  xc = pkgs.buildGoModule rec {
+    pname = "xc";
+    version = "v0.8.5";
+    subPackages = ["cmd/xc"];
+    src = pkgs.fetchFromGitHub {
+      owner = "joerdav";
+      repo = "xc";
+      rev = version;
+      sha256 = "sha256-eaFHK7VsfLSgSJehv4urxq8qMPT+zzs2tRypz4q+MLc=";
+    };
+    vendorHash = "sha256-EbIuktQ2rExa2DawyCamTrKRC1yXXMleRB8/pcKFY5c=";
+  };
+in
 {
   packages = with pkgs; [
-    lua51Packages.busted
-    lua51Packages.luacheck
-    lua51Packages.luacov
+    golangci-lint
     pre-commit
+    xc
   ];
 
-  languages.lua = {
+  languages.go = {
     enable = true;
-    package = pkgs.lua5_1;
-  };
-
-  languages.javascript = {
-    enable = true;
-    package = pkgs.nodejs_22;
   };
 
   enterShell = ''

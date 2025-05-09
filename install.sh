@@ -1,6 +1,6 @@
 #!/bin/sh
 # Installer script for almd on Linux/macOS
-# Fetches and installs almd from GitHub Releases, or locally with -local
+# Fetches and installs almd from GitHub Releases, or locally with --local
 # Requires: curl or wget, unzip, (jq optional for best experience)
 set -e
 
@@ -48,13 +48,15 @@ download() {
 }
 
 if [ "$LOCAL_MODE" -eq 1 ]; then
-  printf '%s\n' "[DEV] Installing from local repository ..."
-  mkdir -p "$APP_HOME"
-  cp -r ./src "$APP_HOME/"
+  printf '%s\n' "[DEV] Installing local almd binary..."
+  mkdir -p "$APP_HOME" # Keep for potential app config/data
+
+  # Ensure WRAPPER_DIR exists and copy the local binary 'almd' to it
   mkdir -p "$WRAPPER_DIR"
-  cp ./install/almd "$WRAPPER_DIR/almd"
+  cp ./build/almd "$WRAPPER_DIR/almd" # Use the 'almd' binary from the project root
   chmod +x "$WRAPPER_DIR/almd"
-  printf '\n[DEV] Local installation complete!\n'
+
+  printf '\n[DEV] Local almd binary installation complete!\n'
   printf 'Make sure %s is in your PATH. You may need to restart your shell.\n' "$WRAPPER_DIR"
   exit 0
 fi

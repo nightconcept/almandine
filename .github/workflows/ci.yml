@@ -1,7 +1,7 @@
 # CI workflow for lint, test, and coverage reporting (Coveralls)
 # Runs on all pushes and PRs
 
-name: CI
+name: Go CI
 
 on:
   push:
@@ -11,46 +11,37 @@ on:
 
 jobs:
   test:
-    name: Test on ${{ matrix.lua-version }}
+    name: Test on Go ${{ matrix.go-version }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        lua-version: [ '5.1', '5.2', '5.3', '5.4', 'luajit' ]
+        go-version: [ '1.23', '1.24' ]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Lua
-        uses: leafo/gh-actions-lua@v11
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          lua-version: ${{ matrix.lua-version }}
+          go-version: ${{ matrix.go-version }}
 
-      - name: Set up LuaRocks
-        uses: leafo/gh-actions-luarocks@v5
-
-      - name: Install dependencies
+      - name: Install Go tools
         run: |
-          luarocks install luacheck
-          luarocks install busted
-          luarocks install luacov
-          luarocks install luacov-coveralls
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          go install github.com/mattn/goveralls@latest
+
+      - name: Download Go modules
+        run: go mod download
 
       - name: Lint source
-        run: luacheck src/ || exit 1
-
-      - name: Lint specs
-        run: luacheck src/spec/ || exit 1
+        run: golangci-lint run ./...
 
       - name: Run tests with coverage
-        run: busted --coverage src/spec
-
-      - name: Generate coverage report
-        run: luacov
+        run: go test -v ./... -race -coverprofile=coverage.out -covermode=atomic
 
       - name: Upload coverage to Coveralls
-        if: matrix.lua-version == '5.1'
+        if: matrix.go-version == '1.24' # Only upload from one Go version
         env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          COVERALLS_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: |
-          luarocks install luacov-coveralls
-          luacov-coveralls -v
+          goveralls -coverprofile=coverage.out -service=github -repotoken $COVERALLS_TOKEN
