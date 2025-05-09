@@ -32,7 +32,7 @@ jobs:
 
       - name: Install Go tools
         run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.1.6
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2
           go install github.com/mattn/goveralls@v0.0.12
 
       - name: Download Go modules
