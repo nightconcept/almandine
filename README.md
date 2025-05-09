@@ -80,8 +80,8 @@ go test ./...
 Prepare for commit.
 
 ```sh
-gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/ .
-gofmt -l -w .
+gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/* .
+go fmt ./...
 go vet ./...
 go mod tidy -v
 golangci-lint run --fix

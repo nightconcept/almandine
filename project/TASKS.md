@@ -659,3 +659,12 @@
 -   [x] **Task 14.3: Fix Path Mismatch Failures in `internal/cli/list/list_test.go` (2025-05-08)**
     -   [x] Investigated failures in `TestListCommand_SingleDependencyFullyInstalledAndLocked`, `TestListCommand_MultipleDependenciesVariedStates`, and `TestListCommand_AliasLs` due to `/private/var` vs `/var` path differences on macOS.
     -   [x] Updated tests to use `filepath.EvalSymlinks` on the temporary directory path before constructing expected output strings, ensuring canonical paths are compared.
+## Milestone 15: Dev Environment Configuration (2025-05-09)
+
+**Goal:** Configure the development environment.
+
+-   [x] **Task 15.1: Add `gitingest` to `devenv.nix` (2025-05-09)**
+    -   [x] Added `languages.python` configuration to `devenv.nix`.
+    -   [x] Enabled Python virtual environment (`venv.enable = true`).
+    -   [x] Added `gitingest` to `venv.requirements`.
+    -   [x] Manual Verification: Run `devenv shell` and confirm `gitingest` command is available.
