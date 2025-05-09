@@ -64,8 +64,6 @@ version = "0.1.0"
 
 	_, err = LoadProjectToml(tempDir)
 	assert.Error(t, err)
-	// We can't easily assert the exact TOML parsing error type here without more specific error handling in the main code,
-	// but we expect an error.
 }
 
 func TestWriteProjectToml_NewFile(t *testing.T) {
@@ -88,7 +86,6 @@ func TestWriteProjectToml_NewFile(t *testing.T) {
 	err := WriteProjectToml(tempDir, projData)
 	require.NoError(t, err)
 
-	// Verify by loading it back
 	loadedProj, err := LoadProjectToml(tempDir)
 	require.NoError(t, err)
 	require.NotNil(t, loadedProj)
@@ -130,6 +127,6 @@ version = "0.0.1"
 
 	assert.Equal(t, "updated-project", loadedProj.Package.Name)
 	assert.Equal(t, "2.0.0", loadedProj.Package.Version)
-	assert.Nil(t, loadedProj.Scripts)      // Ensure old fields are gone
-	assert.Nil(t, loadedProj.Dependencies) // Ensure old fields are gone
+	assert.Nil(t, loadedProj.Scripts)
+	assert.Nil(t, loadedProj.Dependencies)
 }

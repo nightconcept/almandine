@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
-	"github.com/nightconcept/almandine/internal/core/project" // Corrected module path
+	"github.com/nightconcept/almandine/internal/core/project"
 )
 
 const ProjectTomlName = "project.toml"
@@ -35,9 +35,6 @@ func WriteProjectToml(dirPath string, data *project.Project) error {
 		return err
 	}
 
-	// Write the TOML content to the file, overwriting if it exists.
-	// Create the file if it doesn't exist, with default permissions (0666 before umask).
-	// O_TRUNC ensures that if the file exists, its content is truncated.
 	fullPath := filepath.Join(dirPath, ProjectTomlName)
 	file, err := os.OpenFile(fullPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {

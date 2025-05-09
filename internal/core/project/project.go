@@ -29,15 +29,15 @@ type LockFile struct {
 
 // LockPackageDetail represents a single package entry in the almd-lock.toml file.
 type LockPackageDetail struct {
-	Source string `toml:"source"` // The exact raw download URL
-	Path   string `toml:"path"`   // Relative path to the downloaded file
-	Hash   string `toml:"hash"`   // Integrity hash (e.g., "sha256:<hash>" or "commit:<hash>")
+	Source string `toml:"source"`
+	Path   string `toml:"path"`
+	Hash   string `toml:"hash"`
 }
 
 // NewProject creates and returns a new Project instance with initialized maps.
 func NewProject() *Project {
 	return &Project{
-		Package:      &PackageInfo{}, // Initialize PackageInfo as well
+		Package:      &PackageInfo{},
 		Scripts:      make(map[string]string),
 		Dependencies: make(map[string]Dependency),
 	}

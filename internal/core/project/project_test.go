@@ -20,8 +20,6 @@ func TestNewProject(t *testing.T) {
 	assert.NotNil(t, p.Dependencies, "Project.Dependencies map should be initialized")
 	assert.Empty(t, p.Dependencies, "Project.Dependencies map should be empty initially")
 
-	// Check default values for PackageInfo if any are set by NewProject beyond zero-values
-	// For now, it's just initialized, so fields will be their zero values (e.g., "" for strings)
 	assert.Equal(t, "", p.Package.Name, "Package.Name should be empty initially")
 	assert.Equal(t, "", p.Package.Version, "Package.Version should be empty initially")
 	assert.Equal(t, "", p.Package.License, "Package.License should be empty initially")

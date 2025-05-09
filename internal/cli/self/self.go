@@ -1,3 +1,4 @@
+// Package self provides self-management functionality for the almd CLI application.
 package self
 
 import (
@@ -6,14 +7,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Masterminds/semver/v3" // Corrected semver import
+	"github.com/Masterminds/semver/v3"
 	"github.com/creativeprojects/go-selfupdate"
-
-	// No separate source import needed for basic GitHub
 	"github.com/urfave/cli/v2"
 )
 
-// SelfCmd creates a new command for self-management.
+// SelfCmd creates a command for managing the almd CLI application's lifecycle,
+// currently supporting self-update functionality.
 func SelfCmd() *cli.Command {
 	return &cli.Command{
 		Name:  "self",
@@ -47,6 +47,10 @@ func SelfCmd() *cli.Command {
 	}
 }
 
+// updateAction handles the self-update process for the CLI application.
+// It supports checking for and applying updates from GitHub releases.
+// The function handles version comparison, user confirmation (unless --yes is specified),
+// and supports custom GitHub repositories via the --source flag.
 func updateAction(c *cli.Context) error {
 	currentVersionStr := c.App.Version
 	verbose := c.Bool("verbose")
@@ -55,9 +59,9 @@ func updateAction(c *cli.Context) error {
 		fmt.Printf("almd current version: %s\n", currentVersionStr)
 	}
 
+	// Handle version strings both with and without 'v' prefix for compatibility
 	currentSemVer, err := semver.NewVersion(strings.TrimPrefix(currentVersionStr, "v"))
 	if err != nil {
-		// Try parsing without 'v' if the first attempt failed and it didn't have 'v'
 		if !strings.HasPrefix(currentVersionStr, "v") {
 			currentSemVer, err = semver.NewVersion(currentVersionStr)
 		}
@@ -88,8 +92,6 @@ func updateAction(c *cli.Context) error {
 		}
 	}
 
-	// For standard GitHub, GitHubConfig can be empty.
-	// For GitHub Enterprise, EnterpriseBaseURL would be set here.
 	ghSource, err := selfupdate.NewGitHubSource(selfupdate.GitHubConfig{})
 	if err != nil {
 		return cli.Exit(fmt.Sprintf("Error creating GitHub source: %v", err), 1)
@@ -106,16 +108,13 @@ func updateAction(c *cli.Context) error {
 		fmt.Println("Checking for latest version...")
 	}
 
-	// DetectLatest takes a Repository object, created by ParseSlug
 	repository := selfupdate.ParseSlug(repoSlug)
 	latestRelease, found, err := updater.DetectLatest(c.Context, repository)
 	if err != nil {
-		// An actual error occurred during detection
 		return cli.Exit(fmt.Sprintf("Error detecting latest version: %v", err), 1)
 	}
 
 	if !found {
-		// No update was found, and no error occurred.
 		if verbose {
 			fmt.Println("No update available (checked with source, no newer version found).")
 		}
@@ -123,21 +122,16 @@ func updateAction(c *cli.Context) error {
 		return nil
 	}
 
-	// If found is true, latestRelease is populated.
-	// latestRelease.Version() returns string, latestRelease.version is *semver.Version
 	if verbose {
 		fmt.Printf("Latest version detected: %s (Release URL: %s)\n", latestRelease.Version(), latestRelease.URL)
 		if latestRelease.AssetURL != "" {
 			fmt.Printf("Asset URL: %s\n", latestRelease.AssetURL)
 		}
-		if latestRelease.ReleaseNotes != "" { // Accessing ReleaseNotes directly
+		if latestRelease.ReleaseNotes != "" {
 			fmt.Printf("Release Notes:\n%s\n", latestRelease.ReleaseNotes)
 		}
 	}
 
-	// Compare using the internal *semver.Version objects
-	// The selfupdate.Release struct has methods like GreaterThan(string).
-	// currentSemVer is a *semver.Version, so we use its string representation for the comparison.
 	if !latestRelease.GreaterThan(currentSemVer.String()) {
 		fmt.Printf("Current version %s is already the latest or newer.\n", currentVersionStr)
 		return nil
@@ -168,7 +162,6 @@ func updateAction(c *cli.Context) error {
 		fmt.Printf("Current executable path: %s\n", execPath)
 	}
 
-	// The UpdateTo method expects a *Release object
 	err = updater.UpdateTo(c.Context, latestRelease, execPath)
 	if err != nil {
 		return cli.Exit(fmt.Sprintf("Failed to update: %v", err), 1)

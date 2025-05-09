@@ -671,3 +671,13 @@
     -   [x] Enabled Python virtual environment (`venv.enable = true`).
     -   [x] Added `gitingest` to `venv.requirements`.
     -   [x] Manual Verification: Run `devenv shell` and confirm `gitingest` command is available.
+---
+
+## Milestone 16: Code Standards Application (2025-05-09)
+
+**Goal:** Ensure code comments adhere to defined project standards.
+
+-   [x] **Task 16.1: Apply comment standards to `internal/cli/remove/remove_test.go` (2025-05-09)**
+    -   [x] Reviewed comments in `internal/cli/remove/remove_test.go` against `project/COMMENT_STANDARDS.txt`.
+    -   [x] Removed obvious "what" comments.
+    -   [x] Retained godoc comments and comments explaining test setup or "why".

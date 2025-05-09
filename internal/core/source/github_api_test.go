@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"sync" // Added for mutex
+	"sync"
 	"testing"
 	"time"
 
@@ -25,7 +25,7 @@ func TestGetLatestCommitSHAForFile_Success(t *testing.T) {
 	expectedSHA := "abcdef1234567890"
 	mockResponse := []source.GitHubCommitInfo{
 		{SHA: expectedSHA},
-		{SHA: "oldersha789"}, // Should pick the first one
+		{SHA: "oldersha789"},
 	}
 	responseBody, err := json.Marshal(mockResponse)
 	require.NoError(t, err)
@@ -50,7 +50,7 @@ func TestGetLatestCommitSHAForFile_EmptyResponse(t *testing.T) {
 	githubAPITestMutex.Lock()
 	defer githubAPITestMutex.Unlock()
 
-	mockResponse := []source.GitHubCommitInfo{} // Empty array
+	mockResponse := []source.GitHubCommitInfo{}
 	responseBody, err := json.Marshal(mockResponse)
 	require.NoError(t, err)
 
@@ -72,7 +72,7 @@ func TestGetLatestCommitSHAForFile_GitHubAPIError(t *testing.T) {
 
 	_, cleanup := setupSourceTest(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound) // Simulate a 404 from GitHub API
+		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte(`{"message": "Not Found"}`))
 	})
 	defer cleanup()
@@ -102,7 +102,6 @@ func TestGetLatestCommitSHAForFile_NetworkError(t *testing.T) {
 	githubAPITestMutex.Lock()
 	defer githubAPITestMutex.Unlock()
 
-	// Setup a server that immediately closes the connection
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hj, ok := w.(http.Hijacker)
 		if !ok {
@@ -114,7 +113,7 @@ func TestGetLatestCommitSHAForFile_NetworkError(t *testing.T) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		_ = conn.Close() // Close immediately to simulate network error
+		_ = conn.Close()
 	}))
 	// No defer server.Close() here as we close it within the test logic for this specific case.
 
@@ -124,18 +123,17 @@ func TestGetLatestCommitSHAForFile_NetworkError(t *testing.T) {
 	source.GithubAPIBaseURLMutex.Unlock()
 	source.SetTestModeBypassHostValidation(true) // This function handles its own locking
 
-	// Immediately close the server to ensure the client fails to connect or send request
 	server.Close()
 
 	_, err := source.GetLatestCommitSHAForFile("owner", "repo", "file.txt", "main")
 
 	source.GithubAPIBaseURLMutex.Lock()
-	source.GithubAPIBaseURL = originalAPIBaseURL // Restore original
+	source.GithubAPIBaseURL = originalAPIBaseURL
 	source.GithubAPIBaseURLMutex.Unlock()
 	source.SetTestModeBypassHostValidation(false) // This function handles its own locking
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to call GitHub API") // Error from httpClient.Do(req)
+	assert.Contains(t, err.Error(), "failed to call GitHub API")
 }
 
 // MockGitHubCommit is a helper to create GitHubCommitInfo for tests

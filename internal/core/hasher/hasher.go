@@ -10,7 +10,7 @@ import (
 // and returns it in the format "sha256:<hex_hash>".
 func CalculateSHA256(content []byte) (string, error) {
 	hasher := sha256.New()
-	_, err := hasher.Write(content) // Capture potential error from Write, though rare for byte slices
+	_, err := hasher.Write(content)
 	if err != nil {
 		return "", fmt.Errorf("failed to write content to hasher: %w", err)
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"sync" // Added import for sync
+	"sync"
 )
 
 // testModeBypassHostValidation is an internal flag for testing to bypass hostname checks.
@@ -22,10 +22,10 @@ func SetTestModeBypassHostValidation(enable bool) {
 
 // ParsedSourceInfo holds the details extracted from a source URL.
 type ParsedSourceInfo struct {
-	RawURL            string // The raw URL to download the file content
-	CanonicalURL      string // The canonical representation (e.g., github:owner/repo/path/to/file@ref)
-	Ref               string // The commit hash, branch, or tag
-	Provider          string // e.g., "github"
+	RawURL            string
+	CanonicalURL      string
+	Ref               string
+	Provider          string
 	Owner             string
 	Repo              string
 	PathInRepo        string
@@ -36,7 +36,6 @@ type ParsedSourceInfo struct {
 // It currently prioritizes GitHub URLs.
 func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
 	if strings.HasPrefix(sourceURL, "github:") {
-		// Handle github:owner/repo/path/to/file@ref format
 		content := strings.TrimPrefix(sourceURL, "github:")
 
 		lastAt := strings.LastIndex(content, "@")
@@ -74,7 +73,7 @@ func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
 			// and the expected path structure for raw content.
 			// GithubAPIBaseURL in tests is mockServer.URL (e.g., http://127.0.0.1:XYZ)
 			// The path should be /<owner>/<repo>/<ref>/<path_to_file...>
-			GithubAPIBaseURLMutex.Lock() // Lock before reading GithubAPIBaseURL
+			GithubAPIBaseURLMutex.Lock()
 			currentGithubAPIBaseURL := GithubAPIBaseURL
 			GithubAPIBaseURLMutex.Unlock()
 			rawURL = fmt.Sprintf("%s/%s/%s/%s/%s", currentGithubAPIBaseURL, owner, repo, ref, pathInRepo)
@@ -84,7 +83,7 @@ func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
 
 		return &ParsedSourceInfo{
 			RawURL:            rawURL,
-			CanonicalURL:      sourceURL, // The input is already the canonical form for this type
+			CanonicalURL:      sourceURL,
 			Ref:               ref,
 			Provider:          "github",
 			Owner:             owner,
@@ -94,7 +93,6 @@ func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
 		}, nil
 	}
 
-	// Existing logic for full URLs
 	u, err := url.Parse(sourceURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse source URL '%s': %w", sourceURL, err)
@@ -108,7 +106,7 @@ func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
 		// In test mode, directly construct ParsedSourceInfo assuming a GitHub-like raw content path structure.
 		// Path structure expected: /<owner>/<repo>/<ref>/<path_to_file...>
 		pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
-		if len(pathParts) < 4 { // Expect at least owner, repo, ref, and one file part
+		if len(pathParts) < 4 {
 			return nil, fmt.Errorf("test mode URL path '%s' not in expected format /<owner>/<repo>/<ref>/<file...> PpathParts was: %v", u.Path, pathParts)
 		}
 
@@ -123,15 +121,15 @@ func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
 			// This case implies path was like /owner/repo/ref/ which is not a file
 			return nil, fmt.Errorf("test mode URL path '%s' seems to point to a directory, not a file", u.Path)
 		}
-		if filename == "" && len(pathParts) == 4 { // e.g. /owner/repo/ref/ (empty filename part)
-			filename = pathParts[3] // take the last segment as filename if not further nested
+		if filename == "" && len(pathParts) == 4 {
+			filename = pathParts[3]
 		}
 
 		return &ParsedSourceInfo{
-			RawURL:            u.String(),                                                          // Use the mock server's actual URL for download
-			CanonicalURL:      fmt.Sprintf("github:%s/%s/%s@%s", owner, repo, filePathInRepo, ref), // Construct a canonical URL
+			RawURL:            u.String(),
+			CanonicalURL:      fmt.Sprintf("github:%s/%s/%s@%s", owner, repo, filePathInRepo, ref),
 			Ref:               ref,
-			Provider:          "github", // Simulate GitHub provider
+			Provider:          "github",
 			Owner:             owner,
 			Repo:              repo,
 			PathInRepo:        filePathInRepo,
@@ -149,16 +147,8 @@ func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
 
 // parseGitHubURL handles the specifics of parsing GitHub URLs.
 func parseGitHubURL(u *url.URL) (*ParsedSourceInfo, error) {
-	// Path components: /<owner>/<repo>/<type>/<ref>/<path_to_file>
-	// or /<owner>/<repo>/raw/<ref>/<path_to_file>
-	// or /<owner>/<repo> (if wanting to point to a whole repo, though we expect a file)
-	// Example: https://github.com/owner/repo/blob/main/path/to/file.go
-	// Example: https://github.com/owner/repo/raw/develop/script.sh
-	// Example: https://raw.githubusercontent.com/owner/repo/main/path/to/file.go
-
 	pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
 	if strings.ToLower(u.Hostname()) == "raw.githubusercontent.com" {
-		// Format: /<owner>/<repo>/<ref>/<path_to_file>
 		if len(pathParts) < 4 {
 			return nil, fmt.Errorf("invalid GitHub raw content URL path: %s. Expected format: /<owner>/<repo>/<ref>/<path_to_file>", u.Path)
 		}
@@ -169,7 +159,6 @@ func parseGitHubURL(u *url.URL) (*ParsedSourceInfo, error) {
 		filename := pathParts[len(pathParts)-1]
 
 		canonicalURL := fmt.Sprintf("github:%s/%s/%s@%s", owner, repo, filePathInRepo, ref)
-		// The input URL is already the raw download URL
 		return &ParsedSourceInfo{
 			RawURL:            u.String(),
 			CanonicalURL:      canonicalURL,
@@ -182,7 +171,6 @@ func parseGitHubURL(u *url.URL) (*ParsedSourceInfo, error) {
 		}, nil
 	}
 
-	// Regular github.com URL
 	if len(pathParts) < 2 {
 		return nil, fmt.Errorf("invalid GitHub URL path: %s. Expected at least /<owner>/<repo>", u.Path)
 	}
@@ -195,14 +183,11 @@ func parseGitHubURL(u *url.URL) (*ParsedSourceInfo, error) {
 	// We could default to fetching default branch's project file or error out.
 	// For now, let's assume the URL is more specific.
 
-	// Check for patterns like /blob/, /tree/, /raw/
-	// /<owner>/<repo>/blob/<ref>/<path_to_file>
-	// /<owner>/<repo>/raw/<ref>/<path_to_file> (less common for user input but possible)
 	if len(pathParts) >= 4 && (pathParts[2] == "blob" || pathParts[2] == "tree" || pathParts[2] == "raw") {
 		if len(pathParts) < 5 {
 			return nil, fmt.Errorf("incomplete GitHub URL path: %s. Expected /<owner>/<repo>/<type>/<ref>/<path_to_file>", u.Path)
 		}
-		refType := pathParts[2] // blob, tree, or raw
+		refType := pathParts[2]
 		ref = pathParts[3]
 		filePathInRepo = strings.Join(pathParts[4:], "/")
 		filename = pathParts[len(pathParts)-1]
@@ -210,7 +195,6 @@ func parseGitHubURL(u *url.URL) (*ParsedSourceInfo, error) {
 		if refType == "tree" {
 			return nil, fmt.Errorf("direct links to GitHub trees are not supported for adding single files: %s", u.String())
 		}
-		// Normalize to raw content URL
 		rawURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, filePathInRepo)
 
 	} else {
@@ -245,7 +229,7 @@ func parseGitHubURL(u *url.URL) (*ParsedSourceInfo, error) {
 			if len(pathElements) > 0 {
 				filename = pathElements[len(pathElements)-1]
 			} else {
-				filename = "default_filename" // Or error if path is empty
+				filename = "default_filename"
 			}
 		} else {
 			// No explicit ref in path, no blob/raw.

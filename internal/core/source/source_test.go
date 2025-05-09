@@ -23,7 +23,6 @@ var sourceTestMutex sync.Mutex
 func setupSourceTest(t *testing.T, handler http.HandlerFunc) (string, func()) {
 	t.Helper()
 	server := httptest.NewServer(handler)
-	// Lock before accessing/modifying global state
 	source.GithubAPIBaseURLMutex.Lock()
 	originalAPIBaseURL := source.GithubAPIBaseURL
 	source.GithubAPIBaseURL = server.URL
@@ -33,7 +32,6 @@ func setupSourceTest(t *testing.T, handler http.HandlerFunc) (string, func()) {
 
 	cleanup := func() {
 		server.Close()
-		// Lock before restoring global state
 		source.GithubAPIBaseURLMutex.Lock()
 		source.GithubAPIBaseURL = originalAPIBaseURL
 		source.GithubAPIBaseURLMutex.Unlock()
@@ -50,7 +48,7 @@ func TestParseSourceURL_GitHubShorthand(t *testing.T) {
 	tests := []struct {
 		name          string
 		url           string
-		mockServerURL string // Only used if testModeBypassHostValidation affects RawURL construction
+		mockServerURL string
 		want          *source.ParsedSourceInfo
 		wantErr       bool
 		errContains   string
@@ -110,9 +108,7 @@ func TestParseSourceURL_GitHubShorthand(t *testing.T) {
 		{
 			name: "valid shorthand with test mode bypass for raw URL",
 			url:  "github:testowner/testrepo/test/file.sh@testref",
-			// mockServerURL will be dynamically set
 			want: &source.ParsedSourceInfo{
-				// RawURL will be constructed using mock server URL
 				CanonicalURL:      "github:testowner/testrepo/test/file.sh@testref",
 				Ref:               "testref",
 				Provider:          "github",
@@ -132,12 +128,9 @@ func TestParseSourceURL_GitHubShorthand(t *testing.T) {
 
 			if strings.Contains(tt.name, "test mode bypass") {
 				mockURL, cleanup = setupSourceTest(t, func(w http.ResponseWriter, r *http.Request) {
-					// This handler is not strictly needed for ParseSourceURL for shorthand,
-					// but setupSourceTest expects one.
 					w.WriteHeader(http.StatusOK)
 				})
 				defer cleanup()
-				// Dynamically set the expected RawURL for this test case
 				tt.want.RawURL = fmt.Sprintf("%s/testowner/testrepo/testref/test/file.sh", mockURL)
 			}
 
@@ -182,7 +175,7 @@ func TestParseSourceURL_FullGitHubURLs(t *testing.T) {
 			},
 		},
 		{
-			name: "github.com raw url (less common input)",
+			name: "github.com raw url",
 			url:  "https://github.com/owner/repo/raw/develop/another/file.lua",
 			want: &source.ParsedSourceInfo{
 				RawURL:            "https://raw.githubusercontent.com/owner/repo/develop/another/file.lua",
@@ -224,14 +217,14 @@ func TestParseSourceURL_FullGitHubURLs(t *testing.T) {
 			},
 		},
 		{
-			name:        "github.com tree url (unsupported)",
+			name:        "github.com tree url",
 			url:         "https://github.com/owner/repo/tree/main/path/to/dir",
 			wantErr:     true,
 			errContains: "direct links to GitHub trees are not supported",
 		},
 		{
 			name:        "invalid raw.githubusercontent.com url short path",
-			url:         "https://raw.githubusercontent.com/owner/repo/main", // missing filename
+			url:         "https://raw.githubusercontent.com/owner/repo/main",
 			wantErr:     true,
 			errContains: "invalid GitHub raw content URL path",
 		},
@@ -243,7 +236,7 @@ func TestParseSourceURL_FullGitHubURLs(t *testing.T) {
 		},
 		{
 			name:        "incomplete github.com blob url",
-			url:         "https://github.com/owner/repo/blob/main", // missing filepath
+			url:         "https://github.com/owner/repo/blob/main",
 			wantErr:     true,
 			errContains: "incomplete GitHub URL path",
 		},
@@ -271,15 +264,13 @@ func TestParseSourceURL_WithTestModeBypass_FullMockURL(t *testing.T) {
 	defer sourceTestMutex.Unlock()
 
 	mockServerURL, cleanup := setupSourceTest(t, func(w http.ResponseWriter, r *http.Request) {
-		// This handler is not strictly needed for ParseSourceURL when testModeBypassHostValidation is true,
-		// as it directly uses the URL string, but setupSourceTest expects a handler.
 		w.WriteHeader(http.StatusOK)
 	})
 	defer cleanup()
 
 	tests := []struct {
 		name        string
-		url         string // This will be the mock server's URL with a path
+		url         string
 		want        *source.ParsedSourceInfo
 		wantErr     bool
 		errContains string
@@ -291,7 +282,7 @@ func TestParseSourceURL_WithTestModeBypass_FullMockURL(t *testing.T) {
 				RawURL:            fmt.Sprintf("%s/mockowner/mockrepo/mockref/path/to/mockfile.txt", mockServerURL),
 				CanonicalURL:      "github:mockowner/mockrepo/path/to/mockfile.txt@mockref",
 				Ref:               "mockref",
-				Provider:          "github", // Simulates GitHub
+				Provider:          "github",
 				Owner:             "mockowner",
 				Repo:              "mockrepo",
 				PathInRepo:        "path/to/mockfile.txt",
@@ -314,15 +305,15 @@ func TestParseSourceURL_WithTestModeBypass_FullMockURL(t *testing.T) {
 		},
 		{
 			name:        "mock server full URL, path too short",
-			url:         fmt.Sprintf("%s/owner/repo/ref", mockServerURL), // Missing filename part
+			url:         fmt.Sprintf("%s/owner/repo/ref", mockServerURL),
 			wantErr:     true,
-			errContains: "test mode URL path", // "not in expected format" or "seems to point to a directory"
+			errContains: "test mode URL path",
 		},
 		{
 			name:        "mock server full URL, path indicates directory",
-			url:         fmt.Sprintf("%s/owner/repo/ref/", mockServerURL), // Trailing slash
+			url:         fmt.Sprintf("%s/owner/repo/ref/", mockServerURL),
 			wantErr:     true,
-			errContains: "test mode URL path", // "seems to point to a directory"
+			errContains: "test mode URL path",
 		},
 	}
 

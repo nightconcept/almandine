@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync" // Added import for sync
+	"sync"
 	"time"
 )
 
@@ -30,7 +30,6 @@ type GitHubCommitInfo struct {
 // pathInRepo: path to the file within the repository
 // ref: branch name, tag name, or commit SHA
 func GetLatestCommitSHAForFile(owner, repo, pathInRepo, ref string) (string, error) {
-	// Construct the API URL
 	// See: https://docs.github.com/en/rest/commits/commits#list-commits
 	// We ask for commits for a specific file on a specific branch/ref. The first result is the latest.
 	GithubAPIBaseURLMutex.Lock()
@@ -45,8 +44,7 @@ func GetLatestCommitSHAForFile(owner, repo, pathInRepo, ref string) (string, err
 	}
 	// GitHub API recommends setting an Accept header.
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	// Consider adding a User-Agent header for more robust requests.
-	// req.Header.Set("User-Agent", "almandine-cli")
+	// TODO: Consider adding a User-Agent header (e.g., "almandine-cli") for more robust GitHub API requests.
 
 	resp, err := httpClient.Do(req)
 	if err != nil {

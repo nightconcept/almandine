@@ -76,7 +76,7 @@ func TestLoadLockfile_EmptyFile(t *testing.T) {
 	tempDir := t.TempDir()
 	lockfilePath := filepath.Join(tempDir, lockfile.LockfileName)
 
-	err := os.WriteFile(lockfilePath, []byte(""), 0600) // Empty file
+	err := os.WriteFile(lockfilePath, []byte(""), 0600)
 	require.NoError(t, err, "Failed to write empty mock lockfile")
 
 	lf, err := lockfile.Load(tempDir)
@@ -133,12 +133,11 @@ func TestSaveLockfile_Overwrite(t *testing.T) {
 	tempDir := t.TempDir()
 	lockfilePath := filepath.Join(tempDir, lockfile.LockfileName)
 
-	// Initial content
 	initialContent := `api_version = "0.5"`
 	err := os.WriteFile(lockfilePath, []byte(initialContent), 0600)
 	require.NoError(t, err, "Failed to write initial mock lockfile")
 
-	lfToSave := lockfile.New() // This will have APIVersion = "1"
+	lfToSave := lockfile.New()
 	lfToSave.Package["newdep"] = lockfile.PackageEntry{
 		Source: "http://example.com/newdep.tar.gz",
 		Path:   "deps/newdep",
@@ -158,21 +157,18 @@ func TestAddOrUpdatePackage(t *testing.T) {
 	t.Parallel()
 	lf := lockfile.New()
 
-	// Add new package
 	lf.AddOrUpdatePackage("libA", "urlA", "pathA", "hashA")
 	require.Contains(t, lf.Package, "libA")
 	assert.Equal(t, "urlA", lf.Package["libA"].Source)
 	assert.Equal(t, "pathA", lf.Package["libA"].Path)
 	assert.Equal(t, "hashA", lf.Package["libA"].Hash)
 
-	// Update existing package
 	lf.AddOrUpdatePackage("libA", "urlA_updated", "pathA_updated", "hashA_updated")
 	require.Contains(t, lf.Package, "libA")
 	assert.Equal(t, "urlA_updated", lf.Package["libA"].Source)
 	assert.Equal(t, "pathA_updated", lf.Package["libA"].Path)
 	assert.Equal(t, "hashA_updated", lf.Package["libA"].Hash)
 
-	// Add another package
 	lf.AddOrUpdatePackage("libB", "urlB", "pathB", "hashB")
 	require.Contains(t, lf.Package, "libB")
 	assert.Equal(t, "urlB", lf.Package["libB"].Source)
@@ -181,7 +177,7 @@ func TestAddOrUpdatePackage(t *testing.T) {
 
 func TestAddOrUpdatePackage_NilMap(t *testing.T) {
 	t.Parallel()
-	lf := &lockfile.Lockfile{ApiVersion: "1", Package: nil} // Simulate a scenario where Package map is nil
+	lf := &lockfile.Lockfile{ApiVersion: "1", Package: nil}
 
 	lf.AddOrUpdatePackage("libC", "urlC", "pathC", "hashC")
 	require.NotNil(t, lf.Package, "Package map should be initialized by AddOrUpdatePackage")

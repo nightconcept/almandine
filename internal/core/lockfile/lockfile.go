@@ -12,12 +12,6 @@ const LockfileName = "almd-lock.toml"
 const APIVersion = "1"
 
 // PackageEntry represents a single package entry in the lockfile.
-// Example:
-// [packages."dependency-name"]
-//
-//	source = "exact raw download URL"
-//	path = "relative/path/to/file.ext"
-//	hash = "sha256:<hash_value>" or "commit:<commit_hash>"
 type PackageEntry struct {
 	Source string `toml:"source"`
 	Path   string `toml:"path"`
@@ -45,7 +39,7 @@ func Load(projectRoot string) (*Lockfile, error) {
 	lf := New()
 
 	if _, err := os.Stat(lockfilePath); os.IsNotExist(err) {
-		return lf, nil // Return a new lockfile if it doesn't exist
+		return lf, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to stat lockfile %s: %w", lockfilePath, err)
 	}
@@ -53,11 +47,9 @@ func Load(projectRoot string) (*Lockfile, error) {
 	if _, err := toml.DecodeFile(lockfilePath, &lf); err != nil {
 		return nil, fmt.Errorf("failed to decode lockfile %s: %w", lockfilePath, err)
 	}
-	// Ensure API version is present, even if file was empty or had it missing
 	if lf.ApiVersion == "" {
 		lf.ApiVersion = APIVersion
 	}
-	// Ensure Packages map is initialized
 	if lf.Package == nil {
 		lf.Package = make(map[string]PackageEntry)
 	}
