@@ -1,13 +1,13 @@
-# CI workflow for lint, test, and coverage reporting (Coveralls)
-# Runs on all pushes and PRs
-
 name: Go CI
+permissions:
+  contents: read
+  security-events: write
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
+    branches: [main]
 
 jobs:
   test:
@@ -19,6 +19,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v3
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -27,11 +32,16 @@ jobs:
 
       - name: Install Go tools
         run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-          go install github.com/mattn/goveralls@latest
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@2.1.6
+          go install github.com/mattn/goveralls@0.0.12
 
       - name: Download Go modules
-        run: go mod download
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Run govulncheck
+        uses: golang/govulncheck-action@v1
 
       - name: Lint source
         run: golangci-lint run ./...
