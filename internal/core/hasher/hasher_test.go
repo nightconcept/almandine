@@ -35,12 +35,12 @@ func TestCalculateSHA256_EmptyContent(t *testing.T) {
 func TestCalculateSHA256_DifferentContent(t *testing.T) {
 	t.Parallel()
 	content1 := []byte("almandine-rocks")
-	// SHA256 of "almandine-rocks" is 8a6efd3f01b4243416969a80dba1c15964ecf9417d857e0db41e2816d646014a
-	expectedHash1 := "sha256:8a6efd3f01b4243416969a80dba1c15964ecf9417d857e0db41e2816d646014a"
+	// SHA256 of "almandine-rocks" is 8685fcd978852c8ec54ea79145a0c6b1cd9f7192729cf452e6e6ef56fabe9182
+	expectedHash1 := "sha256:8685fcd978852c8ec54ea79145a0c6b1cd9f7192729cf452e6e6ef56fabe9182"
 
 	content2 := []byte("almandine-rules")
-	// SHA256 of "almandine-rules" is 651b85f3ae43ecbd22f0fb8d3e80abe5abab27a96caff09c3fcca5d9155087b8
-	expectedHash2 := "sha256:651b85f3ae43ecbd22f0fb8d3e80abe5abab27a96caff09c3fcca5d9155087b8"
+	// SHA256 of "almandine-rules" is 8a1cfdc5f0615a18d7438fe1f103faf06554262178d76ee3d453335502d2cfd1
+	expectedHash2 := "sha256:8a1cfdc5f0615a18d7438fe1f103faf06554262178d76ee3d453335502d2cfd1"
 
 	actualHash1, err1 := hasher.CalculateSHA256(content1)
 	require.NoError(t, err1)

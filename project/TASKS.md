@@ -659,6 +659,9 @@
 -   [x] **Task 14.3: Fix Path Mismatch Failures in `internal/cli/list/list_test.go` (2025-05-08)**
     -   [x] Investigated failures in `TestListCommand_SingleDependencyFullyInstalledAndLocked`, `TestListCommand_MultipleDependenciesVariedStates`, and `TestListCommand_AliasLs` due to `/private/var` vs `/var` path differences on macOS.
     -   [x] Updated tests to use `filepath.EvalSymlinks` on the temporary directory path before constructing expected output strings, ensuring canonical paths are compared.
+-   [x] **Task 14.4: Fix `TestCalculateSHA256_DifferentContent` in `internal/core/hasher/hasher_test.go` (2025-05-09)**
+    -   [x] Investigated assertion failures where actual calculated SHA256 hashes did not match expected hashes.
+    -   [x] Corrected the `expectedHash1` and `expectedHash2` values in `internal/core/hasher/hasher_test.go` to match the actual correct SHA256 hashes for the test strings "almandine-rocks" and "almandine-rules".
 ## Milestone 15: Dev Environment Configuration (2025-05-09)
 
 **Goal:** Configure the development environment.
