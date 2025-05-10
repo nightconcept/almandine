@@ -15,6 +15,7 @@ import (
 	"github.com/nightconcept/almandine/internal/core/downloader"
 	"github.com/nightconcept/almandine/internal/core/hasher"
 	"github.com/nightconcept/almandine/internal/core/lockfile"
+	coreproject "github.com/nightconcept/almandine/internal/core/project"
 	"github.com/nightconcept/almandine/internal/core/source"
 )
 
@@ -22,9 +23,365 @@ import (
 // This range covers both short and full-length commit hashes.
 var isCommitSHARegex = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
 
+// dependencyToProcess tracks the source configuration for each dependency
+// that needs to be processed during the install/update operation.
+type dependencyToProcess struct {
+	Name   string
+	Source string
+	Path   string
+}
+
+// dependencyInstallState tracks both the target state (from project.toml) and
+// current state (from lockfile) for each dependency, along with resolution details.
+type dependencyInstallState struct {
+	Name              string
+	ProjectTomlSource string
+	ProjectTomlPath   string
+	TargetRawURL      string
+	TargetCommitHash  string
+	LockedRawURL      string
+	LockedCommitHash  string
+	Provider          string
+	Owner             string
+	Repo              string
+	PathInRepo        string
+	NeedsAction       bool
+	ActionReason      string
+}
+
+// loadInstallConfigAndArgs loads necessary configurations and parses CLI arguments.
+func loadInstallConfigAndArgs(c *cli.Context) (projCfg *coreproject.Project, lf *lockfile.Lockfile, dependencyNames []string, force bool, verbose bool, err error) {
+	verbose = c.Bool("verbose")
+	force = c.Bool("force")
+
+	if verbose {
+		_, _ = fmt.Fprintln(os.Stdout, "Executing 'install' command...")
+		if force {
+			_, _ = fmt.Fprintln(os.Stdout, "Force install/update enabled.")
+		}
+	}
+
+	dependencyNames = c.Args().Slice()
+	if verbose {
+		if len(dependencyNames) > 0 {
+			_, _ = fmt.Fprintf(os.Stdout, "Targeted dependencies for install/update: %v\n", dependencyNames)
+		} else {
+			_, _ = fmt.Fprintln(os.Stdout, "Targeting all dependencies for install/update.")
+		}
+	}
+
+	projCfg, err = config.LoadProjectToml(".")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil, nil, false, verbose, cli.Exit("Error: project.toml not found in the current directory. Please run 'almd init' first.", 1)
+		}
+		return nil, nil, nil, false, verbose, cli.Exit(fmt.Sprintf("Error loading project.toml: %v", err), 1)
+	}
+	if verbose {
+		_, _ = fmt.Fprintf(os.Stdout, "Successfully loaded project.toml (Package: %s)\n", projCfg.Package.Name)
+	}
+
+	lf, err = lockfile.Load(".")
+	if err != nil {
+		// If lockfile doesn't exist, we initialize a new one instead of erroring out.
+		// The install process will populate it.
+		if errors.Is(err, os.ErrNotExist) {
+			if verbose {
+				_, _ = fmt.Fprintln(os.Stdout, "almd-lock.toml not found, will create a new one.")
+			}
+			lf = &lockfile.Lockfile{
+				ApiVersion: lockfile.APIVersion,
+				Package:    make(map[string]lockfile.PackageEntry),
+			}
+			err = nil // Clear the error as we've handled it by creating a new lockfile struct
+		} else {
+			return nil, nil, nil, false, verbose, cli.Exit(fmt.Sprintf("Error loading almd-lock.toml: %v", err), 1)
+		}
+	}
+
+	if verbose && err == nil { // err == nil means lockfile was loaded or initialized successfully
+		_, _ = fmt.Fprintln(os.Stdout, "Successfully loaded or initialized almd-lock.toml.")
+	}
+
+	if lf.Package == nil {
+		lf.Package = make(map[string]lockfile.PackageEntry)
+	}
+	if lf.ApiVersion == "" {
+		lf.ApiVersion = lockfile.APIVersion
+	}
+	return projCfg, lf, dependencyNames, force, verbose, nil
+}
+
+// collectDependenciesToProcess determines which dependencies to process based on arguments or all from project.toml.
+func collectDependenciesToProcess(projCfg *coreproject.Project, dependencyNames []string, verbose bool) ([]dependencyToProcess, error) {
+	var dependenciesToProcessList []dependencyToProcess
+
+	if len(dependencyNames) == 0 {
+		if len(projCfg.Dependencies) == 0 {
+			_, _ = fmt.Fprintln(os.Stdout, "No dependencies found in project.toml to install/update.")
+			return nil, nil // Return nil, nil to indicate no error but no work
+		}
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "Processing all %d dependencies from project.toml...\n", len(projCfg.Dependencies))
+		}
+		for name, depDetails := range projCfg.Dependencies {
+			dependenciesToProcessList = append(dependenciesToProcessList, dependencyToProcess{
+				Name:   name,
+				Source: depDetails.Source,
+				Path:   depDetails.Path,
+			})
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  Targeting: %s (Source: %s, Path: %s)\n", name, depDetails.Source, depDetails.Path)
+			}
+		}
+	} else {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "Processing %d specified dependencies...\n", len(dependencyNames))
+		}
+		for _, name := range dependencyNames {
+			depDetails, ok := projCfg.Dependencies[name]
+			if !ok {
+				_, _ = fmt.Fprintf(os.Stderr, "Warning: Dependency '%s' specified for install/update not found in project.toml. Skipping.\n", name)
+				continue
+			}
+			dependenciesToProcessList = append(dependenciesToProcessList, dependencyToProcess{
+				Name:   name,
+				Source: depDetails.Source,
+				Path:   depDetails.Path,
+			})
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  Targeting: %s (Source: %s, Path: %s)\n", name, depDetails.Source, depDetails.Path)
+			}
+		}
+		if len(dependenciesToProcessList) == 0 {
+			_, _ = fmt.Fprintln(os.Stdout, "No specified dependencies were found in project.toml to install/update.")
+			return nil, nil // Return nil, nil to indicate no error but no work
+		}
+	}
+
+	if verbose {
+		_, _ = fmt.Fprintf(os.Stdout, "Total dependencies to process: %d\n", len(dependenciesToProcessList))
+	}
+	return dependenciesToProcessList, nil
+}
+
+// resolveInstallStates resolves the target and locked states for each dependency.
+func resolveInstallStates(dependenciesToProcessList []dependencyToProcess, lf *lockfile.Lockfile, verbose bool) ([]dependencyInstallState, error) {
+	var installStates []dependencyInstallState
+
+	if verbose && len(dependenciesToProcessList) > 0 {
+		_, _ = fmt.Fprintln(os.Stdout, "\nResolving target versions and current lock states...")
+	}
+
+	for _, depToProcess := range dependenciesToProcessList {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "Processing dependency: %s (Source: %s)\n", depToProcess.Name, depToProcess.Source)
+		}
+
+		parsedSourceInfo, err := source.ParseSourceURL(depToProcess.Source)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Warning: Could not parse source URL for dependency '%s' (%s): %v. Skipping.\n", depToProcess.Name, depToProcess.Source, err)
+			continue
+		}
+
+		var resolvedCommitHash = parsedSourceInfo.Ref
+		var finalTargetRawURL = parsedSourceInfo.RawURL
+
+		if parsedSourceInfo.Provider == "github" && !isCommitSHARegex.MatchString(parsedSourceInfo.Ref) {
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  Ref '%s' for '%s' is not a full commit SHA. Attempting to resolve latest commit for path '%s'...\n", parsedSourceInfo.Ref, depToProcess.Name, parsedSourceInfo.PathInRepo)
+			}
+			latestSHA, err := source.GetLatestCommitSHAForFile(parsedSourceInfo.Owner, parsedSourceInfo.Repo, parsedSourceInfo.PathInRepo, parsedSourceInfo.Ref)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "  Warning: Could not resolve ref '%s' to a specific commit for '%s': %v. Proceeding with ref as is.\n", parsedSourceInfo.Ref, depToProcess.Name, err)
+			} else {
+				if verbose {
+					_, _ = fmt.Fprintf(os.Stdout, "  Resolved ref '%s' to commit SHA: %s for '%s'\n", parsedSourceInfo.Ref, latestSHA, depToProcess.Name)
+				}
+				resolvedCommitHash = latestSHA
+				finalTargetRawURL = strings.Replace(parsedSourceInfo.RawURL, "/"+parsedSourceInfo.Ref+"/", "/"+latestSHA+"/", 1)
+			}
+		} else if verbose && parsedSourceInfo.Provider == "github" {
+			_, _ = fmt.Fprintf(os.Stdout, "  Ref '%s' for '%s' appears to be a commit SHA. Using it directly.\n", parsedSourceInfo.Ref, depToProcess.Name)
+		}
+
+		currentState := dependencyInstallState{
+			Name:              depToProcess.Name,
+			ProjectTomlSource: depToProcess.Source,
+			ProjectTomlPath:   depToProcess.Path,
+			TargetRawURL:      finalTargetRawURL,
+			TargetCommitHash:  resolvedCommitHash,
+			Provider:          parsedSourceInfo.Provider,
+			Owner:             parsedSourceInfo.Owner,
+			Repo:              parsedSourceInfo.Repo,
+			PathInRepo:        parsedSourceInfo.PathInRepo,
+		}
+
+		if lockDetails, ok := lf.Package[depToProcess.Name]; ok {
+			currentState.LockedRawURL = lockDetails.Source
+			currentState.LockedCommitHash = lockDetails.Hash
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  Found in lockfile: Name: %s, Locked Source: %s, Locked Hash: %s\n", depToProcess.Name, lockDetails.Source, lockDetails.Hash)
+			}
+		} else {
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  Dependency '%s' not found in lockfile.\n", depToProcess.Name)
+			}
+		}
+		installStates = append(installStates, currentState)
+	}
+
+	if verbose && len(installStates) > 0 {
+		_, _ = fmt.Fprintln(os.Stdout, "\nFinished resolving versions. States to compare:")
+		for _, s := range installStates {
+			_, _ = fmt.Fprintf(os.Stdout, "  - Name: %s, TargetCommit: %s, TargetURL: %s, LockedHash: %s, LockedURL: %s\n", s.Name, s.TargetCommitHash, s.TargetRawURL, s.LockedCommitHash, s.LockedRawURL)
+		}
+	}
+	return installStates, nil
+}
+
+// filterDependenciesRequiringAction identifies which dependencies actually need an install/update.
+func filterDependenciesRequiringAction(installStates []dependencyInstallState, force bool, verbose bool) []dependencyInstallState {
+	var dependenciesThatNeedAction []dependencyInstallState
+
+	if verbose && len(installStates) > 0 {
+		_, _ = fmt.Fprintln(os.Stdout, "\nDetermining which dependencies need install/update...")
+	}
+
+	for _, state := range installStates { // Use index to modify original slice for NeedsAction and ActionReason
+		reason := ""
+		needsAction := false
+
+		if force {
+			needsAction = true
+			reason = "Install/Update forced by user (--force)."
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (forced).\n", state.Name)
+			}
+		}
+
+		if !needsAction && state.LockedCommitHash == "" {
+			needsAction = true
+			reason = "Dependency present in project.toml but not in almd-lock.toml."
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (not in lockfile).\n", state.Name)
+			}
+		}
+
+		if !needsAction {
+			if _, err := os.Stat(state.ProjectTomlPath); errors.Is(err, os.ErrNotExist) {
+				needsAction = true
+				reason = fmt.Sprintf("Local file missing at path: %s.", state.ProjectTomlPath)
+				if verbose {
+					_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (file missing at %s).\n", state.Name, state.ProjectTomlPath)
+				}
+			} else if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "Warning: Could not stat file for dependency '%s' at '%s': %v. Assuming install/update check is needed.\n", state.Name, state.ProjectTomlPath, err)
+				needsAction = true
+				reason = fmt.Sprintf("Error checking local file status at %s: %v.", state.ProjectTomlPath, err)
+			}
+		}
+
+		if !needsAction && state.TargetCommitHash != "" && state.LockedCommitHash != "" {
+			var lockedSHA string
+			if strings.HasPrefix(state.LockedCommitHash, "commit:") {
+				lockedSHA = strings.TrimPrefix(state.LockedCommitHash, "commit:")
+			}
+
+			if lockedSHA != "" && state.TargetCommitHash != lockedSHA {
+				needsAction = true
+				reason = fmt.Sprintf("Target commit hash (%s) differs from locked commit hash (%s).", state.TargetCommitHash, lockedSHA)
+				if verbose {
+					_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (target commit %s != locked commit %s).\n", state.Name, state.TargetCommitHash, lockedSHA)
+				}
+			} else if lockedSHA == "" && strings.HasPrefix(state.LockedCommitHash, "sha256:") && isCommitSHARegex.MatchString(state.TargetCommitHash) {
+				needsAction = true
+				reason = fmt.Sprintf("Target is now a specific commit (%s), but lockfile has a content hash (%s).", state.TargetCommitHash, state.LockedCommitHash)
+				if verbose {
+					_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (target is specific commit %s, lockfile has content hash %s).\n", state.Name, state.TargetCommitHash, state.LockedCommitHash)
+				}
+			}
+		}
+
+		if needsAction {
+			// Modify a copy to avoid altering the original installStates slice passed around,
+			// and append this modified copy to dependenciesThatNeedAction.
+			actionableState := state // Make a copy
+			actionableState.NeedsAction = true
+			actionableState.ActionReason = reason
+			dependenciesThatNeedAction = append(dependenciesThatNeedAction, actionableState)
+		} else if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "  - %s: Already up-to-date.\n", state.Name)
+		}
+	}
+	return dependenciesThatNeedAction
+}
+
+// executeInstallOperations performs the download, hashing, file saving, and lockfile data updates.
+func executeInstallOperations(dependenciesThatNeedAction []dependencyInstallState, lf *lockfile.Lockfile, verbose bool) (successfulActions int, err error) {
+	if verbose && len(dependenciesThatNeedAction) > 0 {
+		_, _ = fmt.Fprintln(os.Stdout, "\nPerforming install/update for identified dependencies...")
+	}
+
+	for _, dep := range dependenciesThatNeedAction {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "  Installing/Updating '%s' from %s\n", dep.Name, dep.TargetRawURL)
+		}
+
+		fileContent, downloadErr := downloader.DownloadFile(dep.TargetRawURL)
+		if downloadErr != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to download dependency '%s' from '%s': %v\n", dep.Name, dep.TargetRawURL, downloadErr)
+			continue // Skip to next dependency
+		}
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "    Successfully downloaded %s (%d bytes)\n", dep.Name, len(fileContent))
+		}
+
+		var integrityHash string
+		if dep.Provider == "github" && isCommitSHARegex.MatchString(dep.TargetCommitHash) {
+			integrityHash = "commit:" + dep.TargetCommitHash
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "    Using commit hash for integrity: %s\n", integrityHash)
+			}
+		} else {
+			contentHash, hashErr := hasher.CalculateSHA256(fileContent)
+			if hashErr != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to calculate SHA256 hash for dependency '%s': %v\n", dep.Name, hashErr)
+				continue
+			}
+			integrityHash = contentHash
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "    Calculated content hash for integrity: %s\n", integrityHash)
+			}
+		}
+
+		targetDir := filepath.Dir(dep.ProjectTomlPath)
+		if mkdirErr := os.MkdirAll(targetDir, os.ModePerm); mkdirErr != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to create directory '%s' for dependency '%s': %v\n", targetDir, dep.Name, mkdirErr)
+			continue
+		}
+		if writeErr := os.WriteFile(dep.ProjectTomlPath, fileContent, 0644); writeErr != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to write file '%s' for dependency '%s': %v\n", dep.ProjectTomlPath, dep.Name, writeErr)
+			continue
+		}
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "    Successfully saved %s to %s\n", dep.Name, dep.ProjectTomlPath)
+		}
+
+		lf.Package[dep.Name] = lockfile.PackageEntry{
+			Source: dep.TargetRawURL,
+			Path:   dep.ProjectTomlPath,
+			Hash:   integrityHash,
+		}
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "    Updated lockfile entry for %s: Path=%s, Hash=%s, SourceURL=%s\n", dep.Name, dep.ProjectTomlPath, integrityHash, dep.TargetRawURL)
+		}
+		successfulActions++
+	}
+	return successfulActions, nil
+}
+
 // InstallCmd creates a new install command that handles dependency management.
-// It supports installing specific dependencies or all dependencies defined in project.toml,
-// with options for forced updates and verbose output.
 func InstallCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "install",
@@ -42,278 +399,25 @@ func InstallCmd() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			verbose := c.Bool("verbose")
-			force := c.Bool("force")
-
-			if verbose {
-				_, _ = fmt.Fprintln(os.Stdout, "Executing 'install' command...")
-				if force {
-					_, _ = fmt.Fprintln(os.Stdout, "Force install/update enabled.")
-				}
-			}
-
-			dependencyNames := c.Args().Slice()
-			if verbose {
-				if len(dependencyNames) > 0 {
-					_, _ = fmt.Fprintf(os.Stdout, "Targeted dependencies for install/update: %v\n", dependencyNames)
-				} else {
-					_, _ = fmt.Fprintln(os.Stdout, "Targeting all dependencies for install/update.")
-				}
-			}
-
-			// Load project.toml and validate its existence before proceeding
-			projCfg, err := config.LoadProjectToml(".")
+			projCfg, lf, dependencyNames, force, verbose, err := loadInstallConfigAndArgs(c)
 			if err != nil {
-				if errors.Is(err, os.ErrNotExist) {
-					return cli.Exit("Error: project.toml not found in the current directory. Please run 'almd init' first.", 1)
-				}
-				return cli.Exit(fmt.Sprintf("Error loading project.toml: %v", err), 1)
-			}
-			if verbose {
-				_, _ = fmt.Fprintf(os.Stdout, "Successfully loaded project.toml (Package: %s)\n", projCfg.Package.Name)
+				return err // Error is already a cli.Exit
 			}
 
-			// Load almd-lock.toml
-			lf, err := lockfile.Load(".")
+			dependenciesToProcessList, err := collectDependenciesToProcess(projCfg, dependencyNames, verbose)
 			if err != nil {
-				return cli.Exit(fmt.Sprintf("Error loading almd-lock.toml: %v", err), 1)
+				return cli.Exit(fmt.Sprintf("Error collecting dependencies to process: %v", err), 1)
 			}
-			if verbose {
-				_, _ = fmt.Fprintln(os.Stdout, "Successfully loaded or initialized almd-lock.toml.")
-			}
-			if lf.Package == nil {
-				lf.Package = make(map[string]lockfile.PackageEntry)
-			}
-			if lf.ApiVersion == "" {
-				lf.ApiVersion = lockfile.APIVersion
+			if dependenciesToProcessList == nil { // Indicates no work to do, message already printed
+				return nil
 			}
 
-			// dependencyToProcess tracks the source configuration for each dependency
-			// that needs to be processed during the install/update operation
-			type dependencyToProcess struct {
-				Name   string
-				Source string
-				Path   string
-			}
-			var dependenciesToProcessList []dependencyToProcess
-
-			if len(dependencyNames) == 0 {
-				if len(projCfg.Dependencies) == 0 {
-					_, _ = fmt.Fprintln(os.Stdout, "No dependencies found in project.toml to install/update.")
-					return nil
-				}
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "Processing all %d dependencies from project.toml...\n", len(projCfg.Dependencies))
-				}
-				for name, depDetails := range projCfg.Dependencies {
-					dependenciesToProcessList = append(dependenciesToProcessList, dependencyToProcess{
-						Name:   name,
-						Source: depDetails.Source,
-						Path:   depDetails.Path,
-					})
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  Targeting: %s (Source: %s, Path: %s)\n", name, depDetails.Source, depDetails.Path)
-					}
-				}
-			} else {
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "Processing %d specified dependencies...\n", len(dependencyNames))
-				}
-				for _, name := range dependencyNames {
-					depDetails, ok := projCfg.Dependencies[name]
-					if !ok {
-						_, _ = fmt.Fprintf(os.Stderr, "Warning: Dependency '%s' specified for install/update not found in project.toml. Skipping.\n", name)
-						continue
-					}
-					dependenciesToProcessList = append(dependenciesToProcessList, dependencyToProcess{
-						Name:   name,
-						Source: depDetails.Source,
-						Path:   depDetails.Path,
-					})
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  Targeting: %s (Source: %s, Path: %s)\n", name, depDetails.Source, depDetails.Path)
-					}
-				}
-				if len(dependenciesToProcessList) == 0 {
-					_, _ = fmt.Fprintln(os.Stdout, "No specified dependencies were found in project.toml to install/update.")
-					return nil
-				}
+			installStates, err := resolveInstallStates(dependenciesToProcessList, lf, verbose)
+			if err != nil {
+				return cli.Exit(fmt.Sprintf("Error resolving dependency states: %v", err), 1)
 			}
 
-			if verbose {
-				_, _ = fmt.Fprintf(os.Stdout, "Total dependencies to process: %d\n", len(dependenciesToProcessList))
-			}
-
-			// dependencyInstallState tracks both the target state (from project.toml) and
-			// current state (from lockfile) for each dependency, along with resolution details
-			type dependencyInstallState struct {
-				Name              string
-				ProjectTomlSource string
-				ProjectTomlPath   string
-				TargetRawURL      string
-				TargetCommitHash  string
-				LockedRawURL      string
-				LockedCommitHash  string
-				Provider          string
-				Owner             string
-				Repo              string
-				PathInRepo        string
-				NeedsAction       bool
-				ActionReason      string
-			}
-			var installStates []dependencyInstallState
-
-			if verbose && len(dependenciesToProcessList) > 0 {
-				_, _ = fmt.Fprintln(os.Stdout, "\nResolving target versions and current lock states...")
-			}
-
-			// Commit resolution for GitHub dependencies:
-			// For non-commit refs (branch/tag), we attempt to resolve to a specific commit
-			// to ensure reproducible builds and detect updates. For already-specific commits,
-			// we use them directly.
-			for _, depToProcess := range dependenciesToProcessList {
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "Processing dependency: %s (Source: %s)\n", depToProcess.Name, depToProcess.Source)
-				}
-
-				parsedSourceInfo, err := source.ParseSourceURL(depToProcess.Source)
-				if err != nil {
-					_, _ = fmt.Fprintf(os.Stderr, "Warning: Could not parse source URL for dependency '%s' (%s): %v. Skipping.\n", depToProcess.Name, depToProcess.Source, err)
-					continue
-				}
-
-				var resolvedCommitHash = parsedSourceInfo.Ref
-				var finalTargetRawURL = parsedSourceInfo.RawURL
-
-				if parsedSourceInfo.Provider == "github" && !isCommitSHARegex.MatchString(parsedSourceInfo.Ref) {
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  Ref '%s' for '%s' is not a full commit SHA. Attempting to resolve latest commit for path '%s'...\n", parsedSourceInfo.Ref, depToProcess.Name, parsedSourceInfo.PathInRepo)
-					}
-					latestSHA, err := source.GetLatestCommitSHAForFile(parsedSourceInfo.Owner, parsedSourceInfo.Repo, parsedSourceInfo.PathInRepo, parsedSourceInfo.Ref)
-					if err != nil {
-						_, _ = fmt.Fprintf(os.Stderr, "  Warning: Could not resolve ref '%s' to a specific commit for '%s': %v. Proceeding with ref as is.\n", parsedSourceInfo.Ref, depToProcess.Name, err)
-					} else {
-						if verbose {
-							_, _ = fmt.Fprintf(os.Stdout, "  Resolved ref '%s' to commit SHA: %s for '%s'\n", parsedSourceInfo.Ref, latestSHA, depToProcess.Name)
-						}
-						resolvedCommitHash = latestSHA
-						finalTargetRawURL = strings.Replace(parsedSourceInfo.RawURL, "/"+parsedSourceInfo.Ref+"/", "/"+latestSHA+"/", 1)
-					}
-				} else if verbose && parsedSourceInfo.Provider == "github" {
-					_, _ = fmt.Fprintf(os.Stdout, "  Ref '%s' for '%s' appears to be a commit SHA. Using it directly.\n", parsedSourceInfo.Ref, depToProcess.Name)
-				}
-
-				currentState := dependencyInstallState{
-					Name:              depToProcess.Name,
-					ProjectTomlSource: depToProcess.Source,
-					ProjectTomlPath:   depToProcess.Path,
-					TargetRawURL:      finalTargetRawURL,
-					TargetCommitHash:  resolvedCommitHash,
-					Provider:          parsedSourceInfo.Provider,
-					Owner:             parsedSourceInfo.Owner,
-					Repo:              parsedSourceInfo.Repo,
-					PathInRepo:        parsedSourceInfo.PathInRepo,
-				}
-
-				if lockDetails, ok := lf.Package[depToProcess.Name]; ok {
-					currentState.LockedRawURL = lockDetails.Source
-					currentState.LockedCommitHash = lockDetails.Hash
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  Found in lockfile: Name: %s, Locked Source: %s, Locked Hash: %s\n", depToProcess.Name, lockDetails.Source, lockDetails.Hash)
-					}
-				} else {
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  Dependency '%s' not found in lockfile.\n", depToProcess.Name)
-					}
-				}
-				installStates = append(installStates, currentState)
-			}
-
-			if verbose && len(installStates) > 0 {
-				_, _ = fmt.Fprintln(os.Stdout, "\nFinished resolving versions. States to compare:")
-				for _, s := range installStates {
-					_, _ = fmt.Fprintf(os.Stdout, "  - Name: %s, TargetCommit: %s, TargetURL: %s, LockedHash: %s, LockedURL: %s\n", s.Name, s.TargetCommitHash, s.TargetRawURL, s.LockedCommitHash, s.LockedRawURL)
-				}
-			}
-
-			// For dependencies requiring action, determine why they need updating:
-			// 1. Forced updates (--force flag)
-			// 2. Missing from lockfile
-			// 3. Missing local file
-			// 4. Changed target commit or content hash
-			var dependenciesThatNeedAction []dependencyInstallState
-
-			if verbose && len(installStates) > 0 {
-				_, _ = fmt.Fprintln(os.Stdout, "\nDetermining which dependencies need install/update...")
-			}
-
-			for i, state := range installStates {
-				reason := ""
-				needsAction := false
-
-				// 1. --force flag
-				if force {
-					needsAction = true
-					reason = "Install/Update forced by user (--force)."
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (forced).\n", state.Name)
-					}
-				}
-
-				// 2. Dependency in project.toml but missing from almd-lock.toml
-				if !needsAction && state.LockedCommitHash == "" {
-					needsAction = true
-					reason = "Dependency present in project.toml but not in almd-lock.toml."
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (not in lockfile).\n", state.Name)
-					}
-				}
-
-				// 3. Local file at path is missing
-				if !needsAction {
-					if _, err := os.Stat(state.ProjectTomlPath); errors.Is(err, os.ErrNotExist) {
-						needsAction = true
-						reason = fmt.Sprintf("Local file missing at path: %s.", state.ProjectTomlPath)
-						if verbose {
-							_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (file missing at %s).\n", state.Name, state.ProjectTomlPath)
-						}
-					} else if err != nil {
-						_, _ = fmt.Fprintf(os.Stderr, "Warning: Could not stat file for dependency '%s' at '%s': %v. Assuming install/update check is needed.\n", state.Name, state.ProjectTomlPath, err)
-						needsAction = true
-						reason = fmt.Sprintf("Error checking local file status at %s: %v.", state.ProjectTomlPath, err)
-					}
-				}
-
-				// 4. Resolved target commit hash differs from locked commit hash
-				if !needsAction && state.TargetCommitHash != "" && state.LockedCommitHash != "" {
-					var lockedSHA string
-					if strings.HasPrefix(state.LockedCommitHash, "commit:") {
-						lockedSHA = strings.TrimPrefix(state.LockedCommitHash, "commit:")
-					}
-
-					if lockedSHA != "" && state.TargetCommitHash != lockedSHA {
-						needsAction = true
-						reason = fmt.Sprintf("Target commit hash (%s) differs from locked commit hash (%s).", state.TargetCommitHash, lockedSHA)
-						if verbose {
-							_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (target commit %s != locked commit %s).\n", state.Name, state.TargetCommitHash, lockedSHA)
-						}
-					} else if lockedSHA == "" && strings.HasPrefix(state.LockedCommitHash, "sha256:") && isCommitSHARegex.MatchString(state.TargetCommitHash) {
-						needsAction = true
-						reason = fmt.Sprintf("Target is now a specific commit (%s), but lockfile has a content hash (%s).", state.TargetCommitHash, state.LockedCommitHash)
-						if verbose {
-							_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (target is specific commit %s, lockfile has content hash %s).\n", state.Name, state.TargetCommitHash, state.LockedCommitHash)
-						}
-					}
-				}
-
-				if needsAction {
-					installStates[i].NeedsAction = true
-					installStates[i].ActionReason = reason
-					dependenciesThatNeedAction = append(dependenciesThatNeedAction, installStates[i])
-				} else if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "  - %s: Already up-to-date.\n", state.Name)
-				}
-			}
+			dependenciesThatNeedAction := filterDependenciesRequiringAction(installStates, force, verbose)
 
 			if len(dependenciesThatNeedAction) == 0 {
 				_, _ = fmt.Fprintln(os.Stdout, "All targeted dependencies are already up-to-date.")
@@ -327,72 +431,14 @@ func InstallCmd() *cli.Command {
 				}
 			}
 
-			// Perform install/update for identified dependencies
-			if verbose && len(dependenciesThatNeedAction) > 0 {
-				_, _ = fmt.Fprintln(os.Stdout, "\nPerforming install/update for identified dependencies...")
+			successfulActions, err := executeInstallOperations(dependenciesThatNeedAction, lf, verbose)
+			if err != nil {
+				// This error isn't currently returned by executeInstallOperations but good for future proofing
+				return cli.Exit(fmt.Sprintf("Critical error during install operations: %v", err), 1)
 			}
 
-			var successfulActions int
-			for _, dep := range dependenciesThatNeedAction {
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "  Installing/Updating '%s' from %s\n", dep.Name, dep.TargetRawURL)
-				}
-
-				fileContent, err := downloader.DownloadFile(dep.TargetRawURL)
-				if err != nil {
-					_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to download dependency '%s' from '%s': %v\n", dep.Name, dep.TargetRawURL, err)
-					continue
-				}
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "    Successfully downloaded %s (%d bytes)\n", dep.Name, len(fileContent))
-				}
-
-				var integrityHash string
-				if dep.Provider == "github" && isCommitSHARegex.MatchString(dep.TargetCommitHash) {
-					integrityHash = "commit:" + dep.TargetCommitHash
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "    Using commit hash for integrity: %s\n", integrityHash)
-					}
-				} else {
-					contentHash, err := hasher.CalculateSHA256(fileContent)
-					if err != nil {
-						_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to calculate SHA256 hash for dependency '%s': %v\n", dep.Name, err)
-						continue
-					}
-					integrityHash = contentHash
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "    Calculated content hash for integrity: %s\n", integrityHash)
-					}
-				}
-
-				targetDir := filepath.Dir(dep.ProjectTomlPath)
-				if err := os.MkdirAll(targetDir, os.ModePerm); err != nil {
-					_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to create directory '%s' for dependency '%s': %v\n", targetDir, dep.Name, err)
-					continue
-				}
-				if err := os.WriteFile(dep.ProjectTomlPath, fileContent, 0644); err != nil {
-					_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to write file '%s' for dependency '%s': %v\n", dep.ProjectTomlPath, dep.Name, err)
-					continue
-				}
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "    Successfully saved %s to %s\n", dep.Name, dep.ProjectTomlPath)
-				}
-
-				lf.Package[dep.Name] = lockfile.PackageEntry{
-					Source: dep.TargetRawURL,
-					Path:   dep.ProjectTomlPath,
-					Hash:   integrityHash,
-				}
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "    Updated lockfile entry for %s: Path=%s, Hash=%s, SourceURL=%s\n", dep.Name, dep.ProjectTomlPath, integrityHash, dep.TargetRawURL)
-				}
-				successfulActions++
-			}
-
-			// Handle successful installations by updating the lockfile
-			// with new source URLs and integrity hashes
 			if successfulActions > 0 {
-				lf.ApiVersion = lockfile.APIVersion
+				lf.ApiVersion = lockfile.APIVersion // Ensure API version is set
 				if err := lockfile.Save(".", lf); err != nil {
 					return cli.Exit(fmt.Sprintf("Error: Failed to save updated almd-lock.toml: %v", err), 1)
 				}
@@ -401,10 +447,11 @@ func InstallCmd() *cli.Command {
 				}
 				_, _ = fmt.Fprintf(os.Stdout, "Successfully installed/updated %d dependenc(ies).\n", successfulActions)
 			} else {
-				if len(dependenciesThatNeedAction) > 0 {
+				if len(dependenciesThatNeedAction) > 0 { // Implies all actions failed
 					_, _ = fmt.Fprintln(os.Stderr, "No dependencies were successfully installed/updated due to errors.")
 					return cli.Exit("Install/Update process completed with errors for all targeted dependencies.", 1)
 				}
+				// If dependenciesThatNeedAction was empty, this path shouldn't be reached due to earlier check.
 			}
 			return nil
 		},

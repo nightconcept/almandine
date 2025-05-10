@@ -687,17 +687,17 @@
 
 **Goal:** Improve code quality, maintainability, and reduce complexity in existing modules.
 
--   [ ] **Task 17.1: Refactor `internal/cli/add/add.go` (2025-05-09)**
-    -   [ ] Break down the main `Action` function in `AddCmd` into smaller, focused helper functions (e.g., for arg parsing, URL handling, file operations, manifest updates, lockfile updates).
-    -   [ ] Simplify the error handling and cleanup logic, potentially by returning errors more consistently and centralizing cleanup.
-    -   [ ] Encapsulate filename determination logic (for manifest and disk) into a separate function.
-    -   [ ] Encapsulate integrity hash determination logic into a separate function.
-    -   [ ] Review and improve overall clarity and reduce nesting in the `Action` function.
+-   [x] **Task 17.1: Refactor `internal/cli/add/add.go` (2025-05-09)**
+    -   [x] Break down the main `Action` function in `AddCmd` into smaller, focused helper functions (e.g., for arg parsing, URL handling, file operations, manifest updates, lockfile updates).
+    -   [x] Simplify the error handling and cleanup logic, potentially by returning errors more consistently and centralizing cleanup.
+    -   [x] Encapsulate filename determination logic (for manifest and disk) into a separate function.
+    -   [x] Encapsulate integrity hash determination logic into a separate function.
+    -   [x] Review and improve overall clarity and reduce nesting in the `Action` function.
 
--   [ ] **Task 17.2: Refactor `internal/cli/install/install.go` (2025-05-09)**
-    -   [ ] Break down the main `Action` function in `InstallCmd` into smaller, manageable functions (e.g., for determining deps to process, resolving single dep state, deciding on action, performing install/update for a single dep).
-    -   [ ] Consider refactoring the management of `dependencyInstallState` into a dedicated helper or struct with methods.
-    -   [ ] Review and improve overall clarity and reduce nesting in the `Action` function.
+-   [x] **Task 17.2: Refactor `internal/cli/install/install.go` (2025-05-09)**
+    -   [x] Break down the main `Action` function in `InstallCmd` into smaller, manageable functions (e.g., for determining deps to process, resolving single dep state, deciding on action, performing install/update for a single dep).
+    -   [x] Consider refactoring the management of `dependencyInstallState` into a dedicated helper or struct with methods. (Decision: Kept as local types for now, helper functions manage transitions).
+    -   [x] Review and improve overall clarity and reduce nesting in the `Action` function.
 
 -   [ ] **Task 17.3: Refactor `internal/core/source/source.go` (2025-05-09)**
     -   [ ] Break down the `ParseSourceURL` function into smaller helper functions for different URL types (e.g., `parseGitHubShorthandURL`, `parseGitHubFullURL`, `parseRawGitHubUserContentURL`).
