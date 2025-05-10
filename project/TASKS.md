@@ -699,9 +699,9 @@
     -   [x] Consider refactoring the management of `dependencyInstallState` into a dedicated helper or struct with methods. (Decision: Kept as local types for now, helper functions manage transitions).
     -   [x] Review and improve overall clarity and reduce nesting in the `Action` function.
 
--   [ ] **Task 17.3: Refactor `internal/core/source/source.go` (2025-05-09)**
-    -   [ ] Break down the `ParseSourceURL` function into smaller helper functions for different URL types (e.g., `parseGitHubShorthandURL`, `parseGitHubFullURL`, `parseRawGitHubUserContentURL`).
-    -   [ ] Review the usage of `testModeBypassHostValidation` and its mutex for clarity and safety.
+-   [x] **Task 17.3: Refactor `internal/core/source/source.go` (2025-05-09)**
+    -   [x] Break down the `ParseSourceURL` function into smaller helper functions for different URL types (e.g., `parseGitHubShorthandURL`, `parseGitHubFullURL`, `parseRawGitHubUserContentURL`).
+    -   [x] Review the usage of `testModeBypassHostValidation` and its mutex for clarity and safety.
 
 -   [ ] **Task 17.4: Consolidate CLI Test Helpers (2025-05-09)**
     -   [ ] Identify common test helper functions in `internal/cli/*/ *_test.go` files (e.g., `setup...TestEnvironment`, `run...Command`, `startMockServer`, `readProjectToml`, `readAlmdLockToml`).
