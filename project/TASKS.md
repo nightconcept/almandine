@@ -681,3 +681,39 @@
     -   [x] Reviewed comments in `internal/cli/remove/remove_test.go` against `project/COMMENT_STANDARDS.txt`.
     -   [x] Removed obvious "what" comments.
     -   [x] Retained godoc comments and comments explaining test setup or "why".
+---
+
+## Milestone 17: Refactoring and Cleanup (2025-05-09)
+
+**Goal:** Improve code quality, maintainability, and reduce complexity in existing modules.
+
+-   [ ] **Task 17.1: Refactor `internal/cli/add/add.go` (2025-05-09)**
+    -   [ ] Break down the main `Action` function in `AddCmd` into smaller, focused helper functions (e.g., for arg parsing, URL handling, file operations, manifest updates, lockfile updates).
+    -   [ ] Simplify the error handling and cleanup logic, potentially by returning errors more consistently and centralizing cleanup.
+    -   [ ] Encapsulate filename determination logic (for manifest and disk) into a separate function.
+    -   [ ] Encapsulate integrity hash determination logic into a separate function.
+    -   [ ] Review and improve overall clarity and reduce nesting in the `Action` function.
+
+-   [ ] **Task 17.2: Refactor `internal/cli/install/install.go` (2025-05-09)**
+    -   [ ] Break down the main `Action` function in `InstallCmd` into smaller, manageable functions (e.g., for determining deps to process, resolving single dep state, deciding on action, performing install/update for a single dep).
+    -   [ ] Consider refactoring the management of `dependencyInstallState` into a dedicated helper or struct with methods.
+    -   [ ] Review and improve overall clarity and reduce nesting in the `Action` function.
+
+-   [ ] **Task 17.3: Refactor `internal/core/source/source.go` (2025-05-09)**
+    -   [ ] Break down the `ParseSourceURL` function into smaller helper functions for different URL types (e.g., `parseGitHubShorthandURL`, `parseGitHubFullURL`, `parseRawGitHubUserContentURL`).
+    -   [ ] Review the usage of `testModeBypassHostValidation` and its mutex for clarity and safety.
+
+-   [ ] **Task 17.4: Consolidate CLI Test Helpers (2025-05-09)**
+    -   [ ] Identify common test helper functions in `internal/cli/*/ *_test.go` files (e.g., `setup...TestEnvironment`, `run...Command`, `startMockServer`, `readProjectToml`, `readAlmdLockToml`).
+    -   [ ] Create a shared internal test utility package (e.g., `internal/testutil` or `internal/cli/testhelper`).
+    -   [ ] Move common helpers to this shared package and update tests to use them.
+
+-   [ ] **Task 17.5: Standardize Error Handling in CLI Commands (2025-05-09)**
+    -   [ ] Review error handling and cleanup strategies in `add.go`, `remove.go`, and `install.go`.
+    -   [ ] Define and apply a consistent approach for reporting errors to the user (via `cli.Exit` or other means).
+    -   [ ] Ensure that partial changes are appropriately handled (e.g., cleanup of downloaded files if subsequent manifest/lockfile updates fail).
+
+-   [ ] **Task 17.6: Review Installer Scripts (`install.ps1`, `install.sh`) (2025-05-09)**
+    -   [ ] Review `install.ps1` and `install.sh` for clarity, robustness, and potential areas for simplification.
+    -   [ ] Document any shared logic or installation philosophy to ensure consistency if one script is updated.
+    -   [ ] Consider if any parts of the scripts could be made more maintainable.
