@@ -1,8 +1,3 @@
----
-description: Apply this rule to the entire repository
-globs: 
-alwaysApply: true
----
 # AI Project Guidelines (Condensed)
 
 **Objective:** Define mandatory process, coding, testing, and interaction standards for AI assistance.
@@ -75,7 +70,7 @@ alwaysApply: true
 ### 5.4. Documentation & Comments
 
 * **Docstrings:** Required for public functions, classes, modules (standard format).
-* **Code Comments:** Explain non-obvious logic, complex algorithms, decisions (*why*, not *what*). Write less comments.
+* **Code Comments:** Explain non-obvious logic, complex algorithms, decisions (*why*, not *what*).
 * **Reasoning Comments:** Use `# Reason:` for complex block rationale.
 * **README Updates:** Update `project/README.md` for core features, dependency changes, or setup/build modifications.
 

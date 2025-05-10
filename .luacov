@@ -1,6 +1,0 @@
-return {
-  exclude = {
-    ".luarocks/share/lua/",
-    "src/spec/"
-    }
-}

@@ -1,9 +1,4 @@
----
-description: Apply this rule to the entire repository
-globs: 
-alwaysApply: true
----
-# AI Project Guidelines (Condensed)
+# AI Project Guidelines
 
 **Objective:** Define mandatory process, coding, testing, and interaction standards for AI assistance.
 
