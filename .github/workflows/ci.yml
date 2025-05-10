@@ -22,9 +22,6 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v3
-
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
