@@ -41,8 +41,9 @@ _Note: These can all be installed via Scoop._
 almd init                # Create a new Lua project
 almd add <package>       # Add a dependency
 almd remove <package>    # Remove a dependency
-almd update              # Update dependencies
+almd install             # Install dependencies
 almd list                # List installed dependencies
+almd self update         # Update almd
 ```
 
 ---
