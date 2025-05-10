@@ -56,4 +56,4 @@ jobs:
         env:
           COVERALLS_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: |
-          goveralls -coverprofile=coverage.out -service=github -repotoken $COVERALLS_TOKEN
+          goveralls -coverprofile=coverage.out -service=github
