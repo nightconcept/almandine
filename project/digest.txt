@@ -1,6 +1,7 @@
 Directory structure:
 └── almandine/
     ├── README.md
+    ├── LICENSE
     ├── devenv.lock
     ├── devenv.nix
     ├── devenv.yaml
@@ -14,7 +15,6 @@ Directory structure:
     │   └── almd/
     │       └── main.go
     ├── docs/
-    │   ├── LICENSE
     │   └── SECURITY.md
     ├── internal/
     │   ├── cli/
@@ -167,11 +167,11 @@ Prepare for commit.
 
 ```sh
 go test ./...
-gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,project/digest.txt .
 go fmt ./...
 go vet ./...
 go mod tidy -v
 golangci-lint run --fix
+gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,project/digest.txt .
 ```
 
 ### yolo
@@ -186,6 +186,33 @@ pwsh.exe -ExecutionPolicy Bypass -File ./install.ps1 --local
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](docs/LICENSE) for details.
+
+
+
+================================================
+File: LICENSE
+================================================
+MIT License
+
+Copyright (c) 2025 Danny Solivan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 
 
@@ -561,7 +588,7 @@ if ($LocalMode) {
   New-Item -ItemType Directory -Path $AppHome -Force | Out-Null
   New-Item -ItemType Directory -Path $WrapperDir -Force | Out-Null
   Copy-Item -Path ./build/almd.exe -Destination (Join-Path $WrapperDir 'almd.exe') -Force
-  Write-Host "\n[DEV] Local installation complete!"
+  Write-Host "[DEV] Local installation complete!"
   Write-Host "Make sure $WrapperDir is in your Path environment variable. You may need to restart your terminal or system."
   exit 0
 }
@@ -604,7 +631,7 @@ $AlmdExePathInTmp = Join-Path $TmpDir "almd.exe"
 if (!(Test-Path $AlmdExePathInTmp)) {
     Write-Error "Could not find almd.exe in the extracted archive at $AlmdExePathInTmp."
     # List files in TmpDir for debugging
-    Write-Host "Contents of $TmpDir:"
+    Write-Host "Contents of ${TmpDir}:"
     Get-ChildItem -Path $TmpDir | ForEach-Object { Write-Host $_.Name }
     exit 1
 }
@@ -622,7 +649,7 @@ New-Item -ItemType Directory -Path $WrapperDir -Force | Out-Null
 # Copy the binary to the wrapper directory
 Copy-Item -Path $AlmdExePathInTmp -Destination (Join-Path $WrapperDir 'almd.exe') -Force
 
-Write-Host "\nInstallation complete!"
+Write-Host "Installation complete!"
 Write-Host "Make sure $WrapperDir is in your Path environment variable. You may need to restart your terminal or system."
 
 Remove-Item -Recurse -Force $TmpDir
@@ -824,13 +851,8 @@ repos:
 ================================================
 File: cmd/almd/main.go
 ================================================
-// Title: Almandine CLI Application Entry Point
-// Purpose: Initializes and runs the Almandine command-line interface application,
-// defining its commands and default behavior.
 package main
 
-// Import the "fmt" package, which provides functions for formatted I/O
-// (like printing to the console).
 import (
 	"log"
 	"os"
@@ -852,7 +874,7 @@ var version = "dev" // Default to "dev" if not set by ldflags
 func main() {
 	app := &cli.App{
 		Name:    "almd",
-		Usage:   "A simple project manager for single-file dependencies",
+		Usage:   "Lua package manager for single-file dependencies",
 		Version: version,
 		Action: func(c *cli.Context) error {
 			// Default action if no command is specified
@@ -873,33 +895,6 @@ func main() {
 		log.Fatal(err)
 	}
 }
-
-
-
-================================================
-File: docs/LICENSE
-================================================
-MIT License
-
-Copyright (c) 2025 Danny Solivan
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
 
 
 
@@ -7596,6 +7591,8 @@ File: project/TASKS.md
     - [x] Updated extraction logic to expect `almd.exe` at the root of the downloaded zip.
     - [x] This resolves the "Could not find extracted directory" error during installation.
 
+- [x] **Task 20.2: Fix PowerShell variable syntax in `install.ps1` (2025-05-11)**
+    - [x] Corrected variable expansion for `$TmpDir` in `Write-Host` command on line 96 of [`install.ps1`](install.ps1:96) to `${TmpDir}` to prevent parsing errors.
 - [x] **Task 19.1: Add Installation Section to README.md (2025-05-11)**
     - [x] Added a new "ðŸš€ Installation" section to `README.md`.
     - [x] Included `curl` command for macOS/Linux and `powershell` command for Windows to download and run installer scripts from the `main` branch on GitHub.
