@@ -1,7 +1,6 @@
 Directory structure:
 └── almandine/
     ├── README.md
-    ├── LICENSE
     ├── devenv.lock
     ├── devenv.nix
     ├── devenv.yaml
@@ -9,12 +8,14 @@ Directory structure:
     ├── go.sum
     ├── install.ps1
     ├── install.sh
-    ├── .devenv.flake.nix
     ├── .envrc
     ├── .pre-commit-config.yaml
     ├── cmd/
     │   └── almd/
     │       └── main.go
+    ├── docs/
+    │   ├── LICENSE
+    │   └── SECURITY.md
     ├── internal/
     │   ├── cli/
     │   │   ├── add/
@@ -34,34 +35,31 @@ Directory structure:
     │   │   │   └── remove_test.go
     │   │   └── self/
     │   │       └── self.go
-    │   ├── core/
-    │   │   ├── config/
-    │   │   │   ├── config.go
-    │   │   │   └── config_test.go
-    │   │   ├── downloader/
-    │   │   │   ├── downloader.go
-    │   │   │   └── downloader_test.go
-    │   │   ├── hasher/
-    │   │   │   ├── hasher.go
-    │   │   │   └── hasher_test.go
-    │   │   ├── lockfile/
-    │   │   │   ├── lockfile.go
-    │   │   │   └── lockfile_test.go
-    │   │   ├── project/
-    │   │   │   ├── project.go
-    │   │   │   └── project_test.go
-    │   │   └── source/
-    │   │       ├── github_api.go
-    │   │       ├── github_api_test.go
-    │   │       ├── source.go
-    │   │       └── source_test.go
-    │   └── testutil/
+    │   └── core/
+    │       ├── config/
+    │       │   ├── config.go
+    │       │   └── config_test.go
+    │       ├── downloader/
+    │       │   ├── downloader.go
+    │       │   └── downloader_test.go
+    │       ├── hasher/
+    │       │   ├── hasher.go
+    │       │   └── hasher_test.go
+    │       ├── lockfile/
+    │       │   ├── lockfile.go
+    │       │   └── lockfile_test.go
+    │       ├── project/
+    │       │   ├── project.go
+    │       │   └── project_test.go
+    │       └── source/
+    │           ├── github_api.go
+    │           ├── github_api_test.go
+    │           ├── source.go
+    │           └── source_test.go
     ├── project/
     │   ├── PRD.md
     │   └── TASKS.md
     ├── .cursor/
-    ├── .devenv/
-    ├── .direnv/
     ├── .github/
     │   ├── copilot-instructions.md
     │   ├── dependabot.yml
@@ -85,21 +83,32 @@ File: README.md
 [![Coverage Status](https://coveralls.io/repos/github/nightconcept/almandine/badge.svg)](https://coveralls.io/github/nightconcept/almandine)
 ![GitHub last commit](https://img.shields.io/github/last-commit/nightconcept/almandine)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/nightconcept/almandine/badge)](https://scorecard.dev/viewer/?uri=github.com/nightconcept/almandine)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10539/badge)](https://www.bestpractices.dev/projects/10539)
 
 A modern, cross-platform, developer-friendly package manager for Lua projects.
-Easily manage, install, and update Lua single-file dependencies with a single CLI: `almd`.
+Easily manage, install, and update Lua single-file dependencies..
 
----
-
-## ✨ Features
+## Features
 
 - 📦 **Easy Dependency Management**: Add, remove, and update Lua single-file dependencies with simple commands.
 - 🔒 **Reproducible Installs**: Lockfiles ensure consistent environments across machines.
-- 🏗️ **Project Initialization**: Scaffold new Lua projects with best practices.
 - 🛠️ **Cross-Platform**: Works on Linux, macOS, and Windows.
 
----
+## 🚀 Installation
 
+You can install `almd` by running the following commands in your terminal. These scripts will download and run the appropriate installer for your system from the `main` branch of the official repository.
+
+### macOS and Linux
+
+```sh
+curl -LsSf https://raw.githubusercontent.com/nightconcept/almandine/main/install.sh | sh
+```
+
+### Windows
+
+```powershell
+powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/nightconcept/almandine/main/install.ps1 | iex"
+```
 ## Requirements
 
 ### macOS/Linux
@@ -113,9 +122,8 @@ Easily manage, install, and update Lua single-file dependencies with a single CL
 
 _Note: These can all be installed via Scoop._
 
----
 
-## 🛠️ Usage
+## Usage
 
 ```sh
 almd init                # Create a new Lua project
@@ -126,17 +134,7 @@ almd list                # List installed dependencies
 almd self update         # Update almd
 ```
 
----
-
 ## Tasks
-
-### lint
-
-Run linters.
-
-```sh
-golangci-lint run
-```
 
 ### build
 
@@ -147,6 +145,14 @@ go build -o build/almd ./cmd/almd
 go build -o build/almd.exe ./cmd/almd
 ```
 
+### lint
+
+Run lint.
+
+```sh
+golangci-lint run
+```
+
 ### test
 
 Run tests.
@@ -155,12 +161,12 @@ Run tests.
 go test ./...
 ```
 
-
 ### ready
 
 Prepare for commit.
 
 ```sh
+go test ./...
 gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,project/digest.txt .
 go fmt ./...
 go vet ./...
@@ -170,46 +176,16 @@ golangci-lint run --fix
 
 ### yolo
 
-Yolo install the `almd` binary to Windows.
+Build and install the `almd` binary to Windows.
 
 ```sh
-go build -o build/almd ./cmd/almd
 go build -o build/almd.exe ./cmd/almd
 pwsh.exe -ExecutionPolicy Bypass -File ./install.ps1 --local
 ```
 
----
-
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
-
-
-================================================
-File: LICENSE
-================================================
-MIT License
-
-Copyright (c) 2025 Danny Solivan
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+This project is licensed under the MIT License. See [LICENSE](docs/LICENSE) for details.
 
 
 
@@ -609,26 +585,28 @@ if ($Version) {
   }
 }
 
-$ArchiveUrl = "https://github.com/$Repo/archive/refs/tags/$Tag.zip"
-$ArchiveName = "$Repo-$Tag.zip" -replace "/", "-"
+$VersionForAsset = if ($Tag.StartsWith("v")) { $Tag.Substring(1) } else { $Tag }
+$AssetFilename = "almd_$($VersionForAsset)_windows_amd64.zip"
+$ArchiveUrl = "https://github.com/$Repo/releases/download/$Tag/$AssetFilename"
+$ArchiveName = $AssetFilename # Use the actual asset filename
 
-Write-Host "Downloading Almandine archive for tag $Tag ..."
+Write-Host "Downloading Almandine release asset for tag $Tag ($AssetFilename) ..."
 $ZipPath = Join-Path $TmpDir $ArchiveName
 Download $ArchiveUrl $ZipPath
 
 Write-Host "Extracting Almandine ..."
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+# Extract almd.exe directly to the TmpDir, assuming it's at the root of the zip
 [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $TmpDir)
 
-# Find extracted folder (name format: almandine-<tag>)
-$ExtractedDir = Join-Path $TmpDir "almandine-$Tag"
-if (!(Test-Path $ExtractedDir)) {
-  # Try with v prefix (e.g., v0.1.0)
-  $ExtractedDir = Join-Path $TmpDir "almandine-v$Tag"
-  if (!(Test-Path $ExtractedDir)) {
-    Write-Error "Could not find extracted directory for tag $Tag."
+# almd.exe should now be directly in $TmpDir
+$AlmdExePathInTmp = Join-Path $TmpDir "almd.exe"
+if (!(Test-Path $AlmdExePathInTmp)) {
+    Write-Error "Could not find almd.exe in the extracted archive at $AlmdExePathInTmp."
+    # List files in TmpDir for debugging
+    Write-Host "Contents of $TmpDir:"
+    Get-ChildItem -Path $TmpDir | ForEach-Object { Write-Host $_.Name }
     exit 1
-  }
 }
 
 Write-Host "Installing Almandine ..."
@@ -642,7 +620,7 @@ New-Item -ItemType Directory -Path $AppHome -Force | Out-Null
 New-Item -ItemType Directory -Path $WrapperDir -Force | Out-Null
 
 # Copy the binary to the wrapper directory
-Copy-Item -Path (Join-Path $ExtractedDir 'almd.exe') -Destination (Join-Path $WrapperDir 'almd.exe') -Force
+Copy-Item -Path $AlmdExePathInTmp -Destination (Join-Path $WrapperDir 'almd.exe') -Force
 
 Write-Host "\nInstallation complete!"
 Write-Host "Make sure $WrapperDir is in your Path environment variable. You may need to restart your terminal or system."
@@ -783,175 +761,6 @@ rm -rf "$TMP_DIR"
 
 
 ================================================
-File: .devenv.flake.nix
-================================================
-{
-  inputs =
-    let
-      version = "1.6.0";
-system = "aarch64-darwin";
-devenv_root = "/Users/danny/Documents/GitHub/almandine";
-devenv_dotfile = ./.devenv;
-devenv_dotfile_string = ".devenv";
-container_name = null;
-devenv_tmpdir = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/";
-devenv_runtime = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/devenv-8811323";
-devenv_istesting = false;
-devenv_direnvrc_latest_version = 1;
-
-        in {
-        git-hooks.url = "github:cachix/git-hooks.nix";
-      git-hooks.inputs.nixpkgs.follows = "nixpkgs";
-      pre-commit-hooks.follows = "git-hooks";
-      nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
-      devenv.url = "github:cachix/devenv?dir=src/modules";
-      } // (if builtins.pathExists (devenv_dotfile + "/flake.json")
-      then builtins.fromJSON (builtins.readFile (devenv_dotfile +  "/flake.json"))
-      else { });
-
-      outputs = { nixpkgs, ... }@inputs:
-        let
-          version = "1.6.0";
-system = "aarch64-darwin";
-devenv_root = "/Users/danny/Documents/GitHub/almandine";
-devenv_dotfile = ./.devenv;
-devenv_dotfile_string = ".devenv";
-container_name = null;
-devenv_tmpdir = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/";
-devenv_runtime = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/devenv-8811323";
-devenv_istesting = false;
-devenv_direnvrc_latest_version = 1;
-
-            devenv =
-            if builtins.pathExists (devenv_dotfile + "/devenv.json")
-            then builtins.fromJSON (builtins.readFile (devenv_dotfile + "/devenv.json"))
-            else { };
-          getOverlays = inputName: inputAttrs:
-            map
-              (overlay:
-                let
-                  input = inputs.${inputName} or (throw "No such input `${inputName}` while trying to configure overlays.");
-                in
-                  input.overlays.${overlay} or (throw "Input `${inputName}` has no overlay called `${overlay}`. Supported overlays: ${nixpkgs.lib.concatStringsSep ", " (builtins.attrNames input.overlays)}"))
-              inputAttrs.overlays or [ ];
-          overlays = nixpkgs.lib.flatten (nixpkgs.lib.mapAttrsToList getOverlays (devenv.inputs or { }));
-          pkgs = import nixpkgs {
-            inherit system;
-            config = {
-              allowUnfree = devenv.allowUnfree or false;
-              allowBroken = devenv.allowBroken or false;
-              permittedInsecurePackages = devenv.permittedInsecurePackages or [ ];
-            };
-            inherit overlays;
-          };
-          lib = pkgs.lib;
-          importModule = path:
-            if lib.hasPrefix "./" path
-            then if lib.hasSuffix ".nix" path
-            then ./. + (builtins.substring 1 255 path)
-            else ./. + (builtins.substring 1 255 path) + "/devenv.nix"
-            else if lib.hasPrefix "../" path
-            then throw "devenv: ../ is not supported for imports"
-            else
-              let
-                paths = lib.splitString "/" path;
-                name = builtins.head paths;
-                input = inputs.${name} or (throw "Unknown input ${name}");
-                subpath = "/${lib.concatStringsSep "/" (builtins.tail paths)}";
-                devenvpath = "${input}" + subpath;
-                devenvdefaultpath = devenvpath + "/devenv.nix";
-              in
-              if lib.hasSuffix ".nix" devenvpath
-              then devenvpath
-              else if builtins.pathExists devenvdefaultpath
-              then devenvdefaultpath
-              else throw (devenvdefaultpath + " file does not exist for input ${name}.");
-          project = pkgs.lib.evalModules {
-            specialArgs = inputs // { inherit inputs; };
-            modules = [
-              ({ config, ... }: {
-                _module.args.pkgs = pkgs.appendOverlays (config.overlays or [ ]);
-              })
-              (inputs.devenv.modules + /top-level.nix)
-              {
-                devenv.cliVersion = version;
-                devenv.root = devenv_root;
-                devenv.dotfile = devenv_root + "/" + devenv_dotfile_string;
-              }
-              (pkgs.lib.optionalAttrs (inputs.devenv.isTmpDir or false) {
-                devenv.tmpdir = devenv_tmpdir;
-                devenv.runtime = devenv_runtime;
-              })
-              (pkgs.lib.optionalAttrs (inputs.devenv.hasIsTesting or false) {
-                devenv.isTesting = devenv_istesting;
-              })
-              (pkgs.lib.optionalAttrs (container_name != null) {
-                container.isBuilding = pkgs.lib.mkForce true;
-                containers.${container_name}.isBuilding = true;
-              })
-              ({ options, ... }: {
-                config.devenv = pkgs.lib.optionalAttrs (builtins.hasAttr "direnvrcLatestVersion" options.devenv) {
-                  direnvrcLatestVersion = devenv_direnvrc_latest_version;
-                };
-              })
-            ] ++ (map importModule (devenv.imports or [ ])) ++ [
-              (if builtins.pathExists ./devenv.nix then ./devenv.nix else { })
-              (devenv.devenv or { })
-              (if builtins.pathExists ./devenv.local.nix then ./devenv.local.nix else { })
-              (if builtins.pathExists (devenv_dotfile + "/cli-options.nix") then import (devenv_dotfile + "/cli-options.nix") else { })
-            ];
-          };
-          config = project.config;
-
-          options = pkgs.nixosOptionsDoc {
-            options = builtins.removeAttrs project.options [ "_module" ];
-            warningsAreErrors = false;
-            # Unpack Nix types, e.g. literalExpression, mDoc.
-            transformOptions =
-              let isDocType = v: builtins.elem v [ "literalDocBook" "literalExpression" "literalMD" "mdDoc" ];
-              in lib.attrsets.mapAttrs (_: v:
-                if v ? _type && isDocType v._type then
-                  v.text
-                else if v ? _type && v._type == "derivation" then
-                  v.name
-                else
-                  v
-              );
-          };
-
-          build = options: config:
-            lib.concatMapAttrs
-              (name: option:
-                if builtins.hasAttr "type" option then
-                  if option.type.name == "output" || option.type.name == "outputOf" then {
-                    ${name} = config.${name};
-                  } else { }
-                else
-                  let v = build option config.${name};
-                  in if v != { } then {
-                    ${name} = v;
-                  } else { }
-              )
-              options;
-
-          systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
-        in
-        {
-          devShell = lib.genAttrs systems (system: config.shell);
-          packages = lib.genAttrs systems (system: {
-            optionsJSON = options.optionsJSON;
-            # deprecated
-            inherit (config) info procfileScript procfileEnv procfile;
-            ci = config.ciDerivation;
-          });
-          devenv = config;
-          build = build project.options project.config;
-        };
-      }
-
-
-
-================================================
 File: .envrc
 ================================================
 export DIRENV_WARN_TIMEOUT=20s
@@ -1064,6 +873,77 @@ func main() {
 		log.Fatal(err)
 	}
 }
+
+
+
+================================================
+File: docs/LICENSE
+================================================
+MIT License
+
+Copyright (c) 2025 Danny Solivan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+
+================================================
+File: docs/SECURITY.md
+================================================
+# Security Policy
+
+The Almandine team and community take the security of our software seriously. We appreciate your efforts to responsibly disclose your findings, and we will make every effort to acknowledge your contributions.
+
+## Reporting a Vulnerability
+
+If you believe you have found a security vulnerability in Almandine, please report it to us as soon as possible. We ask that you do not disclose the vulnerability publicly until we have had a chance to address it.
+
+Please report vulnerabilities via one of the following methods:
+
+* **Email:** Send an email to `[dark@nightconcept.net](mailto:dark@nightconcept.net)` with a detailed description of the vulnerability, steps to reproduce it, and any potential impact.
+* **Issue Tracker (Private):** If you prefer, you can report the vulnerability through our private issue tracker `[here](https://github.com/nightconcept/almandine/security/advisories)`.
+
+We aim to acknowledge receipt of your vulnerability report within **3 business days**.
+
+## Disclosure Policy
+
+Our goal is to address and fix any reported security vulnerability in a timely manner. Here is our general process:
+
+1. **Confirmation:** We will confirm the vulnerability and determine its impact. We may contact you for more information during this phase. This typically takes up to **7 days**.
+2. **Remediation:** Our team will work on a fix for the vulnerability. The timeline for this can vary depending on the complexity of the vulnerability, but we aim to have a patch ready within **30 days** of confirmation. For more complex issues, this might extend up to **90 days**.
+3. **Disclosure:** Once the vulnerability is fixed and a new version is released, we will make a public disclosure. This disclosure will typically include a description of the vulnerability and credit to the reporter, unless you request to remain anonymous. We believe in transparent disclosure practices.
+
+We are committed to a coordinated vulnerability disclosure process. We expect to work closely with the reporter throughout the lifecycle of the vulnerability.
+
+## Scope
+
+This policy applies to the latest stable release of Almandine. If you are using an older version, please consider upgrading before reporting a vulnerability, as it may have already been addressed.
+
+## Out of Scope
+
+The following are generally considered out of scope for our vulnerability disclosure program:
+
+* Denial of service attacks that require significant volumetric resources.
+*Social engineering or phishing attacks.
+*Vulnerabilities in third-party dependencies (please report those to the respective projects, though we appreciate a heads-up if it impacts Almandine).
+
+Thank you for helping keep Almandine secure. Your efforts in responsible disclosure are highly valued.
 
 
 
@@ -6497,7 +6377,6 @@ func TestParseSourceURL_NonGitHubURLs(t *testing.T) {
 
 
 
-
 ================================================
 File: project/PRD.md
 ================================================
@@ -6855,7 +6734,7 @@ Almandine, implemented in Go, aims to provide a simple, robust, and reproducible
 Tech Stack
 
     Implementation Language: Go (e.g., 1.21 or later)
-    Target Project Language: Lua 5.1–5.4 / LuaJIT 2.1 (though Almandine itself is Go, it can manage files for any language)
+    Target Project Language: Lua 5.1â€“5.4 / LuaJIT 2.1 (though Almandine itself is Go, it can manage files for any language)
     Platform (Tool): Cross-platform executable (Linux, macOS, Windows) via Go compilation.
     Key Go Libraries (Potential):
         Standard Library: net/http, os, os/exec, path/filepath, crypto/sha256, flag or similar for CLI.
@@ -7699,7 +7578,34 @@ File: project/TASKS.md
             8.  **Important:** Ensure your `main.version` variable in `cmd/almd/main.go` is correctly set up to be populated by `ldflags` during the build process (e.g., `var version string` in the main package, and `cli.App{ Version: version, ...}`). The workflow uses `go build -ldflags="-X main.version=$VERSION"`.
             9.  The initial release, if no tags like `v0.2.0-alpha.X` exist, should be triggered with `bump_type: alpha`. This will create `v0.2.0-alpha.1`.
 
+---
 
+---
+
+## Milestone 19: README Updates (2025-05-11)
+
+**Goal:** Keep the project README.md up-to-date with relevant information.
+---
+
+## Milestone 20: Installer Script Fixes (2025-05-11)
+
+**Goal:** Address issues in the installer scripts.
+
+- [x] **Task 20.1: Fix Windows Installer Script (`install.ps1`) (2025-05-11)**
+    - [x] Modified `install.ps1` to download the specific Windows release asset (e.g., `almd_VERSION_windows_amd64.zip`) instead of the full source code archive.
+    - [x] Updated extraction logic to expect `almd.exe` at the root of the downloaded zip.
+    - [x] This resolves the "Could not find extracted directory" error during installation.
+
+- [x] **Task 19.1: Add Installation Section to README.md (2025-05-11)**
+    - [x] Added a new "ðŸš€ Installation" section to `README.md`.
+    - [x] Included `curl` command for macOS/Linux and `powershell` command for Windows to download and run installer scripts from the `main` branch on GitHub.
+    - [x] Ensured URLs point to `https://raw.githubusercontent.com/nightconcept/almandine/main/install.sh` and `https://raw.githubusercontent.com/nightconcept/almandine/main/install.ps1`.
+    - [x] Placed the new section after "Features" and before "Requirements".
+## Miscellaneous Tasks
+
+- [x] **Task Misc.1: Create SECURITY.md (2025-05-11)**
+    - [x] Create `SECURITY.md` in the root directory.
+    - [x] Ensure content meets requirements for vulnerability reporting, disclosure policy, contact links, keywords (vulnerability, disclosure), and time references.
 
 
 
@@ -7943,6 +7849,7 @@ if __name__ == "__main__":
     main()
 
 
+
 ================================================
 File: .github/workflows/ci.yml
 ================================================
@@ -8152,6 +8059,9 @@ on:
         default: "false"
         type: boolean
 
+permissions:
+  contents: read
+
 jobs:
   determine_version:
     runs-on: ubuntu-latest
@@ -8159,13 +8069,18 @@ jobs:
       next_version: ${{ steps.get_version.outputs.next_version }}
       is_prerelease: ${{ steps.get_version.outputs.is_prerelease }}
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0 # Required to fetch all tags
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.x'
 
@@ -8193,11 +8108,16 @@ jobs:
             goarch: arm64 # Example: if windows arm64 is not a target
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: '1.21' # As per PRD
 
@@ -8243,7 +8163,7 @@ jobs:
           ls -la $ASSET_PATH # Verify archive exists
 
       - name: Upload artifact for this job
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: almd-binaries-${{ matrix.goos }}-${{ matrix.goarch }}
           path: ${{ env.ASSET_PATH }}
@@ -8255,8 +8175,13 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
@@ -8269,7 +8194,7 @@ jobs:
           git push origin $NEXT_VERSION
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: release-artifacts # Download all artifacts to this directory
           # No specific name means download all artifacts from the run
@@ -8280,7 +8205,7 @@ jobs:
 
       - name: Create GitHub Release
         id: create_release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -8297,6 +8222,7 @@ jobs:
             release-artifacts/almd-binaries-windows-amd64/*.zip
             release-artifacts/almd-binaries-darwin-amd64/*.tar.gz
             release-artifacts/almd-binaries-darwin-arm64/*.tar.gz
+
 
 
 ================================================
@@ -8385,3 +8311,6 @@ jobs:
         uses: github/codeql-action/upload-sarif@60168efe1c415ce0f5521ea06d5c2062adbeed1b # v3.28.17
         with:
           sarif_file: results.sarif
+
+
+

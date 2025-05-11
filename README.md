@@ -89,11 +89,11 @@ Prepare for commit.
 
 ```sh
 go test ./...
-gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,project/digest.txt .
 go fmt ./...
 go vet ./...
 go mod tidy -v
 golangci-lint run --fix
+gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,project/digest.txt .
 ```
 
 ### yolo
