@@ -50,7 +50,7 @@ if ($LocalMode) {
   New-Item -ItemType Directory -Path $AppHome -Force | Out-Null
   New-Item -ItemType Directory -Path $WrapperDir -Force | Out-Null
   Copy-Item -Path ./build/almd.exe -Destination (Join-Path $WrapperDir 'almd.exe') -Force
-  Write-Host "\n[DEV] Local installation complete!"
+  Write-Host "[DEV] Local installation complete!"
   Write-Host "Make sure $WrapperDir is in your Path environment variable. You may need to restart your terminal or system."
   exit 0
 }
@@ -93,7 +93,7 @@ $AlmdExePathInTmp = Join-Path $TmpDir "almd.exe"
 if (!(Test-Path $AlmdExePathInTmp)) {
     Write-Error "Could not find almd.exe in the extracted archive at $AlmdExePathInTmp."
     # List files in TmpDir for debugging
-    Write-Host "Contents of $TmpDir:"
+    Write-Host "Contents of ${TmpDir}:"
     Get-ChildItem -Path $TmpDir | ForEach-Object { Write-Host $_.Name }
     exit 1
 }
@@ -111,7 +111,7 @@ New-Item -ItemType Directory -Path $WrapperDir -Force | Out-Null
 # Copy the binary to the wrapper directory
 Copy-Item -Path $AlmdExePathInTmp -Destination (Join-Path $WrapperDir 'almd.exe') -Force
 
-Write-Host "\nInstallation complete!"
+Write-Host "Installation complete!"
 Write-Host "Make sure $WrapperDir is in your Path environment variable. You may need to restart your terminal or system."
 
 Remove-Item -Recurse -Force $TmpDir

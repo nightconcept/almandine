@@ -790,6 +790,8 @@
     - [x] Updated extraction logic to expect `almd.exe` at the root of the downloaded zip.
     - [x] This resolves the "Could not find extracted directory" error during installation.
 
+- [x] **Task 20.2: Fix PowerShell variable syntax in `install.ps1` (2025-05-11)**
+    - [x] Corrected variable expansion for `$TmpDir` in `Write-Host` command on line 96 of [`install.ps1`](install.ps1:96) to `${TmpDir}` to prevent parsing errors.
 - [x] **Task 19.1: Add Installation Section to README.md (2025-05-11)**
     - [x] Added a new "🚀 Installation" section to `README.md`.
     - [x] Included `curl` command for macOS/Linux and `powershell` command for Windows to download and run installer scripts from the `main` branch on GitHub.
