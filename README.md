@@ -10,15 +10,11 @@
 A modern, cross-platform, developer-friendly package manager for Lua projects.
 Easily manage, install, and update Lua single-file dependencies..
 
----
-
-## ✨ Features
+## Features
 
 - 📦 **Easy Dependency Management**: Add, remove, and update Lua single-file dependencies with simple commands.
 - 🔒 **Reproducible Installs**: Lockfiles ensure consistent environments across machines.
 - 🛠️ **Cross-Platform**: Works on Linux, macOS, and Windows.
-
----
 
 ## Requirements
 
@@ -33,9 +29,8 @@ Easily manage, install, and update Lua single-file dependencies..
 
 _Note: These can all be installed via Scoop._
 
----
 
-## 🛠️ Usage
+## Usage
 
 ```sh
 almd init                # Create a new Lua project
@@ -45,8 +40,6 @@ almd install             # Install dependencies
 almd list                # List installed dependencies
 almd self update         # Update almd
 ```
-
----
 
 ## Tasks
 
@@ -90,16 +83,13 @@ golangci-lint run --fix
 
 ### yolo
 
-Yolo install the `almd` binary to Windows.
+Build and install the `almd` binary to Windows.
 
 ```sh
-go build -o build/almd ./cmd/almd
 go build -o build/almd.exe ./cmd/almd
 pwsh.exe -ExecutionPolicy Bypass -File ./install.ps1 --local
 ```
 
----
-
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+This project is licensed under the MIT License. See [LICENSE](docs/LICENSE) for details.
