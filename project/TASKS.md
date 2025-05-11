@@ -783,6 +783,31 @@
 
 ---
 
+## Milestone 19: SLSA Provenance Generation (2025-05-11)
+
+**Goal:** Implement SLSA Level 3+ provenance generation for Go binaries.
+
+-   [ ] **Task 19.1: Create SLSA Go Builder Configuration Files**
+    -   [x] Create `.slsa-goreleaser/linux-amd64.yml`
+    -   [x] Create `.slsa-goreleaser/linux-arm64.yml`
+    -   [x] Create `.slsa-goreleaser/windows-amd64.yml`
+    -   [x] Create `.slsa-goreleaser/darwin-amd64.yml`
+    -   [x] Create `.slsa-goreleaser/darwin-arm64.yml`
+-   [ ] **Task 19.2: Create GitHub Workflow for SLSA Provenance**
+    -   [x] Create `.github/workflows/slsa-provenance.yml`
+    -   [x] Define triggers (`push` tags `v*`, `workflow_dispatch`).
+    -   [x] Implement `generate_provenance_args` job to determine version, commit, date, tree state, and release parameters.
+    -   [x] Implement `build_with_provenance` job using matrix for platforms.
+    -   [x] Call reusable SLSA Go builder `slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v2.1.0`.
+    -   [x] Pass necessary inputs: `go-version`, `config-file`, `evaluated-envs`, `upload-assets`, `upload-tag-name`, `prerelease`, `draft-release`.
+    -   [x] Ensure correct permissions are set (`id-token: write`, `contents: write`, `actions: read`).
+-   [ ] **Task 19.3: Verify SLSA Provenance Generation**
+    -   [ ] Trigger the workflow manually or by pushing a test tag.
+    -   [ ] Verify that provenance files (`.intoto.jsonl`) are generated for each binary.
+    -   [ ] Verify that binaries and provenance files are uploaded to a GitHub release.
+    -   [ ] (Optional) Use `slsa-verifier` to verify the generated provenance against the binary.
+
+---
 ## Milestone 19: README Updates (2025-05-11)
 
 **Goal:** Keep the project README.md up-to-date with relevant information.

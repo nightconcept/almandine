@@ -9,8 +9,10 @@ Directory structure:
     ├── go.sum
     ├── install.ps1
     ├── install.sh
+    ├── .devenv.flake.nix
     ├── .envrc
     ├── .pre-commit-config.yaml
+    ├── _test_sandboxes/
     ├── cmd/
     │   └── almd/
     │       └── main.go
@@ -59,7 +61,14 @@ Directory structure:
     ├── project/
     │   ├── PRD.md
     │   └── TASKS.md
+    ├── scripts/
+    │   ├── README.md
+    │   └── sign_releases.py
+    ├── src/
+    │   └── lib/
     ├── .cursor/
+    ├── .devenv/
+    ├── .direnv/
     ├── .github/
     │   ├── copilot-instructions.md
     │   ├── dependabot.yml
@@ -70,8 +79,15 @@ Directory structure:
     │       ├── codeql.yml
     │       ├── dependency-review.yml
     │       ├── release.yml
-    │       └── scorecard.yml
-    └── .roo/
+    │       ├── scorecard.yml
+    │       └── slsa-provenance.yml
+    ├── .roo/
+    └── .slsa-goreleaser/
+        ├── darwin-amd64.yml
+        ├── darwin-arm64.yml
+        ├── linux-amd64.yml
+        ├── linux-arm64.yml
+        └── windows-amd64.yml
 
 ================================================
 File: README.md
@@ -172,6 +188,14 @@ go vet ./...
 go mod tidy -v
 golangci-lint run --fix
 gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,project/digest.txt .
+```
+
+### sign
+
+Sign releases with GPG key.
+
+```sh
+python scripts/sign_releases.py nightconcept/almandine --yes
 ```
 
 ### yolo
@@ -359,10 +383,9 @@ languages.python = {
     venv.enable = true;
     venv.requirements = ''
       gitingest
+      requests
+      python-gnupg
     '';
-    # If gitingest has specific non-Python system dependencies,
-    # they might need to be listed here using pkgs, for example:
-    # libraries = [ pkgs.someSystemLibrary ];
   };
 
   enterShell = ''
@@ -788,6 +811,175 @@ rm -rf "$TMP_DIR"
 
 
 ================================================
+File: .devenv.flake.nix
+================================================
+{
+  inputs =
+    let
+      version = "1.6.0";
+system = "x86_64-linux";
+devenv_root = "/home/danny/git/almandine";
+devenv_dotfile = ./.devenv;
+devenv_dotfile_string = ".devenv";
+container_name = null;
+devenv_tmpdir = "/run/user/1000/";
+devenv_runtime = "/run/user/1000/devenv-8ad1c7f";
+devenv_istesting = false;
+devenv_direnvrc_latest_version = 1;
+
+        in {
+        git-hooks.url = "github:cachix/git-hooks.nix";
+      git-hooks.inputs.nixpkgs.follows = "nixpkgs";
+      pre-commit-hooks.follows = "git-hooks";
+      nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
+      devenv.url = "github:cachix/devenv?dir=src/modules";
+      } // (if builtins.pathExists (devenv_dotfile + "/flake.json")
+      then builtins.fromJSON (builtins.readFile (devenv_dotfile +  "/flake.json"))
+      else { });
+
+      outputs = { nixpkgs, ... }@inputs:
+        let
+          version = "1.6.0";
+system = "x86_64-linux";
+devenv_root = "/home/danny/git/almandine";
+devenv_dotfile = ./.devenv;
+devenv_dotfile_string = ".devenv";
+container_name = null;
+devenv_tmpdir = "/run/user/1000/";
+devenv_runtime = "/run/user/1000/devenv-8ad1c7f";
+devenv_istesting = false;
+devenv_direnvrc_latest_version = 1;
+
+            devenv =
+            if builtins.pathExists (devenv_dotfile + "/devenv.json")
+            then builtins.fromJSON (builtins.readFile (devenv_dotfile + "/devenv.json"))
+            else { };
+          getOverlays = inputName: inputAttrs:
+            map
+              (overlay:
+                let
+                  input = inputs.${inputName} or (throw "No such input `${inputName}` while trying to configure overlays.");
+                in
+                  input.overlays.${overlay} or (throw "Input `${inputName}` has no overlay called `${overlay}`. Supported overlays: ${nixpkgs.lib.concatStringsSep ", " (builtins.attrNames input.overlays)}"))
+              inputAttrs.overlays or [ ];
+          overlays = nixpkgs.lib.flatten (nixpkgs.lib.mapAttrsToList getOverlays (devenv.inputs or { }));
+          pkgs = import nixpkgs {
+            inherit system;
+            config = {
+              allowUnfree = devenv.allowUnfree or false;
+              allowBroken = devenv.allowBroken or false;
+              permittedInsecurePackages = devenv.permittedInsecurePackages or [ ];
+            };
+            inherit overlays;
+          };
+          lib = pkgs.lib;
+          importModule = path:
+            if lib.hasPrefix "./" path
+            then if lib.hasSuffix ".nix" path
+            then ./. + (builtins.substring 1 255 path)
+            else ./. + (builtins.substring 1 255 path) + "/devenv.nix"
+            else if lib.hasPrefix "../" path
+            then throw "devenv: ../ is not supported for imports"
+            else
+              let
+                paths = lib.splitString "/" path;
+                name = builtins.head paths;
+                input = inputs.${name} or (throw "Unknown input ${name}");
+                subpath = "/${lib.concatStringsSep "/" (builtins.tail paths)}";
+                devenvpath = "${input}" + subpath;
+                devenvdefaultpath = devenvpath + "/devenv.nix";
+              in
+              if lib.hasSuffix ".nix" devenvpath
+              then devenvpath
+              else if builtins.pathExists devenvdefaultpath
+              then devenvdefaultpath
+              else throw (devenvdefaultpath + " file does not exist for input ${name}.");
+          project = pkgs.lib.evalModules {
+            specialArgs = inputs // { inherit inputs; };
+            modules = [
+              ({ config, ... }: {
+                _module.args.pkgs = pkgs.appendOverlays (config.overlays or [ ]);
+              })
+              (inputs.devenv.modules + /top-level.nix)
+              {
+                devenv.cliVersion = version;
+                devenv.root = devenv_root;
+                devenv.dotfile = devenv_root + "/" + devenv_dotfile_string;
+              }
+              (pkgs.lib.optionalAttrs (inputs.devenv.isTmpDir or false) {
+                devenv.tmpdir = devenv_tmpdir;
+                devenv.runtime = devenv_runtime;
+              })
+              (pkgs.lib.optionalAttrs (inputs.devenv.hasIsTesting or false) {
+                devenv.isTesting = devenv_istesting;
+              })
+              (pkgs.lib.optionalAttrs (container_name != null) {
+                container.isBuilding = pkgs.lib.mkForce true;
+                containers.${container_name}.isBuilding = true;
+              })
+              ({ options, ... }: {
+                config.devenv = pkgs.lib.optionalAttrs (builtins.hasAttr "direnvrcLatestVersion" options.devenv) {
+                  direnvrcLatestVersion = devenv_direnvrc_latest_version;
+                };
+              })
+            ] ++ (map importModule (devenv.imports or [ ])) ++ [
+              (if builtins.pathExists ./devenv.nix then ./devenv.nix else { })
+              (devenv.devenv or { })
+              (if builtins.pathExists ./devenv.local.nix then ./devenv.local.nix else { })
+              (if builtins.pathExists (devenv_dotfile + "/cli-options.nix") then import (devenv_dotfile + "/cli-options.nix") else { })
+            ];
+          };
+          config = project.config;
+
+          options = pkgs.nixosOptionsDoc {
+            options = builtins.removeAttrs project.options [ "_module" ];
+            warningsAreErrors = false;
+            # Unpack Nix types, e.g. literalExpression, mDoc.
+            transformOptions =
+              let isDocType = v: builtins.elem v [ "literalDocBook" "literalExpression" "literalMD" "mdDoc" ];
+              in lib.attrsets.mapAttrs (_: v:
+                if v ? _type && isDocType v._type then
+                  v.text
+                else if v ? _type && v._type == "derivation" then
+                  v.name
+                else
+                  v
+              );
+          };
+
+          build = options: config:
+            lib.concatMapAttrs
+              (name: option:
+                if builtins.hasAttr "type" option then
+                  if option.type.name == "output" || option.type.name == "outputOf" then {
+                    ${name} = config.${name};
+                  } else { }
+                else
+                  let v = build option config.${name};
+                  in if v != { } then {
+                    ${name} = v;
+                  } else { }
+              )
+              options;
+
+          systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+        in
+        {
+          devShell = lib.genAttrs systems (system: config.shell);
+          packages = lib.genAttrs systems (system: {
+            optionsJSON = options.optionsJSON;
+            # deprecated
+            inherit (config) info procfileScript procfileEnv procfile;
+            ci = config.ciDerivation;
+          });
+          devenv = config;
+          build = build project.options project.config;
+        };
+      }
+
+
+
+================================================
 File: .envrc
 ================================================
 export DIRENV_WARN_TIMEOUT=20s
@@ -845,6 +1037,7 @@ repos:
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
+
 
 
 
@@ -6729,7 +6922,7 @@ Almandine, implemented in Go, aims to provide a simple, robust, and reproducible
 Tech Stack
 
     Implementation Language: Go (e.g., 1.21 or later)
-    Target Project Language: Lua 5.1â€“5.4 / LuaJIT 2.1 (though Almandine itself is Go, it can manage files for any language)
+    Target Project Language: Lua 5.1–5.4 / LuaJIT 2.1 (though Almandine itself is Go, it can manage files for any language)
     Platform (Tool): Cross-platform executable (Linux, macOS, Windows) via Go compilation.
     Key Go Libraries (Potential):
         Standard Library: net/http, os, os/exec, path/filepath, crypto/sha256, flag or similar for CLI.
@@ -7572,11 +7765,43 @@ File: project/TASKS.md
                 *   Create a GitHub Release with the new tag, attaching the built binaries.
             8.  **Important:** Ensure your `main.version` variable in `cmd/almd/main.go` is correctly set up to be populated by `ldflags` during the build process (e.g., `var version string` in the main package, and `cli.App{ Version: version, ...}`). The workflow uses `go build -ldflags="-X main.version=$VERSION"`.
             9.  The initial release, if no tags like `v0.2.0-alpha.X` exist, should be triggered with `bump_type: alpha`. This will create `v0.2.0-alpha.1`.
+-   [x] **Task 18.2: Fix Release Workflow Build and Versioning (2025-05-11)**
+    -   [x] **`go build` Linker Error:**
+        -   Problem: Version string with spaces/special characters (e.g., `v0.2.0-('alpha', 1)`) caused `go build` linker error in `release.yml`.
+        -   Solution: Added single quotes around `'main.version=$VERSION'` within the `-ldflags` argument in `.github/workflows/release.yml`.
+    -   [x] **Version Increment/Format:**
+        -   Problem: `.github/scripts/determine_next_version.py` produced incorrect version format like `v0.2.0-('alpha', 1)` and did not correctly increment pre-release numbers.
+        -   Solution: Modified the script to use string-based prerelease identifiers (e.g., `prerelease='alpha.1'`) for `semver.VersionInfo`, ensuring correct format and increment behavior.
 
 ---
 
 ---
 
+## Milestone 19: SLSA Provenance Generation (2025-05-11)
+
+**Goal:** Implement SLSA Level 3+ provenance generation for Go binaries.
+
+-   [ ] **Task 19.1: Create SLSA Go Builder Configuration Files**
+    -   [x] Create `.slsa-goreleaser/linux-amd64.yml`
+    -   [x] Create `.slsa-goreleaser/linux-arm64.yml`
+    -   [x] Create `.slsa-goreleaser/windows-amd64.yml`
+    -   [x] Create `.slsa-goreleaser/darwin-amd64.yml`
+    -   [x] Create `.slsa-goreleaser/darwin-arm64.yml`
+-   [ ] **Task 19.2: Create GitHub Workflow for SLSA Provenance**
+    -   [x] Create `.github/workflows/slsa-provenance.yml`
+    -   [x] Define triggers (`push` tags `v*`, `workflow_dispatch`).
+    -   [x] Implement `generate_provenance_args` job to determine version, commit, date, tree state, and release parameters.
+    -   [x] Implement `build_with_provenance` job using matrix for platforms.
+    -   [x] Call reusable SLSA Go builder `slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v2.1.0`.
+    -   [x] Pass necessary inputs: `go-version`, `config-file`, `evaluated-envs`, `upload-assets`, `upload-tag-name`, `prerelease`, `draft-release`.
+    -   [x] Ensure correct permissions are set (`id-token: write`, `contents: write`, `actions: read`).
+-   [ ] **Task 19.3: Verify SLSA Provenance Generation**
+    -   [ ] Trigger the workflow manually or by pushing a test tag.
+    -   [ ] Verify that provenance files (`.intoto.jsonl`) are generated for each binary.
+    -   [ ] Verify that binaries and provenance files are uploaded to a GitHub release.
+    -   [ ] (Optional) Use `slsa-verifier` to verify the generated provenance against the binary.
+
+---
 ## Milestone 19: README Updates (2025-05-11)
 
 **Goal:** Keep the project README.md up-to-date with relevant information.
@@ -7594,15 +7819,335 @@ File: project/TASKS.md
 - [x] **Task 20.2: Fix PowerShell variable syntax in `install.ps1` (2025-05-11)**
     - [x] Corrected variable expansion for `$TmpDir` in `Write-Host` command on line 96 of [`install.ps1`](install.ps1:96) to `${TmpDir}` to prevent parsing errors.
 - [x] **Task 19.1: Add Installation Section to README.md (2025-05-11)**
-    - [x] Added a new "ðŸš€ Installation" section to `README.md`.
+    - [x] Added a new "🚀 Installation" section to `README.md`.
     - [x] Included `curl` command for macOS/Linux and `powershell` command for Windows to download and run installer scripts from the `main` branch on GitHub.
     - [x] Ensured URLs point to `https://raw.githubusercontent.com/nightconcept/almandine/main/install.sh` and `https://raw.githubusercontent.com/nightconcept/almandine/main/install.ps1`.
     - [x] Placed the new section after "Features" and before "Requirements".
 ## Miscellaneous Tasks
+## Milestone 21: Release Asset Signing (2025-05-11)
+
+**Goal:** Ensure release assets are GPG signed and the signing script is functional.
+
+- [ ] **Task 21.1: Debug and Fix `scripts/sign_releases.py` (2025-05-11)**
+    - [ ] Investigate why the script appears stuck during execution.
+    - [ ] Identify and resolve any issues preventing interactive input or script completion.
+    - [ ] Ensure the script can successfully sign and upload asset signatures.
 
 - [x] **Task Misc.1: Create SECURITY.md (2025-05-11)**
     - [x] Create `SECURITY.md` in the root directory.
     - [x] Ensure content meets requirements for vulnerability reporting, disclosure policy, contact links, keywords (vulnerability, disclosure), and time references.
+
+
+
+================================================
+File: scripts/README.md
+================================================
+# Release Signing Script (`sign_releases.py`)
+
+This Python script automates the process of cryptographically signing GitHub release artifacts for a specified repository and re-uploading them along with their `.asc` signature files. This helps meet the OpenSSF "Signed-Releases" criteria by attesting to the provenance of the artifacts.
+
+## Prerequisites
+
+1.  **Python 3:** Ensure you have Python 3 installed on your system.
+2.  **GnuPG (GPG):** GPG must be installed, and you need to have a GPG key pair generated and configured. The script will attempt to use the first available secret key suitable for signing.
+3.  **Python Libraries:** Install the necessary Python libraries using pip:
+    ```bash
+    pip install requests python-gnupg
+    ```
+4.  **GitHub Personal Access Token:** You will need a GitHub Personal Access Token.
+    *   **Permissions:** The token requires the `repo` scope (or `public_repo` if your repository is public and you only need to access/modify public releases).
+    *   **Usage:** The script will prompt for this token if it's not provided via the `--github-token` command-line argument or the `GITHUB_TOKEN` environment variable.
+
+## How to Run
+
+1.  Navigate to the `scripts` directory within your project (e.g., `cd /path/to/your/project/scripts`).
+2.  Execute the script from your terminal:
+
+    ```bash
+    python sign_releases.py OWNER/REPOSITORY_NAME
+    ```
+    Replace `OWNER/REPOSITORY_NAME` with the target repository (e.g., `nightconcept/almandine`).
+
+### Command-Line Arguments
+
+*   `repo` (Required): The repository name in `owner/repo` format (e.g., `nightconcept/almandine`).
+*   `--github-token YOUR_GITHUB_TOKEN` (Optional): Your GitHub Personal Access Token. If not provided, the script will try to read it from the `GITHUB_TOKEN` environment variable or prompt you to enter it.
+*   `--gpg-program /path/to/gpg` (Optional): Specify the full path to your GPG executable if it's not in your system's PATH (default is `gpg`).
+*   `--num-releases N` (Optional): The number of recent releases to process. Defaults to `5`. The maximum is 30 (a GitHub API limit for some queries, and the OpenSSF check looks at the 30 most recent).
+*   `--skip-already-signed` (Optional): If this flag is present, the script will skip processing an asset if a corresponding `.asc` signature file already exists in the release assets.
+*   `--yes` (Optional): If this flag is present, the script will automatically confirm actions (like signing and uploading) without prompting the user. Use with caution.
+
+### Script Behavior
+
+When executed, the script will:
+1.  Prompt for your GitHub Personal Access Token if not provided via argument or environment variable.
+2.  Prompt for your GPG key passphrase (if your key is passphrase-protected).
+3.  Identify the first available GPG secret key suitable for signing.
+4.  Fetch the specified number of recent releases from the target GitHub repository.
+5.  For each release:
+    a.  Iterate through its assets.
+    b.  Skip any files that appear to be existing signature files (e.g., `.asc`, `.sig`).
+    c.  If `--skip-already-signed` is used, skip assets that already have a corresponding `.asc` signature uploaded.
+    d.  Prompt for confirmation to sign and re-upload each eligible asset (unless `--yes` is used).
+    e.  Download the asset to a temporary local directory.
+    f.  Sign the downloaded asset using the identified GPG key, creating a detached signature file (`.asc`).
+    g.  Upload the newly created `.asc` signature file to the GitHub release.
+    h.  Clean up the temporary downloaded asset and signature file.
+6.  Provide logging output for all actions and any errors encountered.
+
+## Important Considerations
+
+*   **GPG Key Selection:** The script automatically selects the first GPG secret key it finds that is suitable for signing. Ensure the desired key is available to GPG.
+*   **Idempotency:** The `--skip-already-signed` flag helps prevent re-processing assets that have already been signed and had their signatures uploaded.
+*   **Error Handling:** The script includes logging and attempts to handle common errors related to GitHub API interactions, GPG operations, and file system actions.
+*   **Security:**
+    *   Be cautious when entering your GitHub token and GPG passphrase.
+    *   Avoid hardcoding sensitive credentials directly into scripts or committing them to version control. Using environment variables or interactive prompts (as the script does) is preferred.
+*   **API Rate Limits:** While the script processes releases and assets one by one, be mindful of GitHub API rate limits if you are processing a very large number of releases or assets frequently.
+*   **Manual Testing:** It is highly recommended to first test this script on a fork or a test repository with a few sample releases to ensure it behaves as expected with your GPG setup and GitHub token before running it on your main project repository.
+
+
+================================================
+File: scripts/sign_releases.py
+================================================
+import os
+import requests
+import gnupg
+import getpass
+import json
+import argparse
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Constants
+GITHUB_API_URL = "https://api.github.com"
+RELEASES_PER_PAGE = 30 # Max allowed by GitHub API for releases, check looks for 30 most recent
+SIGNATURE_EXTENSIONS = [".minisig", ".asc", ".sig", ".sign", ".sigstore", ".intoto.jsonl"]
+
+def get_github_releases(repo_owner, repo_name, token, num_releases_to_check):
+    """Fetches the specified number of releases from GitHub."""
+    releases = []
+    page = 1
+    while len(releases) < num_releases_to_check:
+        url = f"{GITHUB_API_URL}/repos/{repo_owner}/{repo_name}/releases?per_page={RELEASES_PER_PAGE}&page={page}"
+        headers = {"Authorization": f"token {token}"}
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            current_page_releases = response.json()
+            if not current_page_releases:
+                break # No more releases
+            releases.extend(current_page_releases)
+            if len(current_page_releases) < RELEASES_PER_PAGE:
+                break # Last page
+            page += 1
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error fetching releases: {e}")
+            return None
+        if len(releases) >= num_releases_to_check:
+            break
+    return releases[:num_releases_to_check]
+
+def download_asset(asset_url, asset_name, token):
+    """Downloads a release asset."""
+    headers = {"Authorization": f"token {token}", "Accept": "application/octet-stream"}
+    try:
+        logging.info(f"Downloading asset: {asset_name} from {asset_url}")
+        response = requests.get(asset_url, headers=headers, stream=True)
+        response.raise_for_status()
+        with open(asset_name, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        logging.info(f"Successfully downloaded {asset_name}")
+        return asset_name
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error downloading asset {asset_name}: {e}")
+        return None
+
+def sign_file(gpg, filepath, keyid, passphrase):
+    """Signs a file using GPG and creates a detached signature."""
+    signature_file = f"{filepath}.asc"
+    try:
+        logging.info(f"Signing file: {filepath} with key ID {keyid}")
+        with open(filepath, 'rb') as f:
+            status = gpg.sign_file(f, keyid=keyid, detach=True, output=signature_file, passphrase=passphrase)
+
+        # Check if the signing was successful.
+        # The 'status' object from python-gnupg has a 'status' attribute (string)
+        # and 'stderr'. Success is typically indicated by status.status == 'signature created'.
+        if status and hasattr(status, 'status') and status.status == 'signature created':
+            logging.info(f"Successfully signed {filepath}, signature: {signature_file}")
+            return signature_file
+        else:
+            # Log GPG's actual status and stderr for diagnostics
+            gpg_status_msg = getattr(status, 'status', 'N/A (status object might be None or lack status attribute)')
+            gpg_stderr_msg = getattr(status, 'stderr', 'N/A (status object might be None or lack stderr attribute)')
+            logging.error(f"Error signing file {filepath}: GPG status '{gpg_status_msg}', stderr: '{gpg_stderr_msg}'")
+            if os.path.exists(signature_file): # Clean up partial signature
+                os.remove(signature_file)
+            return None
+    except Exception as e:
+        logging.error(f"Exception during signing of {filepath}: {e}")
+        if os.path.exists(signature_file):
+            os.remove(signature_file)
+        return None
+
+def upload_asset(upload_url_template, filepath, token):
+    """Uploads an asset to a GitHub release."""
+    asset_name = os.path.basename(filepath)
+    # GitHub's upload_url includes path parameters like {?name,label}, remove them.
+    upload_url = upload_url_template.split('{')[0] + f"?name={asset_name}"
+    headers = {
+        "Authorization": f"token {token}",
+        "Content-Type": "application/octet-stream"
+    }
+    try:
+        logging.info(f"Uploading asset: {asset_name} to {upload_url}")
+        with open(filepath, 'rb') as f:
+            response = requests.post(upload_url, headers=headers, data=f)
+        response.raise_for_status()
+        logging.info(f"Successfully uploaded {asset_name}")
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error uploading asset {asset_name}: {e}")
+        if response:
+            logging.error(f"Response content: {response.text}")
+        return None
+    except Exception as e:
+        logging.error(f"An unexpected error occurred during upload of {asset_name}: {e}")
+        return None
+
+def main():
+    parser = argparse.ArgumentParser(description="Sign GitHub release artifacts and re-upload them with signatures.")
+    parser.add_argument("repo", help="Repository name in 'owner/repo' format (e.g., nightconcept/almandine).")
+    parser.add_argument("--github-token", help="GitHub Personal Access Token. If not provided, will try to read from GITHUB_TOKEN env var or prompt.")
+    parser.add_argument("--gpg-program", default="gpg", help="Path to GPG executable (if not in PATH).")
+    parser.add_argument("--num-releases", type=int, default=5, help="Number of recent releases to process (max 30).")
+    parser.add_argument("--skip-already-signed", action='store_true', help="Skip assets if a corresponding signature file already exists in the release.")
+    parser.add_argument("--yes", action='store_true', help="Automatically confirm actions without prompting.")
+
+    args = parser.parse_args()
+
+    repo_owner, repo_name = args.repo.split('/')
+    num_releases_to_check = min(args.num_releases, 30) # Cap at 30
+
+    github_token = args.github_token or os.environ.get("GITHUB_TOKEN")
+    if not github_token:
+        github_token = getpass.getpass("Enter GitHub Personal Access Token: ")
+
+    gpg = gnupg.GPG(gpgbinary=args.gpg_program)
+
+    # Find the first available GPG secret key suitable for signing
+    secret_keys = gpg.list_keys(secret=True)
+    signing_key = None
+    for key in secret_keys:
+        for uid_details in key.get('uids', []):
+            # A simple check, might need refinement based on GPG key capabilities
+            if 'S' in key.get('cap', ''): # Check if key has signing capability
+                signing_key = key
+                break
+        if signing_key:
+            break
+
+    if not signing_key:
+        logging.error("No suitable GPG secret key found for signing. Please ensure you have a GPG key with signing capability.")
+        logging.info("Available secret keys (if any):")
+        for skey in secret_keys:
+             logging.info(f"  KeyID: {skey['keyid']}, UIDs: {skey.get('uids', 'N/A')}, Capabilities: {skey.get('cap', 'N/A')}")
+        return
+
+    gpg_key_id = signing_key['keyid']
+    logging.info(f"Using GPG Key ID: {gpg_key_id} ({signing_key.get('uids', ['No UID'])[0]}) for signing.")
+
+    gpg_passphrase = getpass.getpass(f"Enter GPG passphrase for key {gpg_key_id} (leave blank if none): ")
+
+    logging.info(f"Fetching last {num_releases_to_check} releases for {repo_owner}/{repo_name}...")
+    releases = get_github_releases(repo_owner, repo_name, github_token, num_releases_to_check)
+
+    if not releases:
+        logging.info("No releases found or error fetching releases.")
+        return
+
+    for release in releases:
+        release_name = release.get('name', release['tag_name'])
+        logging.info(f"\nProcessing release: {release_name} (ID: {release['id']}, Tag: {release['tag_name']})")
+
+        if 'assets' not in release or not release['assets']:
+            logging.info(f"No assets found for release {release_name}.")
+            continue
+
+        upload_url_template = release['upload_url']
+        existing_asset_names = {asset['name'] for asset in release['assets']}
+
+        for asset in release['assets']:
+            asset_name = asset['name']
+            asset_url = asset['browser_download_url'] # This is the public URL, need API URL for download
+            asset_api_url = asset['url'] # API URL for asset details and download
+
+            # Skip if it's already a signature file
+            if any(asset_name.endswith(ext) for ext in SIGNATURE_EXTENSIONS):
+                logging.info(f"Skipping signature file: {asset_name}")
+                continue
+
+            # Skip if --skip-already-signed and signature exists
+            signature_filename_asc = f"{asset_name}.asc"
+            if args.skip_already_signed and signature_filename_asc in existing_asset_names:
+                logging.info(f"Signature {signature_filename_asc} already exists for {asset_name}. Skipping.")
+                continue
+
+            if not args.yes:
+                confirm = input(f"Sign and re-upload asset '{asset_name}' for release '{release_name}'? (y/N): ")
+                if confirm.lower() != 'y':
+                    logging.info(f"Skipping asset {asset_name} by user choice.")
+                    continue
+
+            downloaded_file_path = None
+            signed_file_path = None
+            temp_dir = f"temp_release_assets_{release['id']}"
+            os.makedirs(temp_dir, exist_ok=True)
+
+            original_asset_path_in_temp = os.path.join(temp_dir, asset_name)
+
+            try:
+                downloaded_file_path = download_asset(asset_api_url, original_asset_path_in_temp, github_token)
+                if not downloaded_file_path:
+                    continue
+
+                signed_file_path = sign_file(gpg, downloaded_file_path, gpg_key_id, gpg_passphrase)
+                if not signed_file_path:
+                    continue
+
+                # Upload original asset (if it was somehow modified or to ensure it's there)
+                # This is generally not needed if we are just adding signatures,
+                # but could be part of a "refresh" flow. For now, we assume original is fine.
+                # If the workflow is to replace, then we'd upload downloaded_file_path.
+                # For now, we only upload the signature.
+
+                # Upload signature
+                logging.info(f"Uploading signature {os.path.basename(signed_file_path)}...")
+                upload_asset(upload_url_template, signed_file_path, github_token)
+
+            finally:
+                # Clean up temporary files
+                if downloaded_file_path and os.path.exists(downloaded_file_path):
+                    os.remove(downloaded_file_path)
+                if signed_file_path and os.path.exists(signed_file_path):
+                    os.remove(signed_file_path)
+                if os.path.exists(temp_dir) and not os.listdir(temp_dir): # Remove dir if empty
+                    os.rmdir(temp_dir)
+                elif os.path.exists(temp_dir) and os.listdir(temp_dir):
+                    logging.warning(f"Temporary directory {temp_dir} is not empty after processing asset {asset_name}. Manual cleanup may be required.")
+
+
+    logging.info("\nScript finished.")
+
+if __name__ == "__main__":
+    main()
+
+
+
 
 
 
@@ -7791,20 +8336,20 @@ def main():
                 # If current is final (e.g. 0.1.0), new alpha is 0.1.0-alpha.1
                 # If current is rc (e.g. 0.1.0-rc.1), new alpha is 0.1.0-alpha.1
                 # If current is beta (e.g. 0.1.0-beta.1), new alpha is 0.1.0-alpha.1
-                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease=('alpha', 1))
+                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease='alpha.1')
             next_v_str = str(next_v)
         elif bump_type == 'beta':
             if current_v.prerelease and current_v.prerelease[0] == 'beta':
                 next_v = current_v.bump_prerelease(token='beta')
             else: # New beta series, must come from alpha or be a new beta for a version
                 # e.g., 0.1.0-alpha.2 -> 0.1.0-beta.1
-                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease=('beta', 1))
+                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease='beta.1')
             next_v_str = str(next_v)
         elif bump_type == 'rc':
             if current_v.prerelease and current_v.prerelease[0] == 'rc':
                 next_v = current_v.bump_prerelease(token='rc')
             else: # New RC series
-                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease=('rc', 1))
+                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease='rc.1')
             next_v_str = str(next_v)
         elif bump_type == 'promote_to_final':
             if not current_v.prerelease:
@@ -8135,7 +8680,7 @@ jobs:
           if [ "$GOOS" == "windows" ]; then
             BINARY_NAME="almd.exe"
           fi
-          go build -v -o $BINARY_NAME -ldflags="-X main.version=$VERSION" ./cmd/almd
+          go build -v -o $BINARY_NAME -ldflags="-X 'main.version=$VERSION'" ./cmd/almd
           ls -la $BINARY_NAME # Verify binary exists
 
       - name: Archive binary
@@ -8311,3 +8856,334 @@ jobs:
 
 
 
+================================================
+File: .github/workflows/slsa-provenance.yml
+================================================
+name: SLSA Provenance for Go
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on version tags like v1.0.0, v2.3.4-alpha
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref (branch, tag name e.g., "v1.2.3", or commit SHA) to build provenance for.'
+        required: true
+        default: 'main'
+      draft_release:
+        description: "If creating/updating a release, should it be a draft?"
+        required: true
+        default: "false"
+        type: boolean
+
+permissions:
+  # Required for SLSA builder
+  id-token: write # To sign the provenance.
+  # Required for uploading assets to release & creating tags by proxy (if builder does that)
+  contents: write
+  # Required for SLSA builder to read workflow path
+  actions: read
+
+jobs:
+  generate_provenance_args:
+    runs-on: ubuntu-latest
+    outputs:
+      version_for_ldflags: ${{ steps.version_info.outputs.VERSION_FOR_LDFLAGS }}
+      commit_sha: ${{ steps.version_info.outputs.COMMIT_SHA }}
+      commit_date: ${{ steps.version_info.outputs.COMMIT_DATE }}
+      tree_state: ${{ steps.version_info.outputs.TREE_STATE }}
+      effective_release_tag: ${{ steps.version_info.outputs.EFFECTIVE_RELEASE_TAG }}
+      is_prerelease_flag: ${{ steps.version_info.outputs.IS_PRERELEASE }}
+      upload_release_assets: ${{ steps.version_info.outputs.UPLOAD_RELEASE_ASSETS }}
+      actual_ref_to_checkout: ${{ steps.set_ref.outputs.ACTUAL_REF_TO_CHECKOUT }}
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - name: Determine Ref to Checkout
+        id: set_ref
+        run: |
+          REF_TO_CHECKOUT=""
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            REF_TO_CHECKOUT="${{ github.ref }}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            REF_TO_CHECKOUT="${{ github.event.inputs.ref }}"
+          else
+            echo "::error::Unsupported event type or missing ref."
+            exit 1
+          fi
+          echo "ACTUAL_REF_TO_CHECKOUT=$REF_TO_CHECKOUT" >> $GITHUB_OUTPUT
+          echo "Resolved ref to checkout: $REF_TO_CHECKOUT"
+
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ steps.set_ref.outputs.ACTUAL_REF_TO_CHECKOUT }}
+          fetch-depth: 0 # Required for git describe --tags
+
+      - name: Determine Version and Release Info
+        id: version_info
+        shell: bash
+        run: |
+          # Version for ldflags, e.g., v1.2.3 or v1.2.3-10-gabc123-dirty
+          VERSION_FOR_LDFLAGS=$(git describe --tags --always --dirty --match="v*")
+          echo "VERSION_FOR_LDFLAGS=$VERSION_FOR_LDFLAGS" >> $GITHUB_OUTPUT
+          echo "Version for ldflags: $VERSION_FOR_LDFLAGS"
+
+          COMMIT_SHA=$(git rev-parse HEAD)
+          echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "Commit SHA: $COMMIT_SHA"
+
+          COMMIT_DATE=$(git log -1 --pretty=%ct)
+          echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_OUTPUT
+          echo "Commit Date: $COMMIT_DATE"
+
+          TREE_STATE="clean"
+          if ! git diff --quiet; then
+            TREE_STATE="dirty"
+          fi
+          echo "TREE_STATE=$TREE_STATE" >> $GITHUB_OUTPUT
+          echo "Tree State: $TREE_STATE"
+
+          EFFECTIVE_RELEASE_TAG=""
+          UPLOAD_RELEASE_ASSETS="false"
+          IS_PRERELEASE="false"
+
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            # This is a tag push, github.ref_name is the tag (e.g., v1.2.3)
+            EFFECTIVE_RELEASE_TAG="${{ github.ref_name }}"
+            UPLOAD_RELEASE_ASSETS="true"
+            echo "Event: Tag push. Effective Release Tag: $EFFECTIVE_RELEASE_TAG"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # For workflow_dispatch, check if inputs.ref is a valid tag that exists
+            # We use the already checked-out ref for git describe
+            # If VERSION_FOR_LDFLAGS is a clean tag (no extra commits, no -dirty), then it's a tag.
+            # And if that clean tag matches inputs.ref (if inputs.ref was intended as a tag).
+            INPUT_REF="${{ github.event.inputs.ref }}"
+            # Check if INPUT_REF is a simple tag name (e.g. v1.2.3) and if it matches the current fully resolved tag
+            if [[ "$VERSION_FOR_LDFLAGS" == "$INPUT_REF" && ! "$VERSION_FOR_LDFLAGS" == *-* ]]; then
+                EFFECTIVE_RELEASE_TAG="$INPUT_REF"
+                UPLOAD_RELEASE_ASSETS="true"
+                echo "Event: Workflow dispatch for tag. Effective Release Tag: $EFFECTIVE_RELEASE_TAG"
+            else
+                echo "Event: Workflow dispatch for branch/commit/non-clean-tag. No release will be created by default."
+            fi
+          fi
+          echo "EFFECTIVE_RELEASE_TAG=$EFFECTIVE_RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "UPLOAD_RELEASE_ASSETS=$UPLOAD_RELEASE_ASSETS" >> $GITHUB_OUTPUT
+
+          if [[ -n "$EFFECTIVE_RELEASE_TAG" && ( "$EFFECTIVE_RELEASE_TAG" == *-alpha* || "$EFFECTIVE_RELEASE_TAG" == *-beta* || "$EFFECTIVE_RELEASE_TAG" == *-rc* ) ]]; then
+            IS_PRERELEASE="true"
+          fi
+          echo "IS_PRERELEASE=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "Is Prerelease: $IS_PRERELEASE"
+
+  build_with_provenance:
+    needs: generate_provenance_args
+    runs-on: ubuntu-latest # The SLSA builder runs on Ubuntu
+    permissions:
+      id-token: write # To sign the provenance.
+      contents: write # To upload assets to release.
+      actions: read   # To read the workflow path.
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - name: Run SLSA Go Builder
+        uses: slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v2.1.0
+        with:
+          go-version: '1.21' # As per PRD
+          config-file: .slsa-goreleaser/${{ matrix.os }}-${{ matrix.arch }}.yml
+          evaluated-envs: "VERSION:${{ needs.generate_provenance_args.outputs.version_for_ldflags }},COMMIT:${{ needs.generate_provenance_args.outputs.commit_sha }},COMMIT_DATE:${{ needs.generate_provenance_args.outputs.commit_date }},TREE_STATE:${{ needs.generate_provenance_args.outputs.tree_state }}"
+          upload-assets: ${{ needs.generate_provenance_args.outputs.upload_release_assets }}
+          upload-tag-name: ${{ needs.generate_provenance_args.outputs.effective_release_tag }}
+          prerelease: ${{ needs.generate_provenance_args.outputs.is_prerelease_flag }}
+          draft-release: ${{ github.event.inputs.draft_release }}
+          # private-repository: false # Default, set to true if this is a private repo and you accept name leakage
+          # compile-builder: true # Only if needed for workaround for specific builder versions/issues
+
+
+
+================================================
+File: .slsa-goreleaser/darwin-amd64.yml
+================================================
+# SLSA Go builder configuration for Darwin AMD64
+version: 1
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
+
+flags:
+  - -trimpath
+  # - -tags=netgo # Optional, include if your project uses netgo or other build tags
+
+goos: darwin
+goarch: amd64
+
+# Entrypoint to compile.
+main: ./cmd/almd
+
+# Binary output name pattern.
+# {{ .Os }} will be replaced by goos field.
+# {{ .Arch }} will be replaced by goarch field.
+binary: almd-{{ .Os }}-{{ .Arch }}
+
+# ldflags generated dynamically in the workflow.
+# These {{ .Env.VAR_NAME }} will be substituted by `evaluated-envs` in the GitHub workflow.
+ldflags:
+  - "-X main.version={{ .Env.VERSION }}"
+  # - "-X main.Commit={{ .Env.COMMIT }}"
+  # - "-X main.CommitDate={{ .Env.COMMIT_DATE }}"
+  # - "-X main.TreeState={{ .Env.TREE_STATE }}"
+
+
+================================================
+File: .slsa-goreleaser/darwin-arm64.yml
+================================================
+# SLSA Go builder configuration for Darwin ARM64
+version: 1
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
+
+flags:
+  - -trimpath
+  # - -tags=netgo # Optional, include if your project uses netgo or other build tags
+
+goos: darwin
+goarch: arm64
+
+# Entrypoint to compile.
+main: ./cmd/almd
+
+# Binary output name pattern.
+# {{ .Os }} will be replaced by goos field.
+# {{ .Arch }} will be replaced by goarch field.
+binary: almd-{{ .Os }}-{{ .Arch }}
+
+# ldflags generated dynamically in the workflow.
+# These {{ .Env.VAR_NAME }} will be substituted by `evaluated-envs` in the GitHub workflow.
+ldflags:
+  - "-X main.version={{ .Env.VERSION }}"
+  # - "-X main.Commit={{ .Env.COMMIT }}"
+  # - "-X main.CommitDate={{ .Env.COMMIT_DATE }}"
+  # - "-X main.TreeState={{ .Env.TREE_STATE }}"
+
+
+================================================
+File: .slsa-goreleaser/linux-amd64.yml
+================================================
+# SLSA Go builder configuration for Linux AMD64
+version: 1
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
+
+flags:
+  - -trimpath
+  # - -tags=netgo # Optional, include if your project uses netgo or other build tags
+
+goos: linux
+goarch: amd64
+
+# Entrypoint to compile.
+main: ./cmd/almd
+
+# Binary output name pattern.
+# {{ .Os }} will be replaced by goos field.
+# {{ .Arch }} will be replaced by goarch field.
+binary: almd-{{ .Os }}-{{ .Arch }}
+
+# ldflags generated dynamically in the workflow.
+# These {{ .Env.VAR_NAME }} will be substituted by `evaluated-envs` in the GitHub workflow.
+ldflags:
+  - "-X main.version={{ .Env.VERSION }}"
+  # - "-X main.Commit={{ .Env.COMMIT }}"
+  # - "-X main.CommitDate={{ .Env.COMMIT_DATE }}"
+  # - "-X main.TreeState={{ .Env.TREE_STATE }}"
+
+
+================================================
+File: .slsa-goreleaser/linux-arm64.yml
+================================================
+# SLSA Go builder configuration for Linux ARM64
+version: 1
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
+
+flags:
+  - -trimpath
+  # - -tags=netgo # Optional, include if your project uses netgo or other build tags
+
+goos: linux
+goarch: arm64
+
+# Entrypoint to compile.
+main: ./cmd/almd
+
+# Binary output name pattern.
+# {{ .Os }} will be replaced by goos field.
+# {{ .Arch }} will be replaced by goarch field.
+binary: almd-{{ .Os }}-{{ .Arch }}
+
+# ldflags generated dynamically in the workflow.
+# These {{ .Env.VAR_NAME }} will be substituted by `evaluated-envs` in the GitHub workflow.
+ldflags:
+  - "-X main.version={{ .Env.VERSION }}"
+  # - "-X main.Commit={{ .Env.COMMIT }}"
+  # - "-X main.CommitDate={{ .Env.COMMIT_DATE }}"
+  # - "-X main.TreeState={{ .Env.TREE_STATE }}"
+
+
+================================================
+File: .slsa-goreleaser/windows-amd64.yml
+================================================
+# SLSA Go builder configuration for Windows AMD64
+version: 1
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
+
+flags:
+  - -trimpath
+  # - -tags=netgo # Optional, include if your project uses netgo or other build tags
+
+goos: windows
+goarch: amd64
+
+# Entrypoint to compile.
+main: ./cmd/almd
+
+# Binary output name pattern.
+# {{ .Os }} will be replaced by goos field.
+# {{ .Arch }} will be replaced by goarch field.
+# The SLSA builder automatically appends .exe for windows.
+binary: almd-{{ .Os }}-{{ .Arch }}
+
+# ldflags generated dynamically in the workflow.
+# These {{ .Env.VAR_NAME }} will be substituted by `evaluated-envs` in the GitHub workflow.
+ldflags:
+  - "-X main.version={{ .Env.VERSION }}"
+  # - "-X main.Commit={{ .Env.COMMIT }}"
+  # - "-X main.CommitDate={{ .Env.COMMIT_DATE }}"
+  # - "-X main.TreeState={{ .Env.TREE_STATE }}"
