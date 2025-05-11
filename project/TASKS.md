@@ -671,6 +671,10 @@
     -   [x] Enabled Python virtual environment (`venv.enable = true`).
     -   [x] Added `gitingest` to `venv.requirements`.
     -   [x] Manual Verification: Run `devenv shell` and confirm `gitingest` command is available.
+
+-   [x] **Task 15.2: Fix `pre-commit-hooks` deprecated stage warning (2025-05-10)**
+    -   [x] Ran `pre-commit autoupdate --repo https://github.com/pre-commit/pre-commit-hooks`.
+    -   [x] Verified `.pre-commit-config.yaml` updated to `rev: v5.0.0` for `pre-commit-hooks`.
 ---
 
 ## Milestone 16: Code Standards Application (2025-05-09)
