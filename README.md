@@ -96,6 +96,14 @@ golangci-lint run --fix
 gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,project/digest.txt .
 ```
 
+### sign
+
+Sign releases with GPG key.
+
+```sh
+python sign_releases.py nightconcept/almandine
+```
+
 ### yolo
 
 Build and install the `almd` binary to Windows.
