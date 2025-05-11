@@ -21,7 +21,6 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Helper function to parse CLI arguments for the add command.
 func parseAddArgs(cCtx *cli.Context) (sourceURLInput, targetDir, customName string, verbose bool, err error) {
 	if cCtx.NArg() > 0 {
 		sourceURLInput = cCtx.Args().Get(0)
@@ -34,7 +33,6 @@ func parseAddArgs(cCtx *cli.Context) (sourceURLInput, targetDir, customName stri
 	return
 }
 
-// Helper function to process the source URL.
 func processSourceURL(sourceURLInput string) (*source.ParsedSourceInfo, error) {
 	parsedInfo, err := source.ParseSourceURL(sourceURLInput)
 	if err != nil {
@@ -43,7 +41,6 @@ func processSourceURL(sourceURLInput string) (*source.ParsedSourceInfo, error) {
 	return parsedInfo, nil
 }
 
-// Helper function to download the dependency file.
 func downloadDependency(rawURL string) ([]byte, error) {
 	fileContent, err := downloader.DownloadFile(rawURL)
 	if err != nil {
@@ -52,7 +49,6 @@ func downloadDependency(rawURL string) ([]byte, error) {
 	return fileContent, nil
 }
 
-// Helper function to determine manifest and disk filenames.
 func determineFileNames(parsedInfo *source.ParsedSourceInfo, customName string) (dependencyNameInManifest, fileNameOnDisk string, err error) {
 	suggestedBaseName := strings.TrimSuffix(parsedInfo.SuggestedFilename, filepath.Ext(parsedInfo.SuggestedFilename))
 	suggestedExtension := filepath.Ext(parsedInfo.SuggestedFilename)
@@ -74,7 +70,6 @@ func determineFileNames(parsedInfo *source.ParsedSourceInfo, customName string) 
 	return dependencyNameInManifest, fileNameOnDisk, nil
 }
 
-// Helper function to save the dependency file to disk.
 func saveDependencyFile(projectRoot, targetDir, fileNameOnDisk string, fileContent []byte) (fullPath, relativeDestPath string, err error) {
 	fullPath = filepath.Join(projectRoot, targetDir, fileNameOnDisk)
 	relativeDestPath = filepath.ToSlash(filepath.Join(targetDir, fileNameOnDisk))
@@ -90,7 +85,6 @@ func saveDependencyFile(projectRoot, targetDir, fileNameOnDisk string, fileConte
 	return fullPath, relativeDestPath, nil
 }
 
-// Helper function to calculate the integrity hash for the lockfile.
 func calculateIntegrityHash(parsedInfo *source.ParsedSourceInfo, fileContent []byte) (string, error) {
 	fileHashSHA256, hashErr := hasher.CalculateSHA256(fileContent)
 	if hashErr != nil {
@@ -123,7 +117,6 @@ func calculateIntegrityHash(parsedInfo *source.ParsedSourceInfo, fileContent []b
 	return fileHashSHA256, nil
 }
 
-// Helper function to update the project.toml manifest.
 func updateProjectManifest(projectRoot, dependencyNameInManifest, canonicalURL, relativeDestPath string) error {
 	proj, loadTomlErr := config.LoadProjectToml(projectRoot)
 	if loadTomlErr != nil {
@@ -148,7 +141,6 @@ func updateProjectManifest(projectRoot, dependencyNameInManifest, canonicalURL, 
 	return nil
 }
 
-// Helper function to update the almd-lock.toml lockfile.
 func updateLockfile(projectRoot, dependencyNameInManifest, rawURL, relativeDestPath, integrityHash string) error {
 	lf, loadLockErr := lockfile.Load(projectRoot)
 	if loadLockErr != nil {
@@ -175,40 +167,45 @@ func AddCmd() *cli.Command {
 			&cli.StringFlag{Name: "name", Aliases: []string{"n"}, Usage: "Specify the name for the dependency (defaults to filename from URL)"},
 			&cli.BoolFlag{Name: "verbose", Usage: "Enable verbose output"},
 		},
-		Action: func(cCtx *cli.Context) (err error) {
+		Action: func(cCtx *cli.Context) (err error) { // Named return 'err' for defer to access
 			startTime := time.Now()
 			projectRoot := "." // Assuming current directory is project root
 
-			sourceURLInput, targetDir, customName, verbose, err := parseAddArgs(cCtx)
-			if err != nil {
-				return cli.Exit(fmt.Sprintf("Error: %v", err), 1)
+			sourceURLInput, targetDir, customName, verbose, parseErr := parseAddArgs(cCtx)
+			if parseErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error parsing 'add' arguments: %v", parseErr), 1)
+				return
 			}
 			_ = verbose // Placeholder for future verbose logging
 
-			parsedInfo, err := processSourceURL(sourceURLInput)
-			if err != nil {
-				return cli.Exit(fmt.Sprintf("Error: %v", err), 1)
+			parsedInfo, processURLErr := processSourceURL(sourceURLInput)
+			if processURLErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error processing source URL '%s': %v", sourceURLInput, processURLErr), 1)
+				return
 			}
 
-			fileContent, err := downloadDependency(parsedInfo.RawURL)
-			if err != nil {
-				return cli.Exit(fmt.Sprintf("Error: %v", err), 1)
+			fileContent, downloadErr := downloadDependency(parsedInfo.RawURL)
+			if downloadErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error downloading from '%s': %v", parsedInfo.RawURL, downloadErr), 1)
+				return
 			}
 
-			dependencyNameInManifest, fileNameOnDisk, err := determineFileNames(parsedInfo, customName)
-			if err != nil {
-				return cli.Exit(fmt.Sprintf("Error: %v", err), 1)
+			dependencyNameInManifest, fileNameOnDisk, determineNamesErr := determineFileNames(parsedInfo, customName)
+			if determineNamesErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error determining file names: %v", determineNamesErr), 1)
+				return
 			}
 
-			fullPath, relativeDestPath, err := saveDependencyFile(projectRoot, targetDir, fileNameOnDisk, fileContent)
-			fileWritten := err == nil || (err != nil && fullPath != "") // file might be partially written on error
+			fullPath, relativeDestPath, saveFileErr := saveDependencyFile(projectRoot, targetDir, fileNameOnDisk, fileContent)
+			// fileWritten is true if saveFileErr is nil, or if saveFileErr is not nil but fullPath was determined (meaning an attempt to write was made).
+			fileWritten := saveFileErr == nil || (saveFileErr != nil && fullPath != "")
 
-			// Defer cleanup logic
+			// Defer cleanup logic. This runs when the Action function returns.
+			// It checks the Action's named return 'err'.
 			defer func() {
-				if err != nil && fileWritten { // If an error occurred AND a file was (potentially partially) written
+				if err != nil && fileWritten { // If the Action is returning an error AND a file was (potentially partially) written
 					cleanupErr := os.Remove(fullPath)
 					if cleanupErr != nil {
-						// Use cCtx.App.ErrWriter if available for consistent error output
 						var errWriter io.Writer = os.Stderr
 						if cCtx.App != nil && cCtx.App.ErrWriter != nil {
 							errWriter = cCtx.App.ErrWriter
@@ -218,28 +215,29 @@ func AddCmd() *cli.Command {
 				}
 			}()
 
-			if err != nil { // This error is from saveDependencyFile
-				return cli.Exit(fmt.Sprintf("Error: %v", err), 1)
+			if saveFileErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error saving dependency file to '%s': %v. Attempting to clean up.", fullPath, saveFileErr), 1)
+				return // This sets Action's 'err' and triggers the defer.
 			}
 			// At this point, file is successfully written.
-			// Subsequent errors will trigger the deferred cleanup.
+			// Subsequent errors will set Action's 'err' and trigger the deferred cleanup.
 
-			integrityHash, err := calculateIntegrityHash(parsedInfo, fileContent)
-			if err != nil {
-				// Error from calculateIntegrityHash, deferred cleanup will run.
-				return cli.Exit(fmt.Sprintf("Error: %v. File '%s' was saved but is now being cleaned up.", err, fullPath), 1)
+			integrityHash, integrityHashErr := calculateIntegrityHash(parsedInfo, fileContent)
+			if integrityHashErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error calculating integrity hash: %v. File '%s' was saved but is now being cleaned up.", integrityHashErr, fullPath), 1)
+				return
 			}
 
-			err = updateProjectManifest(projectRoot, dependencyNameInManifest, parsedInfo.CanonicalURL, relativeDestPath)
-			if err != nil {
-				// Error from updateProjectManifest, deferred cleanup will run.
-				return cli.Exit(fmt.Sprintf("Error: %v. File '%s' was saved but is now being cleaned up. %s may be in an inconsistent state.", err, fullPath, config.ProjectTomlName), 1)
+			manifestErr := updateProjectManifest(projectRoot, dependencyNameInManifest, parsedInfo.CanonicalURL, relativeDestPath)
+			if manifestErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error updating project manifest: %v. File '%s' was saved but is now being cleaned up. %s may be in an inconsistent state.", manifestErr, fullPath, config.ProjectTomlName), 1)
+				return
 			}
 
-			err = updateLockfile(projectRoot, dependencyNameInManifest, parsedInfo.RawURL, relativeDestPath, integrityHash)
-			if err != nil {
-				// Error from updateLockfile, deferred cleanup will run.
-				return cli.Exit(fmt.Sprintf("Error: %v. File '%s' saved and %s updated, but lockfile operation failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", err, fullPath, config.ProjectTomlName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1)
+			lockfileErr := updateLockfile(projectRoot, dependencyNameInManifest, parsedInfo.RawURL, relativeDestPath, integrityHash)
+			if lockfileErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error updating lockfile: %v. File '%s' saved and %s updated, but lockfile operation failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", lockfileErr, fullPath, config.ProjectTomlName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1)
+				return
 			}
 
 			// Success: print output

@@ -708,12 +708,19 @@
     -   [ ] Create a shared internal test utility package (e.g., `internal/testutil` or `internal/cli/testhelper`).
     -   [ ] Move common helpers to this shared package and update tests to use them.
 
--   [ ] **Task 17.5: Standardize Error Handling in CLI Commands (2025-05-09)**
-    -   [ ] Review error handling and cleanup strategies in `add.go`, `remove.go`, and `install.go`.
-    -   [ ] Define and apply a consistent approach for reporting errors to the user (via `cli.Exit` or other means).
-    -   [ ] Ensure that partial changes are appropriately handled (e.g., cleanup of downloaded files if subsequent manifest/lockfile updates fail).
+-   [x] **Task 17.5: Standardize Error Handling in CLI Commands (2025-05-09)**
+    -   [x] Review error handling and cleanup strategies in `add.go`, `remove.go`, and `install.go`.
+    -   [x] Define and apply a consistent approach for reporting errors to the user (via `cli.Exit` or other means).
+    -   [x] Ensure that partial changes are appropriately handled (e.g., cleanup of downloaded files if subsequent manifest/lockfile updates fail).
 
 -   [ ] **Task 17.6: Review Installer Scripts (`install.ps1`, `install.sh`) (2025-05-09)**
     -   [ ] Review `install.ps1` and `install.sh` for clarity, robustness, and potential areas for simplification.
     -   [ ] Document any shared logic or installation philosophy to ensure consistency if one script is updated.
     -   [ ] Consider if any parts of the scripts could be made more maintainable.
+---
+
+## Milestone 12: Code Quality and Refinements
+
+-   [x] **Task 12.1: Standardize Comments in CLI Commands (2025-05-10)**
+    -   [x] Reviewed and cleaned up comments in `internal/cli/add/add.go` to remove unnecessary helper function comments, aligning with Section 5.4 of coding standards.
+    -   [x] Reviewed `internal/cli/remove/remove.go` and confirmed its comments adhere to project standards (Section 5.4).
