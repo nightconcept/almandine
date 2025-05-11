@@ -713,14 +713,16 @@
     -   [x] Define and apply a consistent approach for reporting errors to the user (via `cli.Exit` or other means).
     -   [x] Ensure that partial changes are appropriately handled (e.g., cleanup of downloaded files if subsequent manifest/lockfile updates fail).
 
--   [ ] **Task 17.6: Review Installer Scripts (`install.ps1`, `install.sh`) (2025-05-09)**
-    -   [ ] Review `install.ps1` and `install.sh` for clarity, robustness, and potential areas for simplification.
-    -   [ ] Document any shared logic or installation philosophy to ensure consistency if one script is updated.
-    -   [ ] Consider if any parts of the scripts could be made more maintainable.
----
-
-## Milestone 12: Code Quality and Refinements
-
--   [x] **Task 12.1: Standardize Comments in CLI Commands (2025-05-10)**
-    -   [x] Reviewed and cleaned up comments in `internal/cli/add/add.go` to remove unnecessary helper function comments, aligning with Section 5.4 of coding standards.
-    -   [x] Reviewed `internal/cli/remove/remove.go` and confirmed its comments adhere to project standards (Section 5.4).
+-   [x] **Task 17.6: Review Installer Scripts (`install.ps1`, `install.sh`) (2025-05-09)**
+    -   [x] Review `install.ps1` and `install.sh` for clarity, robustness, and potential areas for simplification.
+        -   Both scripts are generally clear, robust, and maintainable.
+        -   Key finding: Both scripts download the full source archive and extract the binary/necessary files.
+        -   Recommendation: Standardize by downloading pre-compiled release assets from GitHub Releases for the target OS/architecture. This aligns with common practice and the `self-update` mechanism, simplifies scripts, and reduces download size.
+        -   `install.ps1`: Downloads source, expects `almd.exe` in extracted root.
+        -   `install.sh`: Downloads source, expects `install/almd` (executable) and `src/` (copied to `$APP_HOME`).
+        -   The role and content of `$APP_HOME` should be consistent based on `almd`'s runtime needs. If `almd` is a self-contained binary, `$APP_HOME` might only be for user-generated config/data.
+    -   [x] Document any shared logic or installation philosophy to ensure consistency if one script is updated.
+        -   Shared philosophy: Install latest/specific version from GitHub or local build, place executable in PATH, use temp dirs, advise on PATH configuration.
+    -   [x] Consider if any parts of the scripts could be made more maintainable.
+        -   Current maintainability is good. Switching to release assets would be the main improvement.
+        -   Minor: `ps1` could improve `curl/wget` exit code checks. `sh` could use `jq` for API parsing if available and improve `wget` error checks.
