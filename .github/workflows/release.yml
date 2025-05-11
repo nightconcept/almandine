@@ -1,0 +1,169 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Type of version bump (alpha, beta, rc, promote_to_final, patch, minor, major)"
+        required: true
+        default: "alpha"
+        type: choice
+        options:
+          - alpha
+          - beta
+          - rc
+          - promote_to_final
+          - patch
+          - minor
+          - major
+      draft_release:
+        description: "Create as a draft release?"
+        required: true
+        default: "false"
+        type: boolean
+
+jobs:
+  determine_version:
+    runs-on: ubuntu-latest
+    outputs:
+      next_version: ${{ steps.get_version.outputs.next_version }}
+      is_prerelease: ${{ steps.get_version.outputs.is_prerelease }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required to fetch all tags
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install semver
+
+      - name: Determine next version
+        id: get_version
+        env:
+          BUMP_TYPE: ${{ github.event.inputs.bump_type }}
+        run: python .github/scripts/determine_next_version.py
+
+  build_and_release:
+    needs: determine_version
+    if: needs.determine_version.outputs.next_version != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create releases and tags
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+        exclude: # Add exclusions if some combinations are not needed/supported
+          - goos: windows
+            goarch: arm64 # Example: if windows arm64 is not a target
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21' # As per PRD
+
+      - name: Set version output
+        id: version_output
+        run: |
+          echo "NEXT_VERSION=${{ needs.determine_version.outputs.next_version }}" >> $GITHUB_ENV
+          echo "IS_PRERELEASE=${{ needs.determine_version.outputs.is_prerelease }}" >> $GITHUB_ENV
+
+      - name: Build application
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ env.NEXT_VERSION }}
+        run: |
+          echo "Building for $GOOS/$GOARCH with version $VERSION"
+          BINARY_NAME="almd"
+          if [ "$GOOS" == "windows" ]; then
+            BINARY_NAME="almd.exe"
+          fi
+          go build -v -o $BINARY_NAME -ldflags="-X main.version=$VERSION" ./cmd/almd
+          ls -la $BINARY_NAME # Verify binary exists
+
+      - name: Archive binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION_NO_V: ${{ env.NEXT_VERSION }} # Assuming NEXT_VERSION has 'v' prefix
+        run: |
+          VERSION_TAG=${VERSION_NO_V#v} # Remove 'v' prefix for filename
+          ARCHIVE_NAME="almd_${VERSION_TAG}_${GOOS}_${GOARCH}"
+          BINARY_NAME="almd"
+          if [ "$GOOS" == "windows" ]; then
+            BINARY_NAME="almd.exe"
+            zip "${ARCHIVE_NAME}.zip" $BINARY_NAME
+            echo "ASSET_NAME=${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
+            echo "ASSET_PATH=${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
+          else
+            tar -czvf "${ARCHIVE_NAME}.tar.gz" $BINARY_NAME
+            echo "ASSET_NAME=${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
+            echo "ASSET_PATH=${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
+          fi
+          ls -la $ASSET_PATH # Verify archive exists
+
+      - name: Upload artifact for this job
+        uses: actions/upload-artifact@v4
+        with:
+          name: almd-binaries-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ env.ASSET_PATH }}
+
+  create_release_tag:
+    needs: [determine_version, build_and_release] # Ensure build_and_release completes for all platforms
+    runs-on: ubuntu-latest
+    if: needs.determine_version.outputs.next_version != ''
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Git Tag
+        env:
+          NEXT_VERSION: ${{ needs.determine_version.outputs.next_version }}
+        run: |
+          echo "Creating tag $NEXT_VERSION"
+          git tag $NEXT_VERSION
+          git push origin $NEXT_VERSION
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts # Download all artifacts to this directory
+          # No specific name means download all artifacts from the run
+
+      - name: List downloaded artifacts
+        run: |
+          ls -R release-artifacts
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.determine_version.outputs.next_version }}
+          name: Release ${{ needs.determine_version.outputs.next_version }}
+          body: |
+            Automated release for version ${{ needs.determine_version.outputs.next_version }}.
+            See CHANGELOG.md for details (if available).
+          draft: ${{ github.event.inputs.draft_release == 'true' }}
+          prerelease: ${{ needs.determine_version.outputs.is_prerelease == 'true' }}
+          files: |
+            release-artifacts/almd-binaries-linux-amd64/*.tar.gz
+            release-artifacts/almd-binaries-linux-arm64/*.tar.gz
+            release-artifacts/almd-binaries-windows-amd64/*.zip
+            release-artifacts/almd-binaries-darwin-amd64/*.tar.gz
+            release-artifacts/almd-binaries-darwin-arm64/*.tar.gz

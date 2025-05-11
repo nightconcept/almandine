@@ -730,3 +730,44 @@
     -   [x] Consider if any parts of the scripts could be made more maintainable.
         -   Current maintainability is good. Switching to release assets would be the main improvement.
         -   Minor: `ps1` could improve `curl/wget` exit code checks. `sh` could use `jq` for API parsing if available and improve `wget` error checks.
+
+---
+
+## Milestone 18: GitHub Actions Release Workflow (2025-05-10)
+
+**Goal:** Create a GitHub Action workflow to automate the building and releasing of Almandine.
+
+-   [x] **Task 18.1: Create GitHub Action for Releases**
+    -   [x] Define workflow trigger (e.g., manual `workflow_dispatch`).
+    -   [x] Implement versioning logic:
+        -   [x] Start at `0.2.0-alpha.1`.
+        -   [x] Fetch existing tags to determine the current latest version.
+        -   [x] Auto-increment pre-release number (e.g., `0.2.0-alpha.1` -> `0.2.0-alpha.2`).
+        -   [x] Handle promotion from alpha to beta, rc, and final release (e.g., `0.2.0-alpha.N` -> `0.2.0-beta.1` -> `0.2.0-rc.1` -> `0.2.0`).
+    -   [x] Implement build steps for Windows, macOS, and Linux using Go cross-compilation.
+        -   [x] Ensure `main.version` is correctly embedded using ldflags.
+    -   [x] Create release artifacts (e.g., zipped binaries).
+    -   [x] Create a Git tag for the new version.
+    -   [x] Create a GitHub Release, attaching artifacts and generating basic release notes.
+    -   [x] Document how to use the release workflow.
+        -   **Usage Instructions:**
+            1.  Navigate to the "Actions" tab in your GitHub repository.
+            2.  Under "Workflows", find and select "Create Release".
+            3.  Click the "Run workflow" button.
+            4.  Choose the `bump_type` from the dropdown:
+                *   `alpha`: Increments or starts an alpha version (e.g., `v0.2.0-alpha.1` -> `v0.2.0-alpha.2`, or `v0.2.0` -> `v0.2.0-alpha.1`). Use this for the very first release if no `v0.2.0-alpha.X` tags exist.
+                *   `beta`: Increments or starts a beta version (e.g., `v0.2.0-alpha.2` -> `v0.2.0-beta.1`).
+                *   `rc`: Increments or starts a release candidate (e.g., `v0.2.0-beta.1` -> `v0.2.0-rc.1`).
+                *   `promote_to_final`: Promotes the latest pre-release to a final version (e.g., `v0.2.0-rc.1` -> `v0.2.0`).
+                *   `patch`: Bumps the patch version of the latest final release (e.g., `v0.2.0` -> `v0.2.1`).
+                *   `minor`: Bumps the minor version of the latest final release (e.g., `v0.2.1` -> `v0.3.0`).
+                *   `major`: Bumps the major version of the latest final release (e.g., `v0.3.0` -> `v1.0.0`).
+            5.  Decide if the release should be a `draft_release` (Yes/No).
+            6.  Click "Run workflow".
+            7.  The action will:
+                *   Determine the next version based on existing tags and the chosen `bump_type`.
+                *   Build binaries for Linux (amd64, arm64), macOS (amd64, arm64), and Windows (amd64).
+                *   Create a new Git tag with the determined version.
+                *   Create a GitHub Release with the new tag, attaching the built binaries.
+            8.  **Important:** Ensure your `main.version` variable in `cmd/almd/main.go` is correctly set up to be populated by `ldflags` during the build process (e.g., `var version string` in the main package, and `cli.App{ Version: version, ...}`). The workflow uses `go build -ldflags="-X main.version=$VERSION"`.
+            9.  The initial release, if no tags like `v0.2.0-alpha.X` exist, should be triggered with `bump_type: alpha`. This will create `v0.2.0-alpha.1`.

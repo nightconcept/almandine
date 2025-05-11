@@ -9,6 +9,7 @@ Directory structure:
     ├── go.sum
     ├── install.ps1
     ├── install.sh
+    ├── .devenv.flake.nix
     ├── .envrc
     ├── .pre-commit-config.yaml
     ├── cmd/
@@ -33,40 +34,44 @@ Directory structure:
     │   │   │   └── remove_test.go
     │   │   └── self/
     │   │       └── self.go
-    │   └── core/
-    │       ├── config/
-    │       │   ├── config.go
-    │       │   └── config_test.go
-    │       ├── downloader/
-    │       │   ├── downloader.go
-    │       │   └── downloader_test.go
-    │       ├── hasher/
-    │       │   ├── hasher.go
-    │       │   └── hasher_test.go
-    │       ├── lockfile/
-    │       │   ├── lockfile.go
-    │       │   └── lockfile_test.go
-    │       ├── project/
-    │       │   ├── project.go
-    │       │   └── project_test.go
-    │       └── source/
-    │           ├── github_api.go
-    │           ├── github_api_test.go
-    │           ├── source.go
-    │           └── source_test.go
+    │   ├── core/
+    │   │   ├── config/
+    │   │   │   ├── config.go
+    │   │   │   └── config_test.go
+    │   │   ├── downloader/
+    │   │   │   ├── downloader.go
+    │   │   │   └── downloader_test.go
+    │   │   ├── hasher/
+    │   │   │   ├── hasher.go
+    │   │   │   └── hasher_test.go
+    │   │   ├── lockfile/
+    │   │   │   ├── lockfile.go
+    │   │   │   └── lockfile_test.go
+    │   │   ├── project/
+    │   │   │   ├── project.go
+    │   │   │   └── project_test.go
+    │   │   └── source/
+    │   │       ├── github_api.go
+    │   │       ├── github_api_test.go
+    │   │       ├── source.go
+    │   │       └── source_test.go
+    │   └── testutil/
     ├── project/
     │   ├── PRD.md
     │   └── TASKS.md
-    ├── src/
-    │   └── lib/
     ├── .cursor/
+    ├── .devenv/
+    ├── .direnv/
     ├── .github/
     │   ├── copilot-instructions.md
     │   ├── dependabot.yml
+    │   ├── scripts/
+    │   │   └── determine_next_version.py
     │   └── workflows/
     │       ├── ci.yml
     │       ├── codeql.yml
     │       ├── dependency-review.yml
+    │       ├── release.yml
     │       └── scorecard.yml
     └── .roo/
 
@@ -778,6 +783,175 @@ rm -rf "$TMP_DIR"
 
 
 ================================================
+File: .devenv.flake.nix
+================================================
+{
+  inputs =
+    let
+      version = "1.6.0";
+system = "aarch64-darwin";
+devenv_root = "/Users/danny/Documents/GitHub/almandine";
+devenv_dotfile = ./.devenv;
+devenv_dotfile_string = ".devenv";
+container_name = null;
+devenv_tmpdir = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/";
+devenv_runtime = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/devenv-8811323";
+devenv_istesting = false;
+devenv_direnvrc_latest_version = 1;
+
+        in {
+        git-hooks.url = "github:cachix/git-hooks.nix";
+      git-hooks.inputs.nixpkgs.follows = "nixpkgs";
+      pre-commit-hooks.follows = "git-hooks";
+      nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
+      devenv.url = "github:cachix/devenv?dir=src/modules";
+      } // (if builtins.pathExists (devenv_dotfile + "/flake.json")
+      then builtins.fromJSON (builtins.readFile (devenv_dotfile +  "/flake.json"))
+      else { });
+
+      outputs = { nixpkgs, ... }@inputs:
+        let
+          version = "1.6.0";
+system = "aarch64-darwin";
+devenv_root = "/Users/danny/Documents/GitHub/almandine";
+devenv_dotfile = ./.devenv;
+devenv_dotfile_string = ".devenv";
+container_name = null;
+devenv_tmpdir = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/";
+devenv_runtime = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/devenv-8811323";
+devenv_istesting = false;
+devenv_direnvrc_latest_version = 1;
+
+            devenv =
+            if builtins.pathExists (devenv_dotfile + "/devenv.json")
+            then builtins.fromJSON (builtins.readFile (devenv_dotfile + "/devenv.json"))
+            else { };
+          getOverlays = inputName: inputAttrs:
+            map
+              (overlay:
+                let
+                  input = inputs.${inputName} or (throw "No such input `${inputName}` while trying to configure overlays.");
+                in
+                  input.overlays.${overlay} or (throw "Input `${inputName}` has no overlay called `${overlay}`. Supported overlays: ${nixpkgs.lib.concatStringsSep ", " (builtins.attrNames input.overlays)}"))
+              inputAttrs.overlays or [ ];
+          overlays = nixpkgs.lib.flatten (nixpkgs.lib.mapAttrsToList getOverlays (devenv.inputs or { }));
+          pkgs = import nixpkgs {
+            inherit system;
+            config = {
+              allowUnfree = devenv.allowUnfree or false;
+              allowBroken = devenv.allowBroken or false;
+              permittedInsecurePackages = devenv.permittedInsecurePackages or [ ];
+            };
+            inherit overlays;
+          };
+          lib = pkgs.lib;
+          importModule = path:
+            if lib.hasPrefix "./" path
+            then if lib.hasSuffix ".nix" path
+            then ./. + (builtins.substring 1 255 path)
+            else ./. + (builtins.substring 1 255 path) + "/devenv.nix"
+            else if lib.hasPrefix "../" path
+            then throw "devenv: ../ is not supported for imports"
+            else
+              let
+                paths = lib.splitString "/" path;
+                name = builtins.head paths;
+                input = inputs.${name} or (throw "Unknown input ${name}");
+                subpath = "/${lib.concatStringsSep "/" (builtins.tail paths)}";
+                devenvpath = "${input}" + subpath;
+                devenvdefaultpath = devenvpath + "/devenv.nix";
+              in
+              if lib.hasSuffix ".nix" devenvpath
+              then devenvpath
+              else if builtins.pathExists devenvdefaultpath
+              then devenvdefaultpath
+              else throw (devenvdefaultpath + " file does not exist for input ${name}.");
+          project = pkgs.lib.evalModules {
+            specialArgs = inputs // { inherit inputs; };
+            modules = [
+              ({ config, ... }: {
+                _module.args.pkgs = pkgs.appendOverlays (config.overlays or [ ]);
+              })
+              (inputs.devenv.modules + /top-level.nix)
+              {
+                devenv.cliVersion = version;
+                devenv.root = devenv_root;
+                devenv.dotfile = devenv_root + "/" + devenv_dotfile_string;
+              }
+              (pkgs.lib.optionalAttrs (inputs.devenv.isTmpDir or false) {
+                devenv.tmpdir = devenv_tmpdir;
+                devenv.runtime = devenv_runtime;
+              })
+              (pkgs.lib.optionalAttrs (inputs.devenv.hasIsTesting or false) {
+                devenv.isTesting = devenv_istesting;
+              })
+              (pkgs.lib.optionalAttrs (container_name != null) {
+                container.isBuilding = pkgs.lib.mkForce true;
+                containers.${container_name}.isBuilding = true;
+              })
+              ({ options, ... }: {
+                config.devenv = pkgs.lib.optionalAttrs (builtins.hasAttr "direnvrcLatestVersion" options.devenv) {
+                  direnvrcLatestVersion = devenv_direnvrc_latest_version;
+                };
+              })
+            ] ++ (map importModule (devenv.imports or [ ])) ++ [
+              (if builtins.pathExists ./devenv.nix then ./devenv.nix else { })
+              (devenv.devenv or { })
+              (if builtins.pathExists ./devenv.local.nix then ./devenv.local.nix else { })
+              (if builtins.pathExists (devenv_dotfile + "/cli-options.nix") then import (devenv_dotfile + "/cli-options.nix") else { })
+            ];
+          };
+          config = project.config;
+
+          options = pkgs.nixosOptionsDoc {
+            options = builtins.removeAttrs project.options [ "_module" ];
+            warningsAreErrors = false;
+            # Unpack Nix types, e.g. literalExpression, mDoc.
+            transformOptions =
+              let isDocType = v: builtins.elem v [ "literalDocBook" "literalExpression" "literalMD" "mdDoc" ];
+              in lib.attrsets.mapAttrs (_: v:
+                if v ? _type && isDocType v._type then
+                  v.text
+                else if v ? _type && v._type == "derivation" then
+                  v.name
+                else
+                  v
+              );
+          };
+
+          build = options: config:
+            lib.concatMapAttrs
+              (name: option:
+                if builtins.hasAttr "type" option then
+                  if option.type.name == "output" || option.type.name == "outputOf" then {
+                    ${name} = config.${name};
+                  } else { }
+                else
+                  let v = build option config.${name};
+                  in if v != { } then {
+                    ${name} = v;
+                  } else { }
+              )
+              options;
+
+          systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+        in
+        {
+          devShell = lib.genAttrs systems (system: config.shell);
+          packages = lib.genAttrs systems (system: {
+            optionsJSON = options.optionsJSON;
+            # deprecated
+            inherit (config) info procfileScript procfileEnv procfile;
+            ci = config.ciDerivation;
+          });
+          devenv = config;
+          build = build project.options project.config;
+        };
+      }
+
+
+
+================================================
 File: .envrc
 ================================================
 export DIRENV_WARN_TIMEOUT=20s
@@ -831,7 +1005,7 @@ repos:
     hooks:
       - id: shellcheck
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v5.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -6323,6 +6497,7 @@ func TestParseSourceURL_NonGitHubURLs(t *testing.T) {
 
 
 
+
 ================================================
 File: project/PRD.md
 ================================================
@@ -6680,7 +6855,7 @@ Almandine, implemented in Go, aims to provide a simple, robust, and reproducible
 Tech Stack
 
     Implementation Language: Go (e.g., 1.21 or later)
-    Target Project Language: Lua 5.1â€“5.4 / LuaJIT 2.1 (though Almandine itself is Go, it can manage files for any language)
+    Target Project Language: Lua 5.1–5.4 / LuaJIT 2.1 (though Almandine itself is Go, it can manage files for any language)
     Platform (Tool): Cross-platform executable (Linux, macOS, Windows) via Go compilation.
     Key Go Libraries (Potential):
         Standard Library: net/http, os, os/exec, path/filepath, crypto/sha256, flag or similar for CLI.
@@ -7423,6 +7598,10 @@ File: project/TASKS.md
     -   [x] Enabled Python virtual environment (`venv.enable = true`).
     -   [x] Added `gitingest` to `venv.requirements`.
     -   [x] Manual Verification: Run `devenv shell` and confirm `gitingest` command is available.
+
+-   [x] **Task 15.2: Fix `pre-commit-hooks` deprecated stage warning (2025-05-10)**
+    -   [x] Ran `pre-commit autoupdate --repo https://github.com/pre-commit/pre-commit-hooks`.
+    -   [x] Verified `.pre-commit-config.yaml` updated to `rev: v5.0.0` for `pre-commit-hooks`.
 ---
 
 ## Milestone 16: Code Standards Application (2025-05-09)
@@ -7478,6 +7657,48 @@ File: project/TASKS.md
     -   [x] Consider if any parts of the scripts could be made more maintainable.
         -   Current maintainability is good. Switching to release assets would be the main improvement.
         -   Minor: `ps1` could improve `curl/wget` exit code checks. `sh` could use `jq` for API parsing if available and improve `wget` error checks.
+
+---
+
+## Milestone 18: GitHub Actions Release Workflow (2025-05-10)
+
+**Goal:** Create a GitHub Action workflow to automate the building and releasing of Almandine.
+
+-   [x] **Task 18.1: Create GitHub Action for Releases**
+    -   [x] Define workflow trigger (e.g., manual `workflow_dispatch`).
+    -   [x] Implement versioning logic:
+        -   [x] Start at `0.2.0-alpha.1`.
+        -   [x] Fetch existing tags to determine the current latest version.
+        -   [x] Auto-increment pre-release number (e.g., `0.2.0-alpha.1` -> `0.2.0-alpha.2`).
+        -   [x] Handle promotion from alpha to beta, rc, and final release (e.g., `0.2.0-alpha.N` -> `0.2.0-beta.1` -> `0.2.0-rc.1` -> `0.2.0`).
+    -   [x] Implement build steps for Windows, macOS, and Linux using Go cross-compilation.
+        -   [x] Ensure `main.version` is correctly embedded using ldflags.
+    -   [x] Create release artifacts (e.g., zipped binaries).
+    -   [x] Create a Git tag for the new version.
+    -   [x] Create a GitHub Release, attaching artifacts and generating basic release notes.
+    -   [x] Document how to use the release workflow.
+        -   **Usage Instructions:**
+            1.  Navigate to the "Actions" tab in your GitHub repository.
+            2.  Under "Workflows", find and select "Create Release".
+            3.  Click the "Run workflow" button.
+            4.  Choose the `bump_type` from the dropdown:
+                *   `alpha`: Increments or starts an alpha version (e.g., `v0.2.0-alpha.1` -> `v0.2.0-alpha.2`, or `v0.2.0` -> `v0.2.0-alpha.1`). Use this for the very first release if no `v0.2.0-alpha.X` tags exist.
+                *   `beta`: Increments or starts a beta version (e.g., `v0.2.0-alpha.2` -> `v0.2.0-beta.1`).
+                *   `rc`: Increments or starts a release candidate (e.g., `v0.2.0-beta.1` -> `v0.2.0-rc.1`).
+                *   `promote_to_final`: Promotes the latest pre-release to a final version (e.g., `v0.2.0-rc.1` -> `v0.2.0`).
+                *   `patch`: Bumps the patch version of the latest final release (e.g., `v0.2.0` -> `v0.2.1`).
+                *   `minor`: Bumps the minor version of the latest final release (e.g., `v0.2.1` -> `v0.3.0`).
+                *   `major`: Bumps the major version of the latest final release (e.g., `v0.3.0` -> `v1.0.0`).
+            5.  Decide if the release should be a `draft_release` (Yes/No).
+            6.  Click "Run workflow".
+            7.  The action will:
+                *   Determine the next version based on existing tags and the chosen `bump_type`.
+                *   Build binaries for Linux (amd64, arm64), macOS (amd64, arm64), and Windows (amd64).
+                *   Create a new Git tag with the determined version.
+                *   Create a GitHub Release with the new tag, attaching the built binaries.
+            8.  **Important:** Ensure your `main.version` variable in `cmd/almd/main.go` is correctly set up to be populated by `ldflags` during the build process (e.g., `var version string` in the main package, and `cli.App{ Version: version, ...}`). The workflow uses `go build -ldflags="-X main.version=$VERSION"`.
+            9.  The initial release, if no tags like `v0.2.0-alpha.X` exist, should be triggered with `bump_type: alpha`. This will create `v0.2.0-alpha.1`.
+
 
 
 
@@ -7609,6 +7830,117 @@ updates:
     schedule:
       interval: daily
 
+
+
+================================================
+File: .github/scripts/determine_next_version.py
+================================================
+import os
+import subprocess
+import semver
+import sys
+
+def get_tags():
+    try:
+        result = subprocess.run(['git', 'tag', '-l', 'v*', '--sort=v:refname'], capture_output=True, text=True, check=True)
+        tags = result.stdout.strip().split('\n')
+        return [tag for tag in tags if tag] # Filter out empty strings if any
+    except subprocess.CalledProcessError as e:
+        print(f"Error fetching tags: {e}", file=sys.stderr)
+        return []
+
+def get_latest_semver(tags):
+    latest_v = None
+    for tag_str in reversed(tags): # Iterate from newest to oldest based on git sort
+        try:
+            v = semver.VersionInfo.parse(tag_str[1:]) # Remove 'v' prefix
+            if latest_v is None or v > latest_v:
+                latest_v = v
+        except ValueError:
+            # Not a valid semver tag, skip
+            continue
+    return latest_v
+
+def main():
+    bump_type = os.environ.get('BUMP_TYPE')
+    if not bump_type:
+        print("Error: BUMP_TYPE environment variable not set.", file=sys.stderr)
+        sys.exit(1)
+
+    tags = get_tags()
+    latest_v = get_latest_semver(tags)
+
+    next_v_str = ""
+    is_prerelease = "true"
+
+    if not latest_v:
+        if bump_type == 'alpha':
+            next_v_str = "0.2.0-alpha.1"
+        else:
+            print(f"Error: No existing tags found. Initial bump must be 'alpha' to start with 0.2.0-alpha.1.", file=sys.stderr)
+            sys.exit(1)
+    else:
+        current_v = latest_v
+        if bump_type == 'alpha':
+            if current_v.prerelease and current_v.prerelease[0] == 'alpha':
+                next_v = current_v.bump_prerelease(token='alpha')
+            else: # New alpha series for current major.minor.patch or next patch
+                # If current is final (e.g. 0.1.0), new alpha is 0.1.0-alpha.1
+                # If current is rc (e.g. 0.1.0-rc.1), new alpha is 0.1.0-alpha.1
+                # If current is beta (e.g. 0.1.0-beta.1), new alpha is 0.1.0-alpha.1
+                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease=('alpha', 1))
+            next_v_str = str(next_v)
+        elif bump_type == 'beta':
+            if current_v.prerelease and current_v.prerelease[0] == 'beta':
+                next_v = current_v.bump_prerelease(token='beta')
+            else: # New beta series, must come from alpha or be a new beta for a version
+                # e.g., 0.1.0-alpha.2 -> 0.1.0-beta.1
+                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease=('beta', 1))
+            next_v_str = str(next_v)
+        elif bump_type == 'rc':
+            if current_v.prerelease and current_v.prerelease[0] == 'rc':
+                next_v = current_v.bump_prerelease(token='rc')
+            else: # New RC series
+                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease=('rc', 1))
+            next_v_str = str(next_v)
+        elif bump_type == 'promote_to_final':
+            if not current_v.prerelease:
+                print(f"Error: Version {current_v} is already final. Cannot promote.", file=sys.stderr)
+                sys.exit(1)
+            next_v = current_v.finalize_version()
+            next_v_str = str(next_v)
+            is_prerelease = "false"
+        elif bump_type == 'patch':
+            base_v = current_v.finalize_version() # Ensure we bump from a stable part
+            next_v = base_v.bump_patch()
+            next_v_str = str(next_v)
+            is_prerelease = "false"
+        elif bump_type == 'minor':
+            base_v = current_v.finalize_version()
+            next_v = base_v.bump_minor()
+            next_v_str = str(next_v)
+            is_prerelease = "false"
+        elif bump_type == 'major':
+            base_v = current_v.finalize_version()
+            next_v = base_v.bump_major()
+            next_v_str = str(next_v)
+            is_prerelease = "false"
+        else:
+            print(f"Error: Unknown BUMP_TYPE '{bump_type}'", file=sys.stderr)
+            sys.exit(1)
+
+    if not next_v_str.startswith('v'):
+        next_v_tag = f"v{next_v_str}"
+    else:
+        next_v_tag = next_v_str
+
+
+    print(f"Calculated next version: {next_v_tag}", file=sys.stderr)
+    print(f"::set-output name=next_version::{next_v_tag}")
+    print(f"::set-output name=is_prerelease::{is_prerelease}")
+
+if __name__ == "__main__":
+    main()
 
 
 ================================================
@@ -7794,6 +8126,180 @@ jobs:
 
 
 ================================================
+File: .github/workflows/release.yml
+================================================
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Type of version bump (alpha, beta, rc, promote_to_final, patch, minor, major)"
+        required: true
+        default: "alpha"
+        type: choice
+        options:
+          - alpha
+          - beta
+          - rc
+          - promote_to_final
+          - patch
+          - minor
+          - major
+      draft_release:
+        description: "Create as a draft release?"
+        required: true
+        default: "false"
+        type: boolean
+
+jobs:
+  determine_version:
+    runs-on: ubuntu-latest
+    outputs:
+      next_version: ${{ steps.get_version.outputs.next_version }}
+      is_prerelease: ${{ steps.get_version.outputs.is_prerelease }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required to fetch all tags
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install semver
+
+      - name: Determine next version
+        id: get_version
+        env:
+          BUMP_TYPE: ${{ github.event.inputs.bump_type }}
+        run: python .github/scripts/determine_next_version.py
+
+  build_and_release:
+    needs: determine_version
+    if: needs.determine_version.outputs.next_version != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create releases and tags
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+        exclude: # Add exclusions if some combinations are not needed/supported
+          - goos: windows
+            goarch: arm64 # Example: if windows arm64 is not a target
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21' # As per PRD
+
+      - name: Set version output
+        id: version_output
+        run: |
+          echo "NEXT_VERSION=${{ needs.determine_version.outputs.next_version }}" >> $GITHUB_ENV
+          echo "IS_PRERELEASE=${{ needs.determine_version.outputs.is_prerelease }}" >> $GITHUB_ENV
+
+      - name: Build application
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ env.NEXT_VERSION }}
+        run: |
+          echo "Building for $GOOS/$GOARCH with version $VERSION"
+          BINARY_NAME="almd"
+          if [ "$GOOS" == "windows" ]; then
+            BINARY_NAME="almd.exe"
+          fi
+          go build -v -o $BINARY_NAME -ldflags="-X main.version=$VERSION" ./cmd/almd
+          ls -la $BINARY_NAME # Verify binary exists
+
+      - name: Archive binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION_NO_V: ${{ env.NEXT_VERSION }} # Assuming NEXT_VERSION has 'v' prefix
+        run: |
+          VERSION_TAG=${VERSION_NO_V#v} # Remove 'v' prefix for filename
+          ARCHIVE_NAME="almd_${VERSION_TAG}_${GOOS}_${GOARCH}"
+          BINARY_NAME="almd"
+          if [ "$GOOS" == "windows" ]; then
+            BINARY_NAME="almd.exe"
+            zip "${ARCHIVE_NAME}.zip" $BINARY_NAME
+            echo "ASSET_NAME=${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
+            echo "ASSET_PATH=${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
+          else
+            tar -czvf "${ARCHIVE_NAME}.tar.gz" $BINARY_NAME
+            echo "ASSET_NAME=${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
+            echo "ASSET_PATH=${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
+          fi
+          ls -la $ASSET_PATH # Verify archive exists
+
+      - name: Upload artifact for this job
+        uses: actions/upload-artifact@v4
+        with:
+          name: almd-binaries-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ env.ASSET_PATH }}
+
+  create_release_tag:
+    needs: [determine_version, build_and_release] # Ensure build_and_release completes for all platforms
+    runs-on: ubuntu-latest
+    if: needs.determine_version.outputs.next_version != ''
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Git Tag
+        env:
+          NEXT_VERSION: ${{ needs.determine_version.outputs.next_version }}
+        run: |
+          echo "Creating tag $NEXT_VERSION"
+          git tag $NEXT_VERSION
+          git push origin $NEXT_VERSION
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts # Download all artifacts to this directory
+          # No specific name means download all artifacts from the run
+
+      - name: List downloaded artifacts
+        run: |
+          ls -R release-artifacts
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.determine_version.outputs.next_version }}
+          name: Release ${{ needs.determine_version.outputs.next_version }}
+          body: |
+            Automated release for version ${{ needs.determine_version.outputs.next_version }}.
+            See CHANGELOG.md for details (if available).
+          draft: ${{ github.event.inputs.draft_release == 'true' }}
+          prerelease: ${{ needs.determine_version.outputs.is_prerelease == 'true' }}
+          files: |
+            release-artifacts/almd-binaries-linux-amd64/*.tar.gz
+            release-artifacts/almd-binaries-linux-arm64/*.tar.gz
+            release-artifacts/almd-binaries-windows-amd64/*.zip
+            release-artifacts/almd-binaries-darwin-amd64/*.tar.gz
+            release-artifacts/almd-binaries-darwin-arm64/*.tar.gz
+
+
+================================================
 File: .github/workflows/scorecard.yml
 ================================================
 # This workflow uses actions that are not certified by GitHub. They are provided
@@ -7879,6 +8385,3 @@ jobs:
         uses: github/codeql-action/upload-sarif@60168efe1c415ce0f5521ea06d5c2062adbeed1b # v3.28.17
         with:
           sarif_file: results.sarif
-
-
-
