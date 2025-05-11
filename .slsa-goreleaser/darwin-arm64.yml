@@ -1,0 +1,29 @@
+# SLSA Go builder configuration for Darwin ARM64
+version: 1
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
+
+flags:
+  - -trimpath
+  # - -tags=netgo # Optional, include if your project uses netgo or other build tags
+
+goos: darwin
+goarch: arm64
+
+# Entrypoint to compile.
+main: ./cmd/almd
+
+# Binary output name pattern.
+# {{ .Os }} will be replaced by goos field.
+# {{ .Arch }} will be replaced by goarch field.
+binary: almd-{{ .Os }}-{{ .Arch }}
+
+# ldflags generated dynamically in the workflow.
+# These {{ .Env.VAR_NAME }} will be substituted by `evaluated-envs` in the GitHub workflow.
+ldflags:
+  - "-X main.version={{ .Env.VERSION }}"
+  # - "-X main.Commit={{ .Env.COMMIT }}"
+  # - "-X main.CommitDate={{ .Env.COMMIT_DATE }}"
+  # - "-X main.TreeState={{ .Env.TREE_STATE }}"

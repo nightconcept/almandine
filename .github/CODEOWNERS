@@ -1,0 +1,27 @@
+# This is a CODEOWNERS file.
+#
+# Lines starting with '#' are comments.
+# Each line is a file pattern followed by one or more owners.
+# These patterns follow the same rules as .gitignore.
+#
+# Owners can be:
+# - A GitHub username (e.g., @octocat)
+# - A GitHub team name (e.g., @my-org/my-team)
+# - An email address (e.g., user@example.com)
+#
+# Order matters: the last matching pattern takes the most precedence.
+#
+# Example:
+# *       @global-owner1 @global-owner2  # All files are owned by these users/teams
+# *.js    @js-owner                      # .js files are owned by @js-owner
+# /docs/  docs@example.com               # Files in the /docs/ directory are owned by docs@example.com
+
+# All files in the repository are owned by nightconcept
+* @nightconcept dark@nightconcept.net
+
+# You can add more specific rules below if needed.
+# For example, if different parts of the project have different owners:
+#
+# /cmd/      @nightconcept
+# /internal/ @nightconcept
+# /scripts/  dark@nightconcept.net

@@ -1,4 +1,4 @@
-# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
+fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
 
 **Purpose:** Tracks tasks and milestones for implementing the core `init` and `add` commands for the Almandine Go CLI (`almd`), based on the specifications in `project/PRD.md`.
 
@@ -771,11 +771,43 @@
                 *   Create a GitHub Release with the new tag, attaching the built binaries.
             8.  **Important:** Ensure your `main.version` variable in `cmd/almd/main.go` is correctly set up to be populated by `ldflags` during the build process (e.g., `var version string` in the main package, and `cli.App{ Version: version, ...}`). The workflow uses `go build -ldflags="-X main.version=$VERSION"`.
             9.  The initial release, if no tags like `v0.2.0-alpha.X` exist, should be triggered with `bump_type: alpha`. This will create `v0.2.0-alpha.1`.
+-   [x] **Task 18.2: Fix Release Workflow Build and Versioning (2025-05-11)**
+    -   [x] **`go build` Linker Error:**
+        -   Problem: Version string with spaces/special characters (e.g., `v0.2.0-('alpha', 1)`) caused `go build` linker error in `release.yml`.
+        -   Solution: Added single quotes around `'main.version=$VERSION'` within the `-ldflags` argument in `.github/workflows/release.yml`.
+    -   [x] **Version Increment/Format:**
+        -   Problem: `.github/scripts/determine_next_version.py` produced incorrect version format like `v0.2.0-('alpha', 1)` and did not correctly increment pre-release numbers.
+        -   Solution: Modified the script to use string-based prerelease identifiers (e.g., `prerelease='alpha.1'`) for `semver.VersionInfo`, ensuring correct format and increment behavior.
 
 ---
 
 ---
 
+## Milestone 19: SLSA Provenance Generation (2025-05-11)
+
+**Goal:** Implement SLSA Level 3+ provenance generation for Go binaries.
+
+-   [ ] **Task 19.1: Create SLSA Go Builder Configuration Files**
+    -   [x] Create `.slsa-goreleaser/linux-amd64.yml`
+    -   [x] Create `.slsa-goreleaser/linux-arm64.yml`
+    -   [x] Create `.slsa-goreleaser/windows-amd64.yml`
+    -   [x] Create `.slsa-goreleaser/darwin-amd64.yml`
+    -   [x] Create `.slsa-goreleaser/darwin-arm64.yml`
+- [x] **Task 19.2: Create GitHub Workflow for SLSA Provenance**
+    -   [x] Create `.github/workflows/slsa-provenance.yml`
+    -   [x] Define triggers (`push` tags `v*`, `workflow_dispatch`).
+    -   [x] Implement `generate_provenance_args` job to determine version, commit, date, tree state, and release parameters.
+    -   [x] Implement `build_with_provenance` job using matrix for platforms.
+    -   [x] Call reusable SLSA Go builder `slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v2.1.0`.
+    -   [x] Pass necessary inputs: `go-version`, `config-file`, `evaluated-envs`, `upload-assets`, `upload-tag-name`, `prerelease`, `draft-release`.
+    -   [x] Ensure correct permissions are set (`id-token: write`, `contents: write`, `actions: read`).
+-   [ ] **Task 19.3: Verify SLSA Provenance Generation**
+    -   [ ] Trigger the workflow manually or by pushing a test tag.
+    -   [ ] Verify that provenance files (`.intoto.jsonl`) are generated for each binary.
+    -   [ ] Verify that binaries and provenance files are uploaded to a GitHub release.
+    -   [ ] (Optional) Use `slsa-verifier` to verify the generated provenance against the binary.
+
+---
 ## Milestone 19: README Updates (2025-05-11)
 
 **Goal:** Keep the project README.md up-to-date with relevant information.
@@ -810,3 +842,13 @@
 - [x] **Task Misc.1: Create SECURITY.md (2025-05-11)**
     - [x] Create `SECURITY.md` in the root directory.
     - [x] Ensure content meets requirements for vulnerability reporting, disclosure policy, contact links, keywords (vulnerability, disclosure), and time references.
+
+---
+
+## Milestone 22: CODEOWNERS File Creation (2025-05-11)
+
+**Goal:** Create a `CODEOWNERS` file for the project.
+
+-   [x] **Task 22.1: Create `CODEOWNERS` file**
+    -   [x] Create `.github/CODEOWNERS` with standard template and placeholders.
+    -   [x] Manual Verification: File exists at `.github/CODEOWNERS` and contains placeholder content.

@@ -1,0 +1,147 @@
+name: SLSA Provenance for Go
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on version tags like v1.0.0, v2.3.4-alpha
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref (branch, tag name e.g., "v1.2.3", or commit SHA) to build provenance for.'
+        required: true
+        default: 'main'
+      draft_release:
+        description: "If creating/updating a release, should it be a draft?"
+        required: true
+        default: "false"
+        type: boolean
+
+permissions:
+  # Required for SLSA builder
+  id-token: write # To sign the provenance.
+  # Required for uploading assets to release & creating tags by proxy (if builder does that)
+  contents: write
+  # Required for SLSA builder to read workflow path
+  actions: read
+
+jobs:
+  generate_provenance_args:
+    runs-on: ubuntu-latest
+    outputs:
+      version_for_ldflags: ${{ steps.version_info.outputs.VERSION_FOR_LDFLAGS }}
+      commit_sha: ${{ steps.version_info.outputs.COMMIT_SHA }}
+      commit_date: ${{ steps.version_info.outputs.COMMIT_DATE }}
+      tree_state: ${{ steps.version_info.outputs.TREE_STATE }}
+      effective_release_tag: ${{ steps.version_info.outputs.EFFECTIVE_RELEASE_TAG }}
+      is_prerelease_flag: ${{ steps.version_info.outputs.IS_PRERELEASE }}
+      upload_release_assets: ${{ steps.version_info.outputs.UPLOAD_RELEASE_ASSETS }}
+      actual_ref_to_checkout: ${{ steps.set_ref.outputs.ACTUAL_REF_TO_CHECKOUT }}
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - name: Determine Ref to Checkout
+        id: set_ref
+        run: |
+          REF_TO_CHECKOUT=""
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            REF_TO_CHECKOUT="${{ github.ref }}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            REF_TO_CHECKOUT="${{ github.event.inputs.ref }}"
+          else
+            echo "::error::Unsupported event type or missing ref."
+            exit 1
+          fi
+          echo "ACTUAL_REF_TO_CHECKOUT=$REF_TO_CHECKOUT" >> $GITHUB_OUTPUT
+          echo "Resolved ref to checkout: $REF_TO_CHECKOUT"
+
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ steps.set_ref.outputs.ACTUAL_REF_TO_CHECKOUT }}
+          fetch-depth: 0 # Required for git describe --tags
+
+      - name: Determine Version and Release Info
+        id: version_info
+        shell: bash
+        run: |
+          # Version for ldflags, e.g., v1.2.3 or v1.2.3-10-gabc123-dirty
+          VERSION_FOR_LDFLAGS=$(git describe --tags --always --dirty --match="v*")
+          echo "VERSION_FOR_LDFLAGS=$VERSION_FOR_LDFLAGS" >> $GITHUB_OUTPUT
+          echo "Version for ldflags: $VERSION_FOR_LDFLAGS"
+
+          COMMIT_SHA=$(git rev-parse HEAD)
+          echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "Commit SHA: $COMMIT_SHA"
+
+          COMMIT_DATE=$(git log -1 --pretty=%ct)
+          echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_OUTPUT
+          echo "Commit Date: $COMMIT_DATE"
+
+          TREE_STATE="clean"
+          if ! git diff --quiet; then
+            TREE_STATE="dirty"
+          fi
+          echo "TREE_STATE=$TREE_STATE" >> $GITHUB_OUTPUT
+          echo "Tree State: $TREE_STATE"
+
+          EFFECTIVE_RELEASE_TAG=""
+          UPLOAD_RELEASE_ASSETS="false"
+          IS_PRERELEASE="false"
+
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            # This is a tag push, github.ref_name is the tag (e.g., v1.2.3)
+            EFFECTIVE_RELEASE_TAG="${{ github.ref_name }}"
+            UPLOAD_RELEASE_ASSETS="true"
+            echo "Event: Tag push. Effective Release Tag: $EFFECTIVE_RELEASE_TAG"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # For workflow_dispatch, check if inputs.ref is a valid tag that exists
+            # We use the already checked-out ref for git describe
+            # If VERSION_FOR_LDFLAGS is a clean tag (no extra commits, no -dirty), then it's a tag.
+            # And if that clean tag matches inputs.ref (if inputs.ref was intended as a tag).
+            INPUT_REF="${{ github.event.inputs.ref }}"
+            # Check if INPUT_REF is a simple tag name (e.g. v1.2.3) and if it matches the current fully resolved tag
+            if [[ "$VERSION_FOR_LDFLAGS" == "$INPUT_REF" && ! "$VERSION_FOR_LDFLAGS" == *-* ]]; then
+                EFFECTIVE_RELEASE_TAG="$INPUT_REF"
+                UPLOAD_RELEASE_ASSETS="true"
+                echo "Event: Workflow dispatch for tag. Effective Release Tag: $EFFECTIVE_RELEASE_TAG"
+            else
+                echo "Event: Workflow dispatch for branch/commit/non-clean-tag. No release will be created by default."
+            fi
+          fi
+          echo "EFFECTIVE_RELEASE_TAG=$EFFECTIVE_RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "UPLOAD_RELEASE_ASSETS=$UPLOAD_RELEASE_ASSETS" >> $GITHUB_OUTPUT
+
+          if [[ -n "$EFFECTIVE_RELEASE_TAG" && ( "$EFFECTIVE_RELEASE_TAG" == *-alpha* || "$EFFECTIVE_RELEASE_TAG" == *-beta* || "$EFFECTIVE_RELEASE_TAG" == *-rc* ) ]]; then
+            IS_PRERELEASE="true"
+          fi
+          echo "IS_PRERELEASE=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "Is Prerelease: $IS_PRERELEASE"
+
+  build_with_provenance:
+    needs: generate_provenance_args
+    permissions:
+      id-token: write # To sign the provenance.
+      contents: write # To upload assets to release.
+      actions: read   # To read the workflow path.
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+    uses: slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v2.1.0
+    with:
+      go-version: '1.21' # As per PRD
+      config-file: .slsa-goreleaser/${{ matrix.os }}-${{ matrix.arch }}.yml
+      evaluated-envs: "VERSION:${{ needs.generate_provenance_args.outputs.version_for_ldflags }},COMMIT:${{ needs.generate_provenance_args.outputs.commit_sha }},COMMIT_DATE:${{ needs.generate_provenance_args.outputs.commit_date }},TREE_STATE:${{ needs.generate_provenance_args.outputs.tree_state }}"
+      upload-assets: ${{ needs.generate_provenance_args.outputs.upload_release_assets }}
+      upload-tag-name: ${{ needs.generate_provenance_args.outputs.effective_release_tag }}
+      prerelease: ${{ needs.generate_provenance_args.outputs.is_prerelease_flag }}
+      draft-release: ${{ github.event.inputs.draft_release }}
+      # private-repository: false # Default, set to true if this is a private repo and you accept name leakage
+      # compile-builder: true # Only if needed for workaround for specific builder versions/issues

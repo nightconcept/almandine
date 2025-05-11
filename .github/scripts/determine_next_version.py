@@ -51,20 +51,20 @@ def main():
                 # If current is final (e.g. 0.1.0), new alpha is 0.1.0-alpha.1
                 # If current is rc (e.g. 0.1.0-rc.1), new alpha is 0.1.0-alpha.1
                 # If current is beta (e.g. 0.1.0-beta.1), new alpha is 0.1.0-alpha.1
-                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease=('alpha', 1))
+                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease='alpha.1')
             next_v_str = str(next_v)
         elif bump_type == 'beta':
             if current_v.prerelease and current_v.prerelease[0] == 'beta':
                 next_v = current_v.bump_prerelease(token='beta')
             else: # New beta series, must come from alpha or be a new beta for a version
                 # e.g., 0.1.0-alpha.2 -> 0.1.0-beta.1
-                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease=('beta', 1))
+                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease='beta.1')
             next_v_str = str(next_v)
         elif bump_type == 'rc':
             if current_v.prerelease and current_v.prerelease[0] == 'rc':
                 next_v = current_v.bump_prerelease(token='rc')
             else: # New RC series
-                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease=('rc', 1))
+                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease='rc.1')
             next_v_str = str(next_v)
         elif bump_type == 'promote_to_final':
             if not current_v.prerelease:
