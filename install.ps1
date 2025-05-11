@@ -74,26 +74,28 @@ if ($Version) {
   }
 }
 
-$ArchiveUrl = "https://github.com/$Repo/archive/refs/tags/$Tag.zip"
-$ArchiveName = "$Repo-$Tag.zip" -replace "/", "-"
+$VersionForAsset = if ($Tag.StartsWith("v")) { $Tag.Substring(1) } else { $Tag }
+$AssetFilename = "almd_$($VersionForAsset)_windows_amd64.zip"
+$ArchiveUrl = "https://github.com/$Repo/releases/download/$Tag/$AssetFilename"
+$ArchiveName = $AssetFilename # Use the actual asset filename
 
-Write-Host "Downloading Almandine archive for tag $Tag ..."
+Write-Host "Downloading Almandine release asset for tag $Tag ($AssetFilename) ..."
 $ZipPath = Join-Path $TmpDir $ArchiveName
 Download $ArchiveUrl $ZipPath
 
 Write-Host "Extracting Almandine ..."
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+# Extract almd.exe directly to the TmpDir, assuming it's at the root of the zip
 [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $TmpDir)
 
-# Find extracted folder (name format: almandine-<tag>)
-$ExtractedDir = Join-Path $TmpDir "almandine-$Tag"
-if (!(Test-Path $ExtractedDir)) {
-  # Try with v prefix (e.g., v0.1.0)
-  $ExtractedDir = Join-Path $TmpDir "almandine-v$Tag"
-  if (!(Test-Path $ExtractedDir)) {
-    Write-Error "Could not find extracted directory for tag $Tag."
+# almd.exe should now be directly in $TmpDir
+$AlmdExePathInTmp = Join-Path $TmpDir "almd.exe"
+if (!(Test-Path $AlmdExePathInTmp)) {
+    Write-Error "Could not find almd.exe in the extracted archive at $AlmdExePathInTmp."
+    # List files in TmpDir for debugging
+    Write-Host "Contents of $TmpDir:"
+    Get-ChildItem -Path $TmpDir | ForEach-Object { Write-Host $_.Name }
     exit 1
-  }
 }
 
 Write-Host "Installing Almandine ..."
@@ -107,7 +109,7 @@ New-Item -ItemType Directory -Path $AppHome -Force | Out-Null
 New-Item -ItemType Directory -Path $WrapperDir -Force | Out-Null
 
 # Copy the binary to the wrapper directory
-Copy-Item -Path (Join-Path $ExtractedDir 'almd.exe') -Destination (Join-Path $WrapperDir 'almd.exe') -Force
+Copy-Item -Path $AlmdExePathInTmp -Destination (Join-Path $WrapperDir 'almd.exe') -Force
 
 Write-Host "\nInstallation complete!"
 Write-Host "Make sure $WrapperDir is in your Path environment variable. You may need to restart your terminal or system."
