@@ -61,11 +61,18 @@ def sign_file(gpg, filepath, keyid, passphrase):
         logging.info(f"Signing file: {filepath} with key ID {keyid}")
         with open(filepath, 'rb') as f:
             status = gpg.sign_file(f, keyid=keyid, detach=True, output=signature_file, passphrase=passphrase)
-        if status.ok:
+
+        # Check if the signing was successful.
+        # The 'status' object from python-gnupg has a 'status' attribute (string)
+        # and 'stderr'. Success is typically indicated by status.status == 'signature created'.
+        if status and hasattr(status, 'status') and status.status == 'signature created':
             logging.info(f"Successfully signed {filepath}, signature: {signature_file}")
             return signature_file
         else:
-            logging.error(f"Error signing file {filepath}: {status.status} - {status.stderr}")
+            # Log GPG's actual status and stderr for diagnostics
+            gpg_status_msg = getattr(status, 'status', 'N/A (status object might be None or lack status attribute)')
+            gpg_stderr_msg = getattr(status, 'stderr', 'N/A (status object might be None or lack stderr attribute)')
+            logging.error(f"Error signing file {filepath}: GPG status '{gpg_status_msg}', stderr: '{gpg_stderr_msg}'")
             if os.path.exists(signature_file): # Clean up partial signature
                 os.remove(signature_file)
             return None
@@ -119,7 +126,7 @@ def main():
         github_token = getpass.getpass("Enter GitHub Personal Access Token: ")
 
     gpg = gnupg.GPG(gpgbinary=args.gpg_program)
-    
+
     # Find the first available GPG secret key suitable for signing
     secret_keys = gpg.list_keys(secret=True)
     signing_key = None
@@ -131,7 +138,7 @@ def main():
                 break
         if signing_key:
             break
-            
+
     if not signing_key:
         logging.error("No suitable GPG secret key found for signing. Please ensure you have a GPG key with signing capability.")
         logging.info("Available secret keys (if any):")
@@ -141,7 +148,7 @@ def main():
 
     gpg_key_id = signing_key['keyid']
     logging.info(f"Using GPG Key ID: {gpg_key_id} ({signing_key.get('uids', ['No UID'])[0]}) for signing.")
-    
+
     gpg_passphrase = getpass.getpass(f"Enter GPG passphrase for key {gpg_key_id} (leave blank if none): ")
 
     logging.info(f"Fetching last {num_releases_to_check} releases for {repo_owner}/{repo_name}...")
@@ -154,7 +161,7 @@ def main():
     for release in releases:
         release_name = release.get('name', release['tag_name'])
         logging.info(f"\nProcessing release: {release_name} (ID: {release['id']}, Tag: {release['tag_name']})")
-        
+
         if 'assets' not in release or not release['assets']:
             logging.info(f"No assets found for release {release_name}.")
             continue
@@ -171,7 +178,7 @@ def main():
             if any(asset_name.endswith(ext) for ext in SIGNATURE_EXTENSIONS):
                 logging.info(f"Skipping signature file: {asset_name}")
                 continue
-            
+
             # Skip if --skip-already-signed and signature exists
             signature_filename_asc = f"{asset_name}.asc"
             if args.skip_already_signed and signature_filename_asc in existing_asset_names:
@@ -183,12 +190,12 @@ def main():
                 if confirm.lower() != 'y':
                     logging.info(f"Skipping asset {asset_name} by user choice.")
                     continue
-            
+
             downloaded_file_path = None
             signed_file_path = None
             temp_dir = f"temp_release_assets_{release['id']}"
             os.makedirs(temp_dir, exist_ok=True)
-            
+
             original_asset_path_in_temp = os.path.join(temp_dir, asset_name)
 
             try:
@@ -199,7 +206,7 @@ def main():
                 signed_file_path = sign_file(gpg, downloaded_file_path, gpg_key_id, gpg_passphrase)
                 if not signed_file_path:
                     continue
-                
+
                 # Upload original asset (if it was somehow modified or to ensure it's there)
                 # This is generally not needed if we are just adding signatures,
                 # but could be part of a "refresh" flow. For now, we assume original is fine.

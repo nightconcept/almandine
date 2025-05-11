@@ -101,7 +101,7 @@ gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv
 Sign releases with GPG key.
 
 ```sh
-python sign_releases.py nightconcept/almandine
+python scripts/sign_releases.py nightconcept/almandine --yes
 ```
 
 ### yolo
