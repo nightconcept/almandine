@@ -1,4 +1,4 @@
-# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
+fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
 
 **Purpose:** Tracks tasks and milestones for implementing the core `init` and `add` commands for the Almandine Go CLI (`almd`), based on the specifications in `project/PRD.md`.
 
@@ -793,7 +793,7 @@
     -   [x] Create `.slsa-goreleaser/windows-amd64.yml`
     -   [x] Create `.slsa-goreleaser/darwin-amd64.yml`
     -   [x] Create `.slsa-goreleaser/darwin-arm64.yml`
--   [ ] **Task 19.2: Create GitHub Workflow for SLSA Provenance**
+- [x] **Task 19.2: Create GitHub Workflow for SLSA Provenance**
     -   [x] Create `.github/workflows/slsa-provenance.yml`
     -   [x] Define triggers (`push` tags `v*`, `workflow_dispatch`).
     -   [x] Implement `generate_provenance_args` job to determine version, commit, date, tree state, and release parameters.

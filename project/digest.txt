@@ -6993,7 +6993,7 @@ These rules specify how testing and behavior specification are implemented using
 ================================================
 File: project/TASKS.md
 ================================================
-# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
+fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
 
 **Purpose:** Tracks tasks and milestones for implementing the core `init` and `add` commands for the Almandine Go CLI (`almd`), based on the specifications in `project/PRD.md`.
 
@@ -7788,7 +7788,7 @@ File: project/TASKS.md
     -   [x] Create `.slsa-goreleaser/windows-amd64.yml`
     -   [x] Create `.slsa-goreleaser/darwin-amd64.yml`
     -   [x] Create `.slsa-goreleaser/darwin-arm64.yml`
--   [ ] **Task 19.2: Create GitHub Workflow for SLSA Provenance**
+- [x] **Task 19.2: Create GitHub Workflow for SLSA Provenance**
     -   [x] Create `.github/workflows/slsa-provenance.yml`
     -   [x] Define triggers (`push` tags `v*`, `workflow_dispatch`).
     -   [x] Implement `generate_provenance_args` job to determine version, commit, date, tree state, and release parameters.
@@ -8193,6 +8193,7 @@ File: .github/CODEOWNERS
 # /cmd/      @nightconcept
 # /internal/ @nightconcept
 # /scripts/  dark@nightconcept.net
+
 
 
 ================================================
@@ -9027,7 +9028,6 @@ jobs:
 
   build_with_provenance:
     needs: generate_provenance_args
-    runs-on: ubuntu-latest # The SLSA builder runs on Ubuntu
     permissions:
       id-token: write # To sign the provenance.
       contents: write # To upload assets to release.
@@ -9039,25 +9039,17 @@ jobs:
         exclude:
           - goos: windows
             goarch: arm64
-
-    steps:
-      - name: Harden the runner
-        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
-        with:
-          egress-policy: audit
-
-      - name: Run SLSA Go Builder
-        uses: slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v2.1.0
-        with:
-          go-version: '1.21' # As per PRD
-          config-file: .slsa-goreleaser/${{ matrix.os }}-${{ matrix.arch }}.yml
-          evaluated-envs: "VERSION:${{ needs.generate_provenance_args.outputs.version_for_ldflags }},COMMIT:${{ needs.generate_provenance_args.outputs.commit_sha }},COMMIT_DATE:${{ needs.generate_provenance_args.outputs.commit_date }},TREE_STATE:${{ needs.generate_provenance_args.outputs.tree_state }}"
-          upload-assets: ${{ needs.generate_provenance_args.outputs.upload_release_assets }}
-          upload-tag-name: ${{ needs.generate_provenance_args.outputs.effective_release_tag }}
-          prerelease: ${{ needs.generate_provenance_args.outputs.is_prerelease_flag }}
-          draft-release: ${{ github.event.inputs.draft_release }}
-          # private-repository: false # Default, set to true if this is a private repo and you accept name leakage
-          # compile-builder: true # Only if needed for workaround for specific builder versions/issues
+    uses: slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v2.1.0
+    with:
+      go-version: '1.21' # As per PRD
+      config-file: .slsa-goreleaser/${{ matrix.os }}-${{ matrix.arch }}.yml
+      evaluated-envs: "VERSION:${{ needs.generate_provenance_args.outputs.version_for_ldflags }},COMMIT:${{ needs.generate_provenance_args.outputs.commit_sha }},COMMIT_DATE:${{ needs.generate_provenance_args.outputs.commit_date }},TREE_STATE:${{ needs.generate_provenance_args.outputs.tree_state }}"
+      upload-assets: ${{ needs.generate_provenance_args.outputs.upload_release_assets }}
+      upload-tag-name: ${{ needs.generate_provenance_args.outputs.effective_release_tag }}
+      prerelease: ${{ needs.generate_provenance_args.outputs.is_prerelease_flag }}
+      draft-release: ${{ github.event.inputs.draft_release }}
+      # private-repository: false # Default, set to true if this is a private repo and you accept name leakage
+      # compile-builder: true # Only if needed for workaround for specific builder versions/issues
 
 
 
