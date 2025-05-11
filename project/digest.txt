@@ -70,6 +70,7 @@ Directory structure:
     ├── .devenv/
     ├── .direnv/
     ├── .github/
+    │   ├── CODEOWNERS
     │   ├── copilot-instructions.md
     │   ├── dependabot.yml
     │   ├── scripts/
@@ -7837,6 +7838,16 @@ File: project/TASKS.md
     - [x] Create `SECURITY.md` in the root directory.
     - [x] Ensure content meets requirements for vulnerability reporting, disclosure policy, contact links, keywords (vulnerability, disclosure), and time references.
 
+---
+
+## Milestone 22: CODEOWNERS File Creation (2025-05-11)
+
+**Goal:** Create a `CODEOWNERS` file for the project.
+
+-   [x] **Task 22.1: Create `CODEOWNERS` file**
+    -   [x] Create `.github/CODEOWNERS` with standard template and placeholders.
+    -   [x] Manual Verification: File exists at `.github/CODEOWNERS` and contains placeholder content.
+
 
 
 ================================================
@@ -8150,6 +8161,38 @@ if __name__ == "__main__":
 
 
 
+
+
+================================================
+File: .github/CODEOWNERS
+================================================
+# This is a CODEOWNERS file.
+#
+# Lines starting with '#' are comments.
+# Each line is a file pattern followed by one or more owners.
+# These patterns follow the same rules as .gitignore.
+#
+# Owners can be:
+# - A GitHub username (e.g., @octocat)
+# - A GitHub team name (e.g., @my-org/my-team)
+# - An email address (e.g., user@example.com)
+#
+# Order matters: the last matching pattern takes the most precedence.
+#
+# Example:
+# *       @global-owner1 @global-owner2  # All files are owned by these users/teams
+# *.js    @js-owner                      # .js files are owned by @js-owner
+# /docs/  docs@example.com               # Files in the /docs/ directory are owned by docs@example.com
+
+# All files in the repository are owned by nightconcept
+* @nightconcept dark@nightconcept.net
+
+# You can add more specific rules below if needed.
+# For example, if different parts of the project have different owners:
+#
+# /cmd/      @nightconcept
+# /internal/ @nightconcept
+# /scripts/  dark@nightconcept.net
 
 
 ================================================
@@ -9018,6 +9061,7 @@ jobs:
 
 
 
+
 ================================================
 File: .slsa-goreleaser/darwin-amd64.yml
 ================================================
@@ -9050,6 +9094,7 @@ ldflags:
   # - "-X main.Commit={{ .Env.COMMIT }}"
   # - "-X main.CommitDate={{ .Env.COMMIT_DATE }}"
   # - "-X main.TreeState={{ .Env.TREE_STATE }}"
+
 
 
 ================================================
@@ -9086,6 +9131,7 @@ ldflags:
   # - "-X main.TreeState={{ .Env.TREE_STATE }}"
 
 
+
 ================================================
 File: .slsa-goreleaser/linux-amd64.yml
 ================================================
@@ -9120,6 +9166,7 @@ ldflags:
   # - "-X main.TreeState={{ .Env.TREE_STATE }}"
 
 
+
 ================================================
 File: .slsa-goreleaser/linux-arm64.yml
 ================================================
@@ -9152,6 +9199,7 @@ ldflags:
   # - "-X main.Commit={{ .Env.COMMIT }}"
   # - "-X main.CommitDate={{ .Env.COMMIT_DATE }}"
   # - "-X main.TreeState={{ .Env.TREE_STATE }}"
+
 
 
 ================================================

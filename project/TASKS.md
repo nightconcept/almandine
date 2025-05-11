@@ -842,3 +842,13 @@
 - [x] **Task Misc.1: Create SECURITY.md (2025-05-11)**
     - [x] Create `SECURITY.md` in the root directory.
     - [x] Ensure content meets requirements for vulnerability reporting, disclosure policy, contact links, keywords (vulnerability, disclosure), and time references.
+
+---
+
+## Milestone 22: CODEOWNERS File Creation (2025-05-11)
+
+**Goal:** Create a `CODEOWNERS` file for the project.
+
+-   [x] **Task 22.1: Create `CODEOWNERS` file**
+    -   [x] Create `.github/CODEOWNERS` with standard template and placeholders.
+    -   [x] Manual Verification: File exists at `.github/CODEOWNERS` and contains placeholder content.
