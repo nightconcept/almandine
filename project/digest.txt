@@ -9,6 +9,7 @@ Directory structure:
     ├── go.sum
     ├── install.ps1
     ├── install.sh
+    ├── .devenv.flake.nix
     ├── .envrc
     ├── .pre-commit-config.yaml
     ├── cmd/
@@ -33,38 +34,44 @@ Directory structure:
     │   │   │   └── remove_test.go
     │   │   └── self/
     │   │       └── self.go
-    │   └── core/
-    │       ├── config/
-    │       │   ├── config.go
-    │       │   └── config_test.go
-    │       ├── downloader/
-    │       │   ├── downloader.go
-    │       │   └── downloader_test.go
-    │       ├── hasher/
-    │       │   ├── hasher.go
-    │       │   └── hasher_test.go
-    │       ├── lockfile/
-    │       │   ├── lockfile.go
-    │       │   └── lockfile_test.go
-    │       ├── project/
-    │       │   ├── project.go
-    │       │   └── project_test.go
-    │       └── source/
-    │           ├── github_api.go
-    │           ├── github_api_test.go
-    │           ├── source.go
-    │           └── source_test.go
+    │   ├── core/
+    │   │   ├── config/
+    │   │   │   ├── config.go
+    │   │   │   └── config_test.go
+    │   │   ├── downloader/
+    │   │   │   ├── downloader.go
+    │   │   │   └── downloader_test.go
+    │   │   ├── hasher/
+    │   │   │   ├── hasher.go
+    │   │   │   └── hasher_test.go
+    │   │   ├── lockfile/
+    │   │   │   ├── lockfile.go
+    │   │   │   └── lockfile_test.go
+    │   │   ├── project/
+    │   │   │   ├── project.go
+    │   │   │   └── project_test.go
+    │   │   └── source/
+    │   │       ├── github_api.go
+    │   │       ├── github_api_test.go
+    │   │       ├── source.go
+    │   │       └── source_test.go
+    │   └── testutil/
     ├── project/
     │   ├── PRD.md
     │   └── TASKS.md
-    ├── src/
-    │   └── lib/
     ├── .cursor/
+    ├── .devenv/
+    ├── .direnv/
     ├── .github/
     │   ├── copilot-instructions.md
     │   ├── dependabot.yml
+    │   ├── scripts/
+    │   │   └── determine_next_version.py
     │   └── workflows/
     │       ├── ci.yml
+    │       ├── codeql.yml
+    │       ├── dependency-review.yml
+    │       ├── release.yml
     │       └── scorecard.yml
     └── .roo/
 
@@ -114,8 +121,9 @@ _Note: These can all be installed via Scoop._
 almd init                # Create a new Lua project
 almd add <package>       # Add a dependency
 almd remove <package>    # Remove a dependency
-almd update              # Update dependencies
+almd install             # Install dependencies
 almd list                # List installed dependencies
+almd self update         # Update almd
 ```
 
 ---
@@ -775,6 +783,175 @@ rm -rf "$TMP_DIR"
 
 
 ================================================
+File: .devenv.flake.nix
+================================================
+{
+  inputs =
+    let
+      version = "1.6.0";
+system = "aarch64-darwin";
+devenv_root = "/Users/danny/Documents/GitHub/almandine";
+devenv_dotfile = ./.devenv;
+devenv_dotfile_string = ".devenv";
+container_name = null;
+devenv_tmpdir = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/";
+devenv_runtime = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/devenv-8811323";
+devenv_istesting = false;
+devenv_direnvrc_latest_version = 1;
+
+        in {
+        git-hooks.url = "github:cachix/git-hooks.nix";
+      git-hooks.inputs.nixpkgs.follows = "nixpkgs";
+      pre-commit-hooks.follows = "git-hooks";
+      nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
+      devenv.url = "github:cachix/devenv?dir=src/modules";
+      } // (if builtins.pathExists (devenv_dotfile + "/flake.json")
+      then builtins.fromJSON (builtins.readFile (devenv_dotfile +  "/flake.json"))
+      else { });
+
+      outputs = { nixpkgs, ... }@inputs:
+        let
+          version = "1.6.0";
+system = "aarch64-darwin";
+devenv_root = "/Users/danny/Documents/GitHub/almandine";
+devenv_dotfile = ./.devenv;
+devenv_dotfile_string = ".devenv";
+container_name = null;
+devenv_tmpdir = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/";
+devenv_runtime = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/devenv-8811323";
+devenv_istesting = false;
+devenv_direnvrc_latest_version = 1;
+
+            devenv =
+            if builtins.pathExists (devenv_dotfile + "/devenv.json")
+            then builtins.fromJSON (builtins.readFile (devenv_dotfile + "/devenv.json"))
+            else { };
+          getOverlays = inputName: inputAttrs:
+            map
+              (overlay:
+                let
+                  input = inputs.${inputName} or (throw "No such input `${inputName}` while trying to configure overlays.");
+                in
+                  input.overlays.${overlay} or (throw "Input `${inputName}` has no overlay called `${overlay}`. Supported overlays: ${nixpkgs.lib.concatStringsSep ", " (builtins.attrNames input.overlays)}"))
+              inputAttrs.overlays or [ ];
+          overlays = nixpkgs.lib.flatten (nixpkgs.lib.mapAttrsToList getOverlays (devenv.inputs or { }));
+          pkgs = import nixpkgs {
+            inherit system;
+            config = {
+              allowUnfree = devenv.allowUnfree or false;
+              allowBroken = devenv.allowBroken or false;
+              permittedInsecurePackages = devenv.permittedInsecurePackages or [ ];
+            };
+            inherit overlays;
+          };
+          lib = pkgs.lib;
+          importModule = path:
+            if lib.hasPrefix "./" path
+            then if lib.hasSuffix ".nix" path
+            then ./. + (builtins.substring 1 255 path)
+            else ./. + (builtins.substring 1 255 path) + "/devenv.nix"
+            else if lib.hasPrefix "../" path
+            then throw "devenv: ../ is not supported for imports"
+            else
+              let
+                paths = lib.splitString "/" path;
+                name = builtins.head paths;
+                input = inputs.${name} or (throw "Unknown input ${name}");
+                subpath = "/${lib.concatStringsSep "/" (builtins.tail paths)}";
+                devenvpath = "${input}" + subpath;
+                devenvdefaultpath = devenvpath + "/devenv.nix";
+              in
+              if lib.hasSuffix ".nix" devenvpath
+              then devenvpath
+              else if builtins.pathExists devenvdefaultpath
+              then devenvdefaultpath
+              else throw (devenvdefaultpath + " file does not exist for input ${name}.");
+          project = pkgs.lib.evalModules {
+            specialArgs = inputs // { inherit inputs; };
+            modules = [
+              ({ config, ... }: {
+                _module.args.pkgs = pkgs.appendOverlays (config.overlays or [ ]);
+              })
+              (inputs.devenv.modules + /top-level.nix)
+              {
+                devenv.cliVersion = version;
+                devenv.root = devenv_root;
+                devenv.dotfile = devenv_root + "/" + devenv_dotfile_string;
+              }
+              (pkgs.lib.optionalAttrs (inputs.devenv.isTmpDir or false) {
+                devenv.tmpdir = devenv_tmpdir;
+                devenv.runtime = devenv_runtime;
+              })
+              (pkgs.lib.optionalAttrs (inputs.devenv.hasIsTesting or false) {
+                devenv.isTesting = devenv_istesting;
+              })
+              (pkgs.lib.optionalAttrs (container_name != null) {
+                container.isBuilding = pkgs.lib.mkForce true;
+                containers.${container_name}.isBuilding = true;
+              })
+              ({ options, ... }: {
+                config.devenv = pkgs.lib.optionalAttrs (builtins.hasAttr "direnvrcLatestVersion" options.devenv) {
+                  direnvrcLatestVersion = devenv_direnvrc_latest_version;
+                };
+              })
+            ] ++ (map importModule (devenv.imports or [ ])) ++ [
+              (if builtins.pathExists ./devenv.nix then ./devenv.nix else { })
+              (devenv.devenv or { })
+              (if builtins.pathExists ./devenv.local.nix then ./devenv.local.nix else { })
+              (if builtins.pathExists (devenv_dotfile + "/cli-options.nix") then import (devenv_dotfile + "/cli-options.nix") else { })
+            ];
+          };
+          config = project.config;
+
+          options = pkgs.nixosOptionsDoc {
+            options = builtins.removeAttrs project.options [ "_module" ];
+            warningsAreErrors = false;
+            # Unpack Nix types, e.g. literalExpression, mDoc.
+            transformOptions =
+              let isDocType = v: builtins.elem v [ "literalDocBook" "literalExpression" "literalMD" "mdDoc" ];
+              in lib.attrsets.mapAttrs (_: v:
+                if v ? _type && isDocType v._type then
+                  v.text
+                else if v ? _type && v._type == "derivation" then
+                  v.name
+                else
+                  v
+              );
+          };
+
+          build = options: config:
+            lib.concatMapAttrs
+              (name: option:
+                if builtins.hasAttr "type" option then
+                  if option.type.name == "output" || option.type.name == "outputOf" then {
+                    ${name} = config.${name};
+                  } else { }
+                else
+                  let v = build option config.${name};
+                  in if v != { } then {
+                    ${name} = v;
+                  } else { }
+              )
+              options;
+
+          systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+        in
+        {
+          devShell = lib.genAttrs systems (system: config.shell);
+          packages = lib.genAttrs systems (system: {
+            optionsJSON = options.optionsJSON;
+            # deprecated
+            inherit (config) info procfileScript procfileEnv procfile;
+            ci = config.ciDerivation;
+          });
+          devenv = config;
+          build = build project.options project.config;
+        };
+      }
+
+
+
+================================================
 File: .envrc
 ================================================
 export DIRENV_WARN_TIMEOUT=20s
@@ -819,6 +996,19 @@ repos:
         language: system
         types: [go]
         pass_filenames: false
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.16.3
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/jumanjihouse/pre-commit-hooks
+    rev: 3.0.0
+    hooks:
+      - id: shellcheck
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
 
 
 
@@ -903,117 +1093,189 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// getFileNameWithoutExtension returns the filename portion without its extension.
-func getFileNameWithoutExtension(fileName string) string {
-	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
+func parseAddArgs(cCtx *cli.Context) (sourceURLInput, targetDir, customName string, verbose bool, err error) {
+	if cCtx.NArg() > 0 {
+		sourceURLInput = cCtx.Args().Get(0)
+	} else {
+		return "", "", "", false, fmt.Errorf("<source_url> argument is required")
+	}
+	targetDir = cCtx.String("directory")
+	customName = cCtx.String("name")
+	verbose = cCtx.Bool("verbose")
+	return
 }
 
-// getFileExtension returns just the extension portion of a filename.
-func getFileExtension(fileName string) string {
-	return filepath.Ext(fileName)
+func processSourceURL(sourceURLInput string) (*source.ParsedSourceInfo, error) {
+	parsedInfo, err := source.ParseSourceURL(sourceURLInput)
+	if err != nil {
+		return nil, fmt.Errorf("parsing source URL '%s': %w", sourceURLInput, err)
+	}
+	return parsedInfo, nil
+}
+
+func downloadDependency(rawURL string) ([]byte, error) {
+	fileContent, err := downloader.DownloadFile(rawURL)
+	if err != nil {
+		return nil, fmt.Errorf("downloading file from '%s': %w", rawURL, err)
+	}
+	return fileContent, nil
+}
+
+func determineFileNames(parsedInfo *source.ParsedSourceInfo, customName string) (dependencyNameInManifest, fileNameOnDisk string, err error) {
+	suggestedBaseName := strings.TrimSuffix(parsedInfo.SuggestedFilename, filepath.Ext(parsedInfo.SuggestedFilename))
+	suggestedExtension := filepath.Ext(parsedInfo.SuggestedFilename)
+
+	if customName != "" {
+		dependencyNameInManifest = customName
+		fileNameOnDisk = customName + suggestedExtension
+	} else {
+		if suggestedBaseName == "" || suggestedBaseName == "." || suggestedBaseName == "/" {
+			return "", "", fmt.Errorf("could not infer a valid base filename from URL's suggested filename: '%s'. Use -n to specify a name", parsedInfo.SuggestedFilename)
+		}
+		dependencyNameInManifest = suggestedBaseName
+		fileNameOnDisk = parsedInfo.SuggestedFilename
+	}
+
+	if fileNameOnDisk == "" || fileNameOnDisk == "." || fileNameOnDisk == "/" {
+		return "", "", fmt.Errorf("could not determine a valid final filename for saving. Inferred name was empty or invalid")
+	}
+	return dependencyNameInManifest, fileNameOnDisk, nil
+}
+
+func saveDependencyFile(projectRoot, targetDir, fileNameOnDisk string, fileContent []byte) (fullPath, relativeDestPath string, err error) {
+	fullPath = filepath.Join(projectRoot, targetDir, fileNameOnDisk)
+	relativeDestPath = filepath.ToSlash(filepath.Join(targetDir, fileNameOnDisk))
+
+	dirToCreate := filepath.Dir(fullPath)
+	if mkdirErr := os.MkdirAll(dirToCreate, 0755); mkdirErr != nil {
+		return "", "", fmt.Errorf("creating directory '%s': %w", dirToCreate, mkdirErr)
+	}
+
+	if writeErr := os.WriteFile(fullPath, fileContent, 0644); writeErr != nil {
+		return fullPath, "", fmt.Errorf("writing file '%s': %w", fullPath, writeErr) // Return fullPath for potential cleanup
+	}
+	return fullPath, relativeDestPath, nil
+}
+
+func calculateIntegrityHash(parsedInfo *source.ParsedSourceInfo, fileContent []byte) (string, error) {
+	fileHashSHA256, hashErr := hasher.CalculateSHA256(fileContent)
+	if hashErr != nil {
+		return "", fmt.Errorf("calculating SHA256 hash: %w", hashErr)
+	}
+
+	isLikelyCommitSHA := func(ref string) bool {
+		if len(ref) != 40 {
+			return false
+		}
+		for _, r := range ref {
+			if (r < '0' || r > '9') && (r < 'a' || r > 'f') && (r < 'A' || r > 'F') {
+				return false
+			}
+		}
+		return true
+	}
+
+	if parsedInfo.Provider == "github" && parsedInfo.Owner != "" && parsedInfo.Repo != "" && parsedInfo.PathInRepo != "" && parsedInfo.Ref != "" && !strings.HasPrefix(parsedInfo.Ref, "error:") {
+		if isLikelyCommitSHA(parsedInfo.Ref) {
+			return fmt.Sprintf("commit:%s", parsedInfo.Ref), nil
+		}
+		commitSHA, getCommitErr := source.GetLatestCommitSHAForFile(parsedInfo.Owner, parsedInfo.Repo, parsedInfo.PathInRepo, parsedInfo.Ref)
+		if getCommitErr != nil {
+			// Fallback to SHA256 if commit SHA cannot be fetched
+			return fileHashSHA256, nil
+		}
+		return fmt.Sprintf("commit:%s", commitSHA), nil
+	}
+	return fileHashSHA256, nil
+}
+
+func updateProjectManifest(projectRoot, dependencyNameInManifest, canonicalURL, relativeDestPath string) error {
+	proj, loadTomlErr := config.LoadProjectToml(projectRoot)
+	if loadTomlErr != nil {
+		if os.IsNotExist(loadTomlErr) {
+			expectedProjectTomlPath := filepath.Join(projectRoot, config.ProjectTomlName)
+			return fmt.Errorf("project.toml not found at '%s' (no such file or directory): %w", expectedProjectTomlPath, loadTomlErr)
+		}
+		return fmt.Errorf("loading %s: %w", config.ProjectTomlName, loadTomlErr)
+	}
+
+	if proj.Dependencies == nil {
+		proj.Dependencies = make(map[string]project.Dependency)
+	}
+	proj.Dependencies[dependencyNameInManifest] = project.Dependency{
+		Source: canonicalURL,
+		Path:   relativeDestPath,
+	}
+
+	if writeTomlErr := config.WriteProjectToml(projectRoot, proj); writeTomlErr != nil {
+		return fmt.Errorf("writing %s: %w", config.ProjectTomlName, writeTomlErr)
+	}
+	return nil
+}
+
+func updateLockfile(projectRoot, dependencyNameInManifest, rawURL, relativeDestPath, integrityHash string) error {
+	lf, loadLockErr := lockfile.Load(projectRoot)
+	if loadLockErr != nil {
+		// If lockfile doesn't exist, Load creates a new one, so this error is likely a real issue.
+		return fmt.Errorf("loading/initializing %s: %w", lockfile.LockfileName, loadLockErr)
+	}
+
+	lf.AddOrUpdatePackage(dependencyNameInManifest, rawURL, relativeDestPath, integrityHash)
+
+	if saveLockErr := lockfile.Save(projectRoot, lf); saveLockErr != nil {
+		return fmt.Errorf("saving %s: %w", lockfile.LockfileName, saveLockErr)
+	}
+	return nil
 }
 
 // AddCmd provides the CLI command definition for 'add'.
-// It downloads a dependency from a source URL and integrates it into the project,
-// updating both project.toml and almd-lock.toml accordingly.
 func AddCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "add",
 		Usage:     "Downloads a dependency and adds it to the project",
 		ArgsUsage: "<source_url>",
 		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:    "directory",
-				Aliases: []string{"d"},
-				Usage:   "Specify the target directory for the dependency",
-				Value:   "src/lib/",
-			},
-			&cli.StringFlag{
-				Name:    "name",
-				Aliases: []string{"n"},
-				Usage:   "Specify the name for the dependency (defaults to filename from URL)",
-			},
-			&cli.BoolFlag{
-				Name:  "verbose",
-				Usage: "Enable verbose output",
-			},
+			&cli.StringFlag{Name: "directory", Aliases: []string{"d"}, Usage: "Specify the target directory for the dependency", Value: "src/lib/"},
+			&cli.StringFlag{Name: "name", Aliases: []string{"n"}, Usage: "Specify the name for the dependency (defaults to filename from URL)"},
+			&cli.BoolFlag{Name: "verbose", Usage: "Enable verbose output"},
 		},
-		Action: func(cCtx *cli.Context) (err error) {
+		Action: func(cCtx *cli.Context) (err error) { // Named return 'err' for defer to access
 			startTime := time.Now()
-			sourceURLInput := ""
-			if cCtx.NArg() > 0 {
-				sourceURLInput = cCtx.Args().Get(0)
-			} else {
-				err = cli.Exit("Error: <source_url> argument is required.", 1)
+			projectRoot := "." // Assuming current directory is project root
+
+			sourceURLInput, targetDir, customName, verbose, parseErr := parseAddArgs(cCtx)
+			if parseErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error parsing 'add' arguments: %v", parseErr), 1)
+				return
+			}
+			_ = verbose // Placeholder for future verbose logging
+
+			parsedInfo, processURLErr := processSourceURL(sourceURLInput)
+			if processURLErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error processing source URL '%s': %v", sourceURLInput, processURLErr), 1)
 				return
 			}
 
-			targetDir := cCtx.String("directory")
-			customName := cCtx.String("name")
-			verbose := cCtx.Bool("verbose")
-
-			_ = verbose // Keeping verbose flag for future expansion of detailed logging
-
-			var parsedInfo *source.ParsedSourceInfo
-			parsedInfo, err = source.ParseSourceURL(sourceURLInput)
-			if err != nil {
-				err = cli.Exit(fmt.Sprintf("Error parsing source URL '%s': %v", sourceURLInput, err), 1)
+			fileContent, downloadErr := downloadDependency(parsedInfo.RawURL)
+			if downloadErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error downloading from '%s': %v", parsedInfo.RawURL, downloadErr), 1)
 				return
 			}
 
-			var fileContent []byte
-			fileContent, err = downloader.DownloadFile(parsedInfo.RawURL)
-			if err != nil {
-				err = cli.Exit(fmt.Sprintf("Error downloading file from '%s': %v", parsedInfo.RawURL, err), 1)
+			dependencyNameInManifest, fileNameOnDisk, determineNamesErr := determineFileNames(parsedInfo, customName)
+			if determineNamesErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error determining file names: %v", determineNamesErr), 1)
 				return
 			}
 
-			// Determine the final filenames for both the manifest and disk storage
-			var dependencyNameInManifest string
-			var fileNameOnDisk string
+			fullPath, relativeDestPath, saveFileErr := saveDependencyFile(projectRoot, targetDir, fileNameOnDisk, fileContent)
+			// fileWritten is true if saveFileErr is nil, or if saveFileErr is not nil but fullPath was determined (meaning an attempt to write was made).
+			fileWritten := saveFileErr == nil || (saveFileErr != nil && fullPath != "")
 
-			suggestedBaseName := getFileNameWithoutExtension(parsedInfo.SuggestedFilename)
-			suggestedExtension := getFileExtension(parsedInfo.SuggestedFilename)
-
-			if customName != "" {
-				dependencyNameInManifest = customName
-				fileNameOnDisk = customName + suggestedExtension
-			} else {
-				if suggestedBaseName == "" || suggestedBaseName == "." || suggestedBaseName == "/" {
-					err = cli.Exit(fmt.Sprintf("Error: Could not infer a valid base filename from URL's suggested filename: '%s'. Use -n to specify a name.", parsedInfo.SuggestedFilename), 1)
-					return
-				}
-				dependencyNameInManifest = suggestedBaseName
-				fileNameOnDisk = parsedInfo.SuggestedFilename
-			}
-
-			if fileNameOnDisk == "" || fileNameOnDisk == "." || fileNameOnDisk == "/" {
-				err = cli.Exit("Error: Could not determine a valid final filename for saving. Inferred name was empty or invalid.", 1)
-				return
-			}
-
-			projectRoot := "."
-			fullPath := filepath.Join(projectRoot, targetDir, fileNameOnDisk)
-			relativeDestPath := filepath.ToSlash(filepath.Join(targetDir, fileNameOnDisk))
-
-			// Create directories before writing file to ensure proper cleanup on failure
-			dirToCreate := filepath.Dir(fullPath)
-			if mkdirErr := os.MkdirAll(dirToCreate, 0755); mkdirErr != nil {
-				err = cli.Exit(fmt.Sprintf("Error creating directory '%s': %v", dirToCreate, mkdirErr), 1)
-				return
-			}
-
-			// Track if file was written to ensure proper cleanup on errors
-			fileWritten := false
-			if writeErr := os.WriteFile(fullPath, fileContent, 0644); writeErr != nil {
-				err = cli.Exit(fmt.Sprintf("Error writing file '%s': %v", fullPath, writeErr), 1)
-				return
-			}
-			fileWritten = true
-
-			// Cleanup downloaded file if any subsequent operations fail
+			// Defer cleanup logic. This runs when the Action function returns.
+			// It checks the Action's named return 'err'.
 			defer func() {
-				if err != nil && fileWritten {
+				if err != nil && fileWritten { // If the Action is returning an error AND a file was (potentially partially) written
 					cleanupErr := os.Remove(fullPath)
 					if cleanupErr != nil {
 						var errWriter io.Writer = os.Stderr
@@ -1025,91 +1287,32 @@ func AddCmd() *cli.Command {
 				}
 			}()
 
-			// Calculate content hash for integrity verification
-			var fileHashSHA256 string
-			var hashErr error
-			fileHashSHA256, hashErr = hasher.CalculateSHA256(fileContent)
-			if hashErr != nil {
-				err = cli.Exit(fmt.Sprintf("Error calculating SHA256 hash: %v. File '%s' was saved but is now being cleaned up.", hashErr, fullPath), 1)
+			if saveFileErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error saving dependency file to '%s': %v. Attempting to clean up.", fullPath, saveFileErr), 1)
+				return // This sets Action's 'err' and triggers the defer.
+			}
+			// At this point, file is successfully written.
+			// Subsequent errors will set Action's 'err' and trigger the deferred cleanup.
+
+			integrityHash, integrityHashErr := calculateIntegrityHash(parsedInfo, fileContent)
+			if integrityHashErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error calculating integrity hash: %v. File '%s' was saved but is now being cleaned up.", integrityHashErr, fullPath), 1)
 				return
 			}
 
-			var proj *project.Project
-			var loadTomlErr error
-			proj, loadTomlErr = config.LoadProjectToml(projectRoot)
-			if loadTomlErr != nil {
-				if os.IsNotExist(loadTomlErr) {
-					expectedProjectTomlPath := filepath.Join(projectRoot, config.ProjectTomlName)
-					detailedError := fmt.Errorf("project.toml not found at '%s' (no such file or directory): %w", expectedProjectTomlPath, loadTomlErr)
-					err = cli.Exit(fmt.Sprintf("Error: %s. File '%s' was saved but is now being cleaned up.", detailedError, fullPath), 1)
-					return
-				} else {
-					err = cli.Exit(fmt.Sprintf("Error loading %s: %v. File '%s' was saved but is now being cleaned up.", config.ProjectTomlName, loadTomlErr, fullPath), 1)
-					return
-				}
-			}
-
-			// Ensure dependencies map is initialized
-			if proj.Dependencies == nil {
-				proj.Dependencies = make(map[string]project.Dependency)
-			}
-
-			proj.Dependencies[dependencyNameInManifest] = project.Dependency{
-				Source: parsedInfo.CanonicalURL,
-				Path:   relativeDestPath,
-			}
-
-			if writeTomlErr := config.WriteProjectToml(projectRoot, proj); writeTomlErr != nil {
-				err = cli.Exit(fmt.Sprintf("Error writing %s: %v. File '%s' was saved but is now being cleaned up. %s may be in an inconsistent state.", config.ProjectTomlName, writeTomlErr, fullPath, config.ProjectTomlName), 1)
+			manifestErr := updateProjectManifest(projectRoot, dependencyNameInManifest, parsedInfo.CanonicalURL, relativeDestPath)
+			if manifestErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error updating project manifest: %v. File '%s' was saved but is now being cleaned up. %s may be in an inconsistent state.", manifestErr, fullPath, config.ProjectTomlName), 1)
 				return
 			}
 
-			var lf *lockfile.Lockfile
-			var loadLockErr error
-			lf, loadLockErr = lockfile.Load(projectRoot)
-			if loadLockErr != nil {
-				err = cli.Exit(fmt.Sprintf("Error loading/initializing %s: %v. File '%s' saved and %s updated, but lockfile operation failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", lockfile.LockfileName, loadLockErr, fullPath, config.ProjectTomlName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1)
+			lockfileErr := updateLockfile(projectRoot, dependencyNameInManifest, parsedInfo.RawURL, relativeDestPath, integrityHash)
+			if lockfileErr != nil {
+				err = cli.Exit(fmt.Sprintf("Error updating lockfile: %v. File '%s' saved and %s updated, but lockfile operation failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", lockfileErr, fullPath, config.ProjectTomlName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1)
 				return
 			}
 
-			// Determine integrity hash based on commit SHA or content hash
-			var integrityHash string
-			isLikelyCommitSHA := func(ref string) bool {
-				if len(ref) != 40 {
-					return false
-				}
-				for _, r := range ref {
-					if (r < '0' || r > '9') && (r < 'a' || r > 'f') && (r < 'A' || r > 'F') {
-						return false
-					}
-				}
-				return true
-			}
-
-			if parsedInfo.Provider == "github" && parsedInfo.Owner != "" && parsedInfo.Repo != "" && parsedInfo.PathInRepo != "" && parsedInfo.Ref != "" && !strings.HasPrefix(parsedInfo.Ref, "error:") {
-				if isLikelyCommitSHA(parsedInfo.Ref) {
-					integrityHash = fmt.Sprintf("commit:%s", parsedInfo.Ref)
-				} else {
-					var commitSHA string
-					var getCommitErr error
-					commitSHA, getCommitErr = source.GetLatestCommitSHAForFile(parsedInfo.Owner, parsedInfo.Repo, parsedInfo.PathInRepo, parsedInfo.Ref)
-					if getCommitErr != nil {
-						integrityHash = fileHashSHA256
-					} else {
-						integrityHash = fmt.Sprintf("commit:%s", commitSHA)
-					}
-				}
-			} else {
-				integrityHash = fileHashSHA256
-			}
-
-			lf.AddOrUpdatePackage(dependencyNameInManifest, parsedInfo.RawURL, relativeDestPath, integrityHash)
-
-			if saveLockErr := lockfile.Save(projectRoot, lf); saveLockErr != nil {
-				err = cli.Exit(fmt.Sprintf("Error saving %s: %v. File '%s' saved and %s updated, but saving %s failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", lockfile.LockfileName, saveLockErr, fullPath, config.ProjectTomlName, lockfile.LockfileName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1)
-				return
-			}
-
+			// Success: print output
 			_, _ = color.New(color.FgWhite).Println("Packages: +1")
 			_, _ = color.New(color.FgGreen).Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 			fmt.Println("Progress: resolved 1, downloaded 1, added 1, done")
@@ -1121,7 +1324,7 @@ func AddCmd() *cli.Command {
 				if len(parts) > 1 {
 					dependencyVersionStr = parts[len(parts)-1]
 				} else {
-					dependencyVersionStr = "latest"
+					dependencyVersionStr = "latest" // Or some other default
 				}
 			}
 			_, _ = color.New(color.FgGreen).Printf("+ %s %s\n", dependencyNameInManifest, dependencyVersionStr)
@@ -1129,7 +1332,7 @@ func AddCmd() *cli.Command {
 			duration := time.Since(startTime)
 			fmt.Printf("Done in %.1fs\n", duration.Seconds())
 
-			return nil
+			return nil // Explicitly return nil on success
 		},
 	}
 }
@@ -1538,7 +1741,7 @@ version = "0.1.0"
 	require.Error(t, err, "almd add command should return an error on download failure")
 
 	if exitErr, ok := err.(cli.ExitCoder); ok {
-		assert.Contains(t, exitErr.Error(), "Error downloading file", "Error message should indicate download failure")
+		assert.Contains(t, exitErr.Error(), "downloading file from", "Error message should indicate download failure")
 		assert.Contains(t, exitErr.Error(), "status code 404", "Error message should indicate 404 status")
 	} else {
 		assert.Fail(t, "Expected cli.ExitError for command failure")
@@ -2002,6 +2205,7 @@ import (
 	"github.com/nightconcept/almandine/internal/core/downloader"
 	"github.com/nightconcept/almandine/internal/core/hasher"
 	"github.com/nightconcept/almandine/internal/core/lockfile"
+	coreproject "github.com/nightconcept/almandine/internal/core/project"
 	"github.com/nightconcept/almandine/internal/core/source"
 )
 
@@ -2009,9 +2213,365 @@ import (
 // This range covers both short and full-length commit hashes.
 var isCommitSHARegex = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
 
+// dependencyToProcess tracks the source configuration for each dependency
+// that needs to be processed during the install/update operation.
+type dependencyToProcess struct {
+	Name   string
+	Source string
+	Path   string
+}
+
+// dependencyInstallState tracks both the target state (from project.toml) and
+// current state (from lockfile) for each dependency, along with resolution details.
+type dependencyInstallState struct {
+	Name              string
+	ProjectTomlSource string
+	ProjectTomlPath   string
+	TargetRawURL      string
+	TargetCommitHash  string
+	LockedRawURL      string
+	LockedCommitHash  string
+	Provider          string
+	Owner             string
+	Repo              string
+	PathInRepo        string
+	NeedsAction       bool
+	ActionReason      string
+}
+
+// loadInstallConfigAndArgs loads necessary configurations and parses CLI arguments.
+func loadInstallConfigAndArgs(c *cli.Context) (projCfg *coreproject.Project, lf *lockfile.Lockfile, dependencyNames []string, force bool, verbose bool, err error) {
+	verbose = c.Bool("verbose")
+	force = c.Bool("force")
+
+	if verbose {
+		_, _ = fmt.Fprintln(os.Stdout, "Executing 'install' command...")
+		if force {
+			_, _ = fmt.Fprintln(os.Stdout, "Force install/update enabled.")
+		}
+	}
+
+	dependencyNames = c.Args().Slice()
+	if verbose {
+		if len(dependencyNames) > 0 {
+			_, _ = fmt.Fprintf(os.Stdout, "Targeted dependencies for install/update: %v\n", dependencyNames)
+		} else {
+			_, _ = fmt.Fprintln(os.Stdout, "Targeting all dependencies for install/update.")
+		}
+	}
+
+	projCfg, err = config.LoadProjectToml(".")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil, nil, false, verbose, cli.Exit("Error: project.toml not found in the current directory. Please run 'almd init' first.", 1)
+		}
+		return nil, nil, nil, false, verbose, cli.Exit(fmt.Sprintf("Error loading project.toml: %v", err), 1)
+	}
+	if verbose {
+		_, _ = fmt.Fprintf(os.Stdout, "Successfully loaded project.toml (Package: %s)\n", projCfg.Package.Name)
+	}
+
+	lf, err = lockfile.Load(".")
+	if err != nil {
+		// If lockfile doesn't exist, we initialize a new one instead of erroring out.
+		// The install process will populate it.
+		if errors.Is(err, os.ErrNotExist) {
+			if verbose {
+				_, _ = fmt.Fprintln(os.Stdout, "almd-lock.toml not found, will create a new one.")
+			}
+			lf = &lockfile.Lockfile{
+				ApiVersion: lockfile.APIVersion,
+				Package:    make(map[string]lockfile.PackageEntry),
+			}
+			err = nil // Clear the error as we've handled it by creating a new lockfile struct
+		} else {
+			return nil, nil, nil, false, verbose, cli.Exit(fmt.Sprintf("Error loading almd-lock.toml: %v", err), 1)
+		}
+	}
+
+	if verbose && err == nil { // err == nil means lockfile was loaded or initialized successfully
+		_, _ = fmt.Fprintln(os.Stdout, "Successfully loaded or initialized almd-lock.toml.")
+	}
+
+	if lf.Package == nil {
+		lf.Package = make(map[string]lockfile.PackageEntry)
+	}
+	if lf.ApiVersion == "" {
+		lf.ApiVersion = lockfile.APIVersion
+	}
+	return projCfg, lf, dependencyNames, force, verbose, nil
+}
+
+// collectDependenciesToProcess determines which dependencies to process based on arguments or all from project.toml.
+func collectDependenciesToProcess(projCfg *coreproject.Project, dependencyNames []string, verbose bool) ([]dependencyToProcess, error) {
+	var dependenciesToProcessList []dependencyToProcess
+
+	if len(dependencyNames) == 0 {
+		if len(projCfg.Dependencies) == 0 {
+			_, _ = fmt.Fprintln(os.Stdout, "No dependencies found in project.toml to install/update.")
+			return nil, nil // Return nil, nil to indicate no error but no work
+		}
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "Processing all %d dependencies from project.toml...\n", len(projCfg.Dependencies))
+		}
+		for name, depDetails := range projCfg.Dependencies {
+			dependenciesToProcessList = append(dependenciesToProcessList, dependencyToProcess{
+				Name:   name,
+				Source: depDetails.Source,
+				Path:   depDetails.Path,
+			})
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  Targeting: %s (Source: %s, Path: %s)\n", name, depDetails.Source, depDetails.Path)
+			}
+		}
+	} else {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "Processing %d specified dependencies...\n", len(dependencyNames))
+		}
+		for _, name := range dependencyNames {
+			depDetails, ok := projCfg.Dependencies[name]
+			if !ok {
+				_, _ = fmt.Fprintf(os.Stderr, "Warning: Dependency '%s' specified for install/update not found in project.toml. Skipping.\n", name)
+				continue
+			}
+			dependenciesToProcessList = append(dependenciesToProcessList, dependencyToProcess{
+				Name:   name,
+				Source: depDetails.Source,
+				Path:   depDetails.Path,
+			})
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  Targeting: %s (Source: %s, Path: %s)\n", name, depDetails.Source, depDetails.Path)
+			}
+		}
+		if len(dependenciesToProcessList) == 0 {
+			_, _ = fmt.Fprintln(os.Stdout, "No specified dependencies were found in project.toml to install/update.")
+			return nil, nil // Return nil, nil to indicate no error but no work
+		}
+	}
+
+	if verbose {
+		_, _ = fmt.Fprintf(os.Stdout, "Total dependencies to process: %d\n", len(dependenciesToProcessList))
+	}
+	return dependenciesToProcessList, nil
+}
+
+// resolveInstallStates resolves the target and locked states for each dependency.
+func resolveInstallStates(dependenciesToProcessList []dependencyToProcess, lf *lockfile.Lockfile, verbose bool) ([]dependencyInstallState, error) {
+	var installStates []dependencyInstallState
+
+	if verbose && len(dependenciesToProcessList) > 0 {
+		_, _ = fmt.Fprintln(os.Stdout, "\nResolving target versions and current lock states...")
+	}
+
+	for _, depToProcess := range dependenciesToProcessList {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "Processing dependency: %s (Source: %s)\n", depToProcess.Name, depToProcess.Source)
+		}
+
+		parsedSourceInfo, err := source.ParseSourceURL(depToProcess.Source)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Warning: Could not parse source URL for dependency '%s' (%s): %v. Skipping.\n", depToProcess.Name, depToProcess.Source, err)
+			continue
+		}
+
+		var resolvedCommitHash = parsedSourceInfo.Ref
+		var finalTargetRawURL = parsedSourceInfo.RawURL
+
+		if parsedSourceInfo.Provider == "github" && !isCommitSHARegex.MatchString(parsedSourceInfo.Ref) {
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  Ref '%s' for '%s' is not a full commit SHA. Attempting to resolve latest commit for path '%s'...\n", parsedSourceInfo.Ref, depToProcess.Name, parsedSourceInfo.PathInRepo)
+			}
+			latestSHA, err := source.GetLatestCommitSHAForFile(parsedSourceInfo.Owner, parsedSourceInfo.Repo, parsedSourceInfo.PathInRepo, parsedSourceInfo.Ref)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "  Warning: Could not resolve ref '%s' to a specific commit for '%s': %v. Proceeding with ref as is.\n", parsedSourceInfo.Ref, depToProcess.Name, err)
+			} else {
+				if verbose {
+					_, _ = fmt.Fprintf(os.Stdout, "  Resolved ref '%s' to commit SHA: %s for '%s'\n", parsedSourceInfo.Ref, latestSHA, depToProcess.Name)
+				}
+				resolvedCommitHash = latestSHA
+				finalTargetRawURL = strings.Replace(parsedSourceInfo.RawURL, "/"+parsedSourceInfo.Ref+"/", "/"+latestSHA+"/", 1)
+			}
+		} else if verbose && parsedSourceInfo.Provider == "github" {
+			_, _ = fmt.Fprintf(os.Stdout, "  Ref '%s' for '%s' appears to be a commit SHA. Using it directly.\n", parsedSourceInfo.Ref, depToProcess.Name)
+		}
+
+		currentState := dependencyInstallState{
+			Name:              depToProcess.Name,
+			ProjectTomlSource: depToProcess.Source,
+			ProjectTomlPath:   depToProcess.Path,
+			TargetRawURL:      finalTargetRawURL,
+			TargetCommitHash:  resolvedCommitHash,
+			Provider:          parsedSourceInfo.Provider,
+			Owner:             parsedSourceInfo.Owner,
+			Repo:              parsedSourceInfo.Repo,
+			PathInRepo:        parsedSourceInfo.PathInRepo,
+		}
+
+		if lockDetails, ok := lf.Package[depToProcess.Name]; ok {
+			currentState.LockedRawURL = lockDetails.Source
+			currentState.LockedCommitHash = lockDetails.Hash
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  Found in lockfile: Name: %s, Locked Source: %s, Locked Hash: %s\n", depToProcess.Name, lockDetails.Source, lockDetails.Hash)
+			}
+		} else {
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  Dependency '%s' not found in lockfile.\n", depToProcess.Name)
+			}
+		}
+		installStates = append(installStates, currentState)
+	}
+
+	if verbose && len(installStates) > 0 {
+		_, _ = fmt.Fprintln(os.Stdout, "\nFinished resolving versions. States to compare:")
+		for _, s := range installStates {
+			_, _ = fmt.Fprintf(os.Stdout, "  - Name: %s, TargetCommit: %s, TargetURL: %s, LockedHash: %s, LockedURL: %s\n", s.Name, s.TargetCommitHash, s.TargetRawURL, s.LockedCommitHash, s.LockedRawURL)
+		}
+	}
+	return installStates, nil
+}
+
+// filterDependenciesRequiringAction identifies which dependencies actually need an install/update.
+func filterDependenciesRequiringAction(installStates []dependencyInstallState, force bool, verbose bool) []dependencyInstallState {
+	var dependenciesThatNeedAction []dependencyInstallState
+
+	if verbose && len(installStates) > 0 {
+		_, _ = fmt.Fprintln(os.Stdout, "\nDetermining which dependencies need install/update...")
+	}
+
+	for _, state := range installStates { // Use index to modify original slice for NeedsAction and ActionReason
+		reason := ""
+		needsAction := false
+
+		if force {
+			needsAction = true
+			reason = "Install/Update forced by user (--force)."
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (forced).\n", state.Name)
+			}
+		}
+
+		if !needsAction && state.LockedCommitHash == "" {
+			needsAction = true
+			reason = "Dependency present in project.toml but not in almd-lock.toml."
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (not in lockfile).\n", state.Name)
+			}
+		}
+
+		if !needsAction {
+			if _, err := os.Stat(state.ProjectTomlPath); errors.Is(err, os.ErrNotExist) {
+				needsAction = true
+				reason = fmt.Sprintf("Local file missing at path: %s.", state.ProjectTomlPath)
+				if verbose {
+					_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (file missing at %s).\n", state.Name, state.ProjectTomlPath)
+				}
+			} else if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "Warning: Could not stat file for dependency '%s' at '%s': %v. Assuming install/update check is needed.\n", state.Name, state.ProjectTomlPath, err)
+				needsAction = true
+				reason = fmt.Sprintf("Error checking local file status at %s: %v.", state.ProjectTomlPath, err)
+			}
+		}
+
+		if !needsAction && state.TargetCommitHash != "" && state.LockedCommitHash != "" {
+			var lockedSHA string
+			if strings.HasPrefix(state.LockedCommitHash, "commit:") {
+				lockedSHA = strings.TrimPrefix(state.LockedCommitHash, "commit:")
+			}
+
+			if lockedSHA != "" && state.TargetCommitHash != lockedSHA {
+				needsAction = true
+				reason = fmt.Sprintf("Target commit hash (%s) differs from locked commit hash (%s).", state.TargetCommitHash, lockedSHA)
+				if verbose {
+					_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (target commit %s != locked commit %s).\n", state.Name, state.TargetCommitHash, lockedSHA)
+				}
+			} else if lockedSHA == "" && strings.HasPrefix(state.LockedCommitHash, "sha256:") && isCommitSHARegex.MatchString(state.TargetCommitHash) {
+				needsAction = true
+				reason = fmt.Sprintf("Target is now a specific commit (%s), but lockfile has a content hash (%s).", state.TargetCommitHash, state.LockedCommitHash)
+				if verbose {
+					_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (target is specific commit %s, lockfile has content hash %s).\n", state.Name, state.TargetCommitHash, state.LockedCommitHash)
+				}
+			}
+		}
+
+		if needsAction {
+			// Modify a copy to avoid altering the original installStates slice passed around,
+			// and append this modified copy to dependenciesThatNeedAction.
+			actionableState := state // Make a copy
+			actionableState.NeedsAction = true
+			actionableState.ActionReason = reason
+			dependenciesThatNeedAction = append(dependenciesThatNeedAction, actionableState)
+		} else if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "  - %s: Already up-to-date.\n", state.Name)
+		}
+	}
+	return dependenciesThatNeedAction
+}
+
+// executeInstallOperations performs the download, hashing, file saving, and lockfile data updates.
+func executeInstallOperations(dependenciesThatNeedAction []dependencyInstallState, lf *lockfile.Lockfile, verbose bool) (successfulActions int, err error) {
+	if verbose && len(dependenciesThatNeedAction) > 0 {
+		_, _ = fmt.Fprintln(os.Stdout, "\nPerforming install/update for identified dependencies...")
+	}
+
+	for _, dep := range dependenciesThatNeedAction {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "  Installing/Updating '%s' from %s\n", dep.Name, dep.TargetRawURL)
+		}
+
+		fileContent, downloadErr := downloader.DownloadFile(dep.TargetRawURL)
+		if downloadErr != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to download dependency '%s' from '%s': %v\n", dep.Name, dep.TargetRawURL, downloadErr)
+			continue // Skip to next dependency
+		}
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "    Successfully downloaded %s (%d bytes)\n", dep.Name, len(fileContent))
+		}
+
+		var integrityHash string
+		if dep.Provider == "github" && isCommitSHARegex.MatchString(dep.TargetCommitHash) {
+			integrityHash = "commit:" + dep.TargetCommitHash
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "    Using commit hash for integrity: %s\n", integrityHash)
+			}
+		} else {
+			contentHash, hashErr := hasher.CalculateSHA256(fileContent)
+			if hashErr != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to calculate SHA256 hash for dependency '%s': %v\n", dep.Name, hashErr)
+				continue
+			}
+			integrityHash = contentHash
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "    Calculated content hash for integrity: %s\n", integrityHash)
+			}
+		}
+
+		targetDir := filepath.Dir(dep.ProjectTomlPath)
+		if mkdirErr := os.MkdirAll(targetDir, os.ModePerm); mkdirErr != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to create directory '%s' for dependency '%s': %v\n", targetDir, dep.Name, mkdirErr)
+			continue
+		}
+		if writeErr := os.WriteFile(dep.ProjectTomlPath, fileContent, 0644); writeErr != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to write file '%s' for dependency '%s': %v\n", dep.ProjectTomlPath, dep.Name, writeErr)
+			continue
+		}
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "    Successfully saved %s to %s\n", dep.Name, dep.ProjectTomlPath)
+		}
+
+		lf.Package[dep.Name] = lockfile.PackageEntry{
+			Source: dep.TargetRawURL,
+			Path:   dep.ProjectTomlPath,
+			Hash:   integrityHash,
+		}
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "    Updated lockfile entry for %s: Path=%s, Hash=%s, SourceURL=%s\n", dep.Name, dep.ProjectTomlPath, integrityHash, dep.TargetRawURL)
+		}
+		successfulActions++
+	}
+	return successfulActions, nil
+}
+
 // InstallCmd creates a new install command that handles dependency management.
-// It supports installing specific dependencies or all dependencies defined in project.toml,
-// with options for forced updates and verbose output.
 func InstallCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "install",
@@ -2029,278 +2589,25 @@ func InstallCmd() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			verbose := c.Bool("verbose")
-			force := c.Bool("force")
-
-			if verbose {
-				_, _ = fmt.Fprintln(os.Stdout, "Executing 'install' command...")
-				if force {
-					_, _ = fmt.Fprintln(os.Stdout, "Force install/update enabled.")
-				}
-			}
-
-			dependencyNames := c.Args().Slice()
-			if verbose {
-				if len(dependencyNames) > 0 {
-					_, _ = fmt.Fprintf(os.Stdout, "Targeted dependencies for install/update: %v\n", dependencyNames)
-				} else {
-					_, _ = fmt.Fprintln(os.Stdout, "Targeting all dependencies for install/update.")
-				}
-			}
-
-			// Load project.toml and validate its existence before proceeding
-			projCfg, err := config.LoadProjectToml(".")
+			projCfg, lf, dependencyNames, force, verbose, err := loadInstallConfigAndArgs(c)
 			if err != nil {
-				if errors.Is(err, os.ErrNotExist) {
-					return cli.Exit("Error: project.toml not found in the current directory. Please run 'almd init' first.", 1)
-				}
-				return cli.Exit(fmt.Sprintf("Error loading project.toml: %v", err), 1)
-			}
-			if verbose {
-				_, _ = fmt.Fprintf(os.Stdout, "Successfully loaded project.toml (Package: %s)\n", projCfg.Package.Name)
+				return err // Error is already a cli.Exit
 			}
 
-			// Load almd-lock.toml
-			lf, err := lockfile.Load(".")
+			dependenciesToProcessList, err := collectDependenciesToProcess(projCfg, dependencyNames, verbose)
 			if err != nil {
-				return cli.Exit(fmt.Sprintf("Error loading almd-lock.toml: %v", err), 1)
+				return cli.Exit(fmt.Sprintf("Error collecting dependencies to process: %v", err), 1)
 			}
-			if verbose {
-				_, _ = fmt.Fprintln(os.Stdout, "Successfully loaded or initialized almd-lock.toml.")
-			}
-			if lf.Package == nil {
-				lf.Package = make(map[string]lockfile.PackageEntry)
-			}
-			if lf.ApiVersion == "" {
-				lf.ApiVersion = lockfile.APIVersion
+			if dependenciesToProcessList == nil { // Indicates no work to do, message already printed
+				return nil
 			}
 
-			// dependencyToProcess tracks the source configuration for each dependency
-			// that needs to be processed during the install/update operation
-			type dependencyToProcess struct {
-				Name   string
-				Source string
-				Path   string
-			}
-			var dependenciesToProcessList []dependencyToProcess
-
-			if len(dependencyNames) == 0 {
-				if len(projCfg.Dependencies) == 0 {
-					_, _ = fmt.Fprintln(os.Stdout, "No dependencies found in project.toml to install/update.")
-					return nil
-				}
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "Processing all %d dependencies from project.toml...\n", len(projCfg.Dependencies))
-				}
-				for name, depDetails := range projCfg.Dependencies {
-					dependenciesToProcessList = append(dependenciesToProcessList, dependencyToProcess{
-						Name:   name,
-						Source: depDetails.Source,
-						Path:   depDetails.Path,
-					})
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  Targeting: %s (Source: %s, Path: %s)\n", name, depDetails.Source, depDetails.Path)
-					}
-				}
-			} else {
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "Processing %d specified dependencies...\n", len(dependencyNames))
-				}
-				for _, name := range dependencyNames {
-					depDetails, ok := projCfg.Dependencies[name]
-					if !ok {
-						_, _ = fmt.Fprintf(os.Stderr, "Warning: Dependency '%s' specified for install/update not found in project.toml. Skipping.\n", name)
-						continue
-					}
-					dependenciesToProcessList = append(dependenciesToProcessList, dependencyToProcess{
-						Name:   name,
-						Source: depDetails.Source,
-						Path:   depDetails.Path,
-					})
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  Targeting: %s (Source: %s, Path: %s)\n", name, depDetails.Source, depDetails.Path)
-					}
-				}
-				if len(dependenciesToProcessList) == 0 {
-					_, _ = fmt.Fprintln(os.Stdout, "No specified dependencies were found in project.toml to install/update.")
-					return nil
-				}
+			installStates, err := resolveInstallStates(dependenciesToProcessList, lf, verbose)
+			if err != nil {
+				return cli.Exit(fmt.Sprintf("Error resolving dependency states: %v", err), 1)
 			}
 
-			if verbose {
-				_, _ = fmt.Fprintf(os.Stdout, "Total dependencies to process: %d\n", len(dependenciesToProcessList))
-			}
-
-			// dependencyInstallState tracks both the target state (from project.toml) and
-			// current state (from lockfile) for each dependency, along with resolution details
-			type dependencyInstallState struct {
-				Name              string
-				ProjectTomlSource string
-				ProjectTomlPath   string
-				TargetRawURL      string
-				TargetCommitHash  string
-				LockedRawURL      string
-				LockedCommitHash  string
-				Provider          string
-				Owner             string
-				Repo              string
-				PathInRepo        string
-				NeedsAction       bool
-				ActionReason      string
-			}
-			var installStates []dependencyInstallState
-
-			if verbose && len(dependenciesToProcessList) > 0 {
-				_, _ = fmt.Fprintln(os.Stdout, "\nResolving target versions and current lock states...")
-			}
-
-			// Commit resolution for GitHub dependencies:
-			// For non-commit refs (branch/tag), we attempt to resolve to a specific commit
-			// to ensure reproducible builds and detect updates. For already-specific commits,
-			// we use them directly.
-			for _, depToProcess := range dependenciesToProcessList {
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "Processing dependency: %s (Source: %s)\n", depToProcess.Name, depToProcess.Source)
-				}
-
-				parsedSourceInfo, err := source.ParseSourceURL(depToProcess.Source)
-				if err != nil {
-					_, _ = fmt.Fprintf(os.Stderr, "Warning: Could not parse source URL for dependency '%s' (%s): %v. Skipping.\n", depToProcess.Name, depToProcess.Source, err)
-					continue
-				}
-
-				var resolvedCommitHash = parsedSourceInfo.Ref
-				var finalTargetRawURL = parsedSourceInfo.RawURL
-
-				if parsedSourceInfo.Provider == "github" && !isCommitSHARegex.MatchString(parsedSourceInfo.Ref) {
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  Ref '%s' for '%s' is not a full commit SHA. Attempting to resolve latest commit for path '%s'...\n", parsedSourceInfo.Ref, depToProcess.Name, parsedSourceInfo.PathInRepo)
-					}
-					latestSHA, err := source.GetLatestCommitSHAForFile(parsedSourceInfo.Owner, parsedSourceInfo.Repo, parsedSourceInfo.PathInRepo, parsedSourceInfo.Ref)
-					if err != nil {
-						_, _ = fmt.Fprintf(os.Stderr, "  Warning: Could not resolve ref '%s' to a specific commit for '%s': %v. Proceeding with ref as is.\n", parsedSourceInfo.Ref, depToProcess.Name, err)
-					} else {
-						if verbose {
-							_, _ = fmt.Fprintf(os.Stdout, "  Resolved ref '%s' to commit SHA: %s for '%s'\n", parsedSourceInfo.Ref, latestSHA, depToProcess.Name)
-						}
-						resolvedCommitHash = latestSHA
-						finalTargetRawURL = strings.Replace(parsedSourceInfo.RawURL, "/"+parsedSourceInfo.Ref+"/", "/"+latestSHA+"/", 1)
-					}
-				} else if verbose && parsedSourceInfo.Provider == "github" {
-					_, _ = fmt.Fprintf(os.Stdout, "  Ref '%s' for '%s' appears to be a commit SHA. Using it directly.\n", parsedSourceInfo.Ref, depToProcess.Name)
-				}
-
-				currentState := dependencyInstallState{
-					Name:              depToProcess.Name,
-					ProjectTomlSource: depToProcess.Source,
-					ProjectTomlPath:   depToProcess.Path,
-					TargetRawURL:      finalTargetRawURL,
-					TargetCommitHash:  resolvedCommitHash,
-					Provider:          parsedSourceInfo.Provider,
-					Owner:             parsedSourceInfo.Owner,
-					Repo:              parsedSourceInfo.Repo,
-					PathInRepo:        parsedSourceInfo.PathInRepo,
-				}
-
-				if lockDetails, ok := lf.Package[depToProcess.Name]; ok {
-					currentState.LockedRawURL = lockDetails.Source
-					currentState.LockedCommitHash = lockDetails.Hash
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  Found in lockfile: Name: %s, Locked Source: %s, Locked Hash: %s\n", depToProcess.Name, lockDetails.Source, lockDetails.Hash)
-					}
-				} else {
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  Dependency '%s' not found in lockfile.\n", depToProcess.Name)
-					}
-				}
-				installStates = append(installStates, currentState)
-			}
-
-			if verbose && len(installStates) > 0 {
-				_, _ = fmt.Fprintln(os.Stdout, "\nFinished resolving versions. States to compare:")
-				for _, s := range installStates {
-					_, _ = fmt.Fprintf(os.Stdout, "  - Name: %s, TargetCommit: %s, TargetURL: %s, LockedHash: %s, LockedURL: %s\n", s.Name, s.TargetCommitHash, s.TargetRawURL, s.LockedCommitHash, s.LockedRawURL)
-				}
-			}
-
-			// For dependencies requiring action, determine why they need updating:
-			// 1. Forced updates (--force flag)
-			// 2. Missing from lockfile
-			// 3. Missing local file
-			// 4. Changed target commit or content hash
-			var dependenciesThatNeedAction []dependencyInstallState
-
-			if verbose && len(installStates) > 0 {
-				_, _ = fmt.Fprintln(os.Stdout, "\nDetermining which dependencies need install/update...")
-			}
-
-			for i, state := range installStates {
-				reason := ""
-				needsAction := false
-
-				// 1. --force flag
-				if force {
-					needsAction = true
-					reason = "Install/Update forced by user (--force)."
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (forced).\n", state.Name)
-					}
-				}
-
-				// 2. Dependency in project.toml but missing from almd-lock.toml
-				if !needsAction && state.LockedCommitHash == "" {
-					needsAction = true
-					reason = "Dependency present in project.toml but not in almd-lock.toml."
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (not in lockfile).\n", state.Name)
-					}
-				}
-
-				// 3. Local file at path is missing
-				if !needsAction {
-					if _, err := os.Stat(state.ProjectTomlPath); errors.Is(err, os.ErrNotExist) {
-						needsAction = true
-						reason = fmt.Sprintf("Local file missing at path: %s.", state.ProjectTomlPath)
-						if verbose {
-							_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (file missing at %s).\n", state.Name, state.ProjectTomlPath)
-						}
-					} else if err != nil {
-						_, _ = fmt.Fprintf(os.Stderr, "Warning: Could not stat file for dependency '%s' at '%s': %v. Assuming install/update check is needed.\n", state.Name, state.ProjectTomlPath, err)
-						needsAction = true
-						reason = fmt.Sprintf("Error checking local file status at %s: %v.", state.ProjectTomlPath, err)
-					}
-				}
-
-				// 4. Resolved target commit hash differs from locked commit hash
-				if !needsAction && state.TargetCommitHash != "" && state.LockedCommitHash != "" {
-					var lockedSHA string
-					if strings.HasPrefix(state.LockedCommitHash, "commit:") {
-						lockedSHA = strings.TrimPrefix(state.LockedCommitHash, "commit:")
-					}
-
-					if lockedSHA != "" && state.TargetCommitHash != lockedSHA {
-						needsAction = true
-						reason = fmt.Sprintf("Target commit hash (%s) differs from locked commit hash (%s).", state.TargetCommitHash, lockedSHA)
-						if verbose {
-							_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (target commit %s != locked commit %s).\n", state.Name, state.TargetCommitHash, lockedSHA)
-						}
-					} else if lockedSHA == "" && strings.HasPrefix(state.LockedCommitHash, "sha256:") && isCommitSHARegex.MatchString(state.TargetCommitHash) {
-						needsAction = true
-						reason = fmt.Sprintf("Target is now a specific commit (%s), but lockfile has a content hash (%s).", state.TargetCommitHash, state.LockedCommitHash)
-						if verbose {
-							_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (target is specific commit %s, lockfile has content hash %s).\n", state.Name, state.TargetCommitHash, state.LockedCommitHash)
-						}
-					}
-				}
-
-				if needsAction {
-					installStates[i].NeedsAction = true
-					installStates[i].ActionReason = reason
-					dependenciesThatNeedAction = append(dependenciesThatNeedAction, installStates[i])
-				} else if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "  - %s: Already up-to-date.\n", state.Name)
-				}
-			}
+			dependenciesThatNeedAction := filterDependenciesRequiringAction(installStates, force, verbose)
 
 			if len(dependenciesThatNeedAction) == 0 {
 				_, _ = fmt.Fprintln(os.Stdout, "All targeted dependencies are already up-to-date.")
@@ -2314,72 +2621,14 @@ func InstallCmd() *cli.Command {
 				}
 			}
 
-			// Perform install/update for identified dependencies
-			if verbose && len(dependenciesThatNeedAction) > 0 {
-				_, _ = fmt.Fprintln(os.Stdout, "\nPerforming install/update for identified dependencies...")
+			successfulActions, err := executeInstallOperations(dependenciesThatNeedAction, lf, verbose)
+			if err != nil {
+				// This error isn't currently returned by executeInstallOperations but good for future proofing
+				return cli.Exit(fmt.Sprintf("Critical error during install operations: %v", err), 1)
 			}
 
-			var successfulActions int
-			for _, dep := range dependenciesThatNeedAction {
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "  Installing/Updating '%s' from %s\n", dep.Name, dep.TargetRawURL)
-				}
-
-				fileContent, err := downloader.DownloadFile(dep.TargetRawURL)
-				if err != nil {
-					_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to download dependency '%s' from '%s': %v\n", dep.Name, dep.TargetRawURL, err)
-					continue
-				}
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "    Successfully downloaded %s (%d bytes)\n", dep.Name, len(fileContent))
-				}
-
-				var integrityHash string
-				if dep.Provider == "github" && isCommitSHARegex.MatchString(dep.TargetCommitHash) {
-					integrityHash = "commit:" + dep.TargetCommitHash
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "    Using commit hash for integrity: %s\n", integrityHash)
-					}
-				} else {
-					contentHash, err := hasher.CalculateSHA256(fileContent)
-					if err != nil {
-						_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to calculate SHA256 hash for dependency '%s': %v\n", dep.Name, err)
-						continue
-					}
-					integrityHash = contentHash
-					if verbose {
-						_, _ = fmt.Fprintf(os.Stdout, "    Calculated content hash for integrity: %s\n", integrityHash)
-					}
-				}
-
-				targetDir := filepath.Dir(dep.ProjectTomlPath)
-				if err := os.MkdirAll(targetDir, os.ModePerm); err != nil {
-					_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to create directory '%s' for dependency '%s': %v\n", targetDir, dep.Name, err)
-					continue
-				}
-				if err := os.WriteFile(dep.ProjectTomlPath, fileContent, 0644); err != nil {
-					_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to write file '%s' for dependency '%s': %v\n", dep.ProjectTomlPath, dep.Name, err)
-					continue
-				}
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "    Successfully saved %s to %s\n", dep.Name, dep.ProjectTomlPath)
-				}
-
-				lf.Package[dep.Name] = lockfile.PackageEntry{
-					Source: dep.TargetRawURL,
-					Path:   dep.ProjectTomlPath,
-					Hash:   integrityHash,
-				}
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "    Updated lockfile entry for %s: Path=%s, Hash=%s, SourceURL=%s\n", dep.Name, dep.ProjectTomlPath, integrityHash, dep.TargetRawURL)
-				}
-				successfulActions++
-			}
-
-			// Handle successful installations by updating the lockfile
-			// with new source URLs and integrity hashes
 			if successfulActions > 0 {
-				lf.ApiVersion = lockfile.APIVersion
+				lf.ApiVersion = lockfile.APIVersion // Ensure API version is set
 				if err := lockfile.Save(".", lf); err != nil {
 					return cli.Exit(fmt.Sprintf("Error: Failed to save updated almd-lock.toml: %v", err), 1)
 				}
@@ -2388,10 +2637,11 @@ func InstallCmd() *cli.Command {
 				}
 				_, _ = fmt.Fprintf(os.Stdout, "Successfully installed/updated %d dependenc(ies).\n", successfulActions)
 			} else {
-				if len(dependenciesThatNeedAction) > 0 {
+				if len(dependenciesThatNeedAction) > 0 { // Implies all actions failed
 					_, _ = fmt.Fprintln(os.Stderr, "No dependencies were successfully installed/updated due to errors.")
 					return cli.Exit("Install/Update process completed with errors for all targeted dependencies.", 1)
 				}
+				// If dependenciesThatNeedAction was empty, this path shouldn't be reached due to earlier check.
 			}
 			return nil
 		},
@@ -3831,7 +4081,7 @@ func RemoveCmd() *cli.Command {
 		Action: func(c *cli.Context) error {
 			startTime := time.Now()
 			if !c.Args().Present() {
-				return fmt.Errorf("dependency name is required")
+				return cli.Exit("Error: Dependency name argument is required.", 1)
 			}
 
 			depName := c.Args().First()
@@ -5635,61 +5885,7 @@ type ParsedSourceInfo struct {
 // It currently prioritizes GitHub URLs.
 func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
 	if strings.HasPrefix(sourceURL, "github:") {
-		content := strings.TrimPrefix(sourceURL, "github:")
-
-		lastAt := strings.LastIndex(content, "@")
-		if lastAt == -1 {
-			return nil, fmt.Errorf("invalid github shorthand source '%s': missing @ref (e.g., @main or @commitsha)", sourceURL)
-		}
-		if lastAt == len(content)-1 {
-			return nil, fmt.Errorf("invalid github shorthand source '%s': ref part is empty after @", sourceURL)
-		}
-
-		repoAndPathPart := content[:lastAt]
-		ref := content[lastAt+1:]
-
-		pathComponents := strings.Split(repoAndPathPart, "/")
-		if len(pathComponents) < 3 {
-			return nil, fmt.Errorf("invalid github shorthand source '%s': expected format owner/repo/path/to/file, got '%s'", sourceURL, repoAndPathPart)
-		}
-
-		owner := pathComponents[0]
-		repo := pathComponents[1]
-		pathInRepo := strings.Join(pathComponents[2:], "/")
-		suggestedFilename := pathComponents[len(pathComponents)-1]
-
-		if owner == "" || repo == "" || pathInRepo == "" || suggestedFilename == "" {
-			return nil, fmt.Errorf("invalid github shorthand source '%s': owner, repo, or path/filename cannot be empty", sourceURL)
-		}
-
-		var rawURL string
-		TestModeBypassHostValidationMutex.Lock()
-		currentTestModeBypass := testModeBypassHostValidation
-		TestModeBypassHostValidationMutex.Unlock()
-
-		if currentTestModeBypass {
-			// In test mode, construct the RawURL using the (potentially mocked) GithubAPIBaseURL
-			// and the expected path structure for raw content.
-			// GithubAPIBaseURL in tests is mockServer.URL (e.g., http://127.0.0.1:XYZ)
-			// The path should be /<owner>/<repo>/<ref>/<path_to_file...>
-			GithubAPIBaseURLMutex.Lock()
-			currentGithubAPIBaseURL := GithubAPIBaseURL
-			GithubAPIBaseURLMutex.Unlock()
-			rawURL = fmt.Sprintf("%s/%s/%s/%s/%s", currentGithubAPIBaseURL, owner, repo, ref, pathInRepo)
-		} else {
-			rawURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, pathInRepo)
-		}
-
-		return &ParsedSourceInfo{
-			RawURL:            rawURL,
-			CanonicalURL:      sourceURL,
-			Ref:               ref,
-			Provider:          "github",
-			Owner:             owner,
-			Repo:              repo,
-			PathInRepo:        pathInRepo,
-			SuggestedFilename: suggestedFilename,
-		}, nil
+		return parseGitHubShorthandURL(sourceURL)
 	}
 
 	u, err := url.Parse(sourceURL)
@@ -5702,74 +5898,144 @@ func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
 	TestModeBypassHostValidationMutex.Unlock()
 
 	if currentTestModeBypass {
-		// In test mode, directly construct ParsedSourceInfo assuming a GitHub-like raw content path structure.
-		// Path structure expected: /<owner>/<repo>/<ref>/<path_to_file...>
-		pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
-		if len(pathParts) < 4 {
-			return nil, fmt.Errorf("test mode URL path '%s' not in expected format /<owner>/<repo>/<ref>/<file...> PpathParts was: %v", u.Path, pathParts)
-		}
-
-		owner := pathParts[0]
-		repo := pathParts[1]
-		ref := pathParts[2]
-		filePathInRepo := strings.Join(pathParts[3:], "/")
-		filename := pathParts[len(pathParts)-1]
-
-		// Ensure filename is not empty if filePathInRepo was just "/"
-		if filename == "" && filePathInRepo == "" {
-			// This case implies path was like /owner/repo/ref/ which is not a file
-			return nil, fmt.Errorf("test mode URL path '%s' seems to point to a directory, not a file", u.Path)
-		}
-		if filename == "" && len(pathParts) == 4 {
-			filename = pathParts[3]
-		}
-
-		return &ParsedSourceInfo{
-			RawURL:            u.String(),
-			CanonicalURL:      fmt.Sprintf("github:%s/%s/%s@%s", owner, repo, filePathInRepo, ref),
-			Ref:               ref,
-			Provider:          "github",
-			Owner:             owner,
-			Repo:              repo,
-			PathInRepo:        filePathInRepo,
-			SuggestedFilename: filename,
-		}, nil
+		// If test mode bypass is active, attempt to parse it as a test mode URL.
+		// This function will error if the path doesn't match the expected test structure.
+		return parseTestModeURL(u)
 	}
 
-	if strings.ToLower(u.Hostname()) == "github.com" || strings.ToLower(u.Hostname()) == "raw.githubusercontent.com" {
-		return parseGitHubURL(u)
+	// Standard URL parsing
+	hostname := strings.ToLower(u.Hostname())
+	switch hostname {
+	case "raw.githubusercontent.com":
+		return parseRawGitHubUserContentURL(u)
+	case "github.com":
+		return parseGitHubFullURL(u)
+	default:
+		return nil, fmt.Errorf("unsupported source URL host: %s. Only GitHub URLs are currently supported", u.Hostname())
 	}
-
-	// Placeholder for other providers or generic git repositories
-	return nil, fmt.Errorf("unsupported source URL host: %s. Only GitHub URLs are currently supported", u.Hostname())
 }
 
-// parseGitHubURL handles the specifics of parsing GitHub URLs.
-func parseGitHubURL(u *url.URL) (*ParsedSourceInfo, error) {
-	pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
-	if strings.ToLower(u.Hostname()) == "raw.githubusercontent.com" {
-		if len(pathParts) < 4 {
-			return nil, fmt.Errorf("invalid GitHub raw content URL path: %s. Expected format: /<owner>/<repo>/<ref>/<path_to_file>", u.Path)
-		}
-		owner := pathParts[0]
-		repo := pathParts[1]
-		ref := pathParts[2]
-		filePathInRepo := strings.Join(pathParts[3:], "/")
-		filename := pathParts[len(pathParts)-1]
+// parseGitHubShorthandURL handles URLs like "github:owner/repo/path/to/file@ref"
+func parseGitHubShorthandURL(sourceURL string) (*ParsedSourceInfo, error) {
+	content := strings.TrimPrefix(sourceURL, "github:")
 
-		canonicalURL := fmt.Sprintf("github:%s/%s/%s@%s", owner, repo, filePathInRepo, ref)
-		return &ParsedSourceInfo{
-			RawURL:            u.String(),
-			CanonicalURL:      canonicalURL,
-			Ref:               ref,
-			Provider:          "github",
-			Owner:             owner,
-			Repo:              repo,
-			PathInRepo:        filePathInRepo,
-			SuggestedFilename: filename,
-		}, nil
+	lastAt := strings.LastIndex(content, "@")
+	if lastAt == -1 {
+		return nil, fmt.Errorf("invalid github shorthand source '%s': missing @ref (e.g., @main or @commitsha)", sourceURL)
+	}
+	if lastAt == len(content)-1 {
+		return nil, fmt.Errorf("invalid github shorthand source '%s': ref part is empty after @", sourceURL)
 	}
 
+	repoAndPathPart := content[:lastAt]
+	ref := content[lastAt+1:]
+
+	pathComponents := strings.Split(repoAndPathPart, "/")
+	if len(pathComponents) < 3 {
+		return nil, fmt.Errorf("invalid github shorthand source '%s': expected format owner/repo/path/to/file, got '%s'", sourceURL, repoAndPathPart)
+	}
+
+	owner := pathComponents[0]
+	repo := pathComponents[1]
+	pathInRepo := strings.Join(pathComponents[2:], "/")
+	suggestedFilename := pathComponents[len(pathComponents)-1]
+
+	if owner == "" || repo == "" || pathInRepo == "" || suggestedFilename == "" {
+		return nil, fmt.Errorf("invalid github shorthand source '%s': owner, repo, or path/filename cannot be empty", sourceURL)
+	}
+
+	var rawURL string
+	TestModeBypassHostValidationMutex.Lock()
+	currentTestModeBypassLocal := testModeBypassHostValidation // Use a local var to avoid holding lock too long
+	TestModeBypassHostValidationMutex.Unlock()
+
+	if currentTestModeBypassLocal {
+		GithubAPIBaseURLMutex.Lock()
+		currentGithubAPIBaseURL := GithubAPIBaseURL
+		GithubAPIBaseURLMutex.Unlock()
+		rawURL = fmt.Sprintf("%s/%s/%s/%s/%s", currentGithubAPIBaseURL, owner, repo, ref, pathInRepo)
+	} else {
+		rawURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, pathInRepo)
+	}
+
+	return &ParsedSourceInfo{
+		RawURL:            rawURL,
+		CanonicalURL:      sourceURL, // For shorthand, the sourceURL is the canonical form
+		Ref:               ref,
+		Provider:          "github",
+		Owner:             owner,
+		Repo:              repo,
+		PathInRepo:        pathInRepo,
+		SuggestedFilename: suggestedFilename,
+	}, nil
+}
+
+// parseTestModeURL handles generic URLs when testModeBypassHostValidation is true,
+// attempting to parse them with a GitHub-like raw content path structure.
+func parseTestModeURL(u *url.URL) (*ParsedSourceInfo, error) {
+	// Path structure expected: /<owner>/<repo>/<ref>/<path_to_file...>
+	pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
+	if len(pathParts) < 4 {
+		return nil, fmt.Errorf("test mode URL path '%s' not in expected format /<owner>/<repo>/<ref>/<file...> PpathParts was: %v", u.Path, pathParts)
+	}
+
+	owner := pathParts[0]
+	repo := pathParts[1]
+	ref := pathParts[2]
+	filePathInRepo := strings.Join(pathParts[3:], "/")
+	filename := pathParts[len(pathParts)-1]
+
+	if filename == "" && filePathInRepo == "" {
+		return nil, fmt.Errorf("test mode URL path '%s' seems to point to a directory, not a file", u.Path)
+	}
+	if filename == "" && len(pathParts) == 4 { // e.g. /owner/repo/ref/file
+		filename = pathParts[3]
+	}
+
+	return &ParsedSourceInfo{
+		RawURL:            u.String(), // The original URL is the raw URL in this test mode context
+		CanonicalURL:      fmt.Sprintf("github:%s/%s/%s@%s", owner, repo, filePathInRepo, ref),
+		Ref:               ref,
+		Provider:          "github", // Assumed GitHub provider in test mode parsing
+		Owner:             owner,
+		Repo:              repo,
+		PathInRepo:        filePathInRepo,
+		SuggestedFilename: filename,
+	}, nil
+}
+
+// parseRawGitHubUserContentURL handles URLs from "raw.githubusercontent.com".
+func parseRawGitHubUserContentURL(u *url.URL) (*ParsedSourceInfo, error) {
+	pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
+	if len(pathParts) < 4 {
+		return nil, fmt.Errorf("invalid GitHub raw content URL path: %s. Expected format: /<owner>/<repo>/<ref>/<path_to_file>", u.Path)
+	}
+	owner := pathParts[0]
+	repo := pathParts[1]
+	ref := pathParts[2]
+	filePathInRepo := strings.Join(pathParts[3:], "/")
+	filename := pathParts[len(pathParts)-1]
+
+	if owner == "" || repo == "" || ref == "" || filePathInRepo == "" || filename == "" {
+		return nil, fmt.Errorf("invalid GitHub raw content URL '%s': one or more components (owner, repo, ref, path, filename) are empty", u.String())
+	}
+
+	canonicalURL := fmt.Sprintf("github:%s/%s/%s@%s", owner, repo, filePathInRepo, ref)
+	return &ParsedSourceInfo{
+		RawURL:            u.String(),
+		CanonicalURL:      canonicalURL,
+		Ref:               ref,
+		Provider:          "github",
+		Owner:             owner,
+		Repo:              repo,
+		PathInRepo:        filePathInRepo,
+		SuggestedFilename: filename,
+	}, nil
+}
+
+// parseGitHubFullURL handles standard "github.com" URLs (blob, tree, raw, or path with @ref).
+func parseGitHubFullURL(u *url.URL) (*ParsedSourceInfo, error) {
+	pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
 	if len(pathParts) < 2 {
 		return nil, fmt.Errorf("invalid GitHub URL path: %s. Expected at least /<owner>/<repo>", u.Path)
 	}
@@ -5778,11 +6044,8 @@ func parseGitHubURL(u *url.URL) (*ParsedSourceInfo, error) {
 	repo := pathParts[1]
 	var ref, filePathInRepo, rawURL, filename string
 
-	// /<owner>/<repo> - this case is not directly supported as we need a file.
-	// We could default to fetching default branch's project file or error out.
-	// For now, let's assume the URL is more specific.
-
 	if len(pathParts) >= 4 && (pathParts[2] == "blob" || pathParts[2] == "tree" || pathParts[2] == "raw") {
+		// Handles /<owner>/<repo>/<type>/<ref>/<path_to_file>
 		if len(pathParts) < 5 {
 			return nil, fmt.Errorf("incomplete GitHub URL path: %s. Expected /<owner>/<repo>/<type>/<ref>/<path_to_file>", u.Path)
 		}
@@ -5794,61 +6057,45 @@ func parseGitHubURL(u *url.URL) (*ParsedSourceInfo, error) {
 		if refType == "tree" {
 			return nil, fmt.Errorf("direct links to GitHub trees are not supported for adding single files: %s", u.String())
 		}
+		if owner == "" || repo == "" || ref == "" || filePathInRepo == "" || filename == "" {
+			return nil, fmt.Errorf("invalid GitHub '%s' URL '%s': one or more components (owner, repo, ref, path, filename) are empty", refType, u.String())
+		}
 		rawURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, filePathInRepo)
-
 	} else {
-		// Try to extract ref and path if a shorthand URL is given, e.g., github.com/owner/repo/file.txt@main
-		// This means the path might contain '@' for the ref.
-		// If no type (blob/tree/raw) and path has more than 2 parts (/owner/repo/...)
-		// we assume the structure is /owner/repo/path@ref or /owner/repo/path (implies default branch)
-		// For Almandine, we will require the ref to be explicit in the path via @ or a more specific URL type.
-
-		// The PRD implies a specific ref might be part of the source_url string itself,
-		// rather than always inferred from structure.
-		// "Extract commit hash/ref if present."
-
-		// Let's use a regex to find ref in the path for URLs like:
-		// github.com/user/repo/path/to/file.txt@v1.0.0
-		// github.com/user/repo/path/to/file.txt@commitsha
-		// github.com/user/repo/path/to/file.txt (implies default branch, but we need a way to get it)
-		// For now, we'll assume if no /blob/ or /raw/ and no @ in path, we might need to query default branch.
-		// Task 2.2 focuses on parsing, let's assume ref is extractable or default is handled later.
-
-		// Simplified: if not blob/raw/tree, the path from part 2 onwards is file path, ref needs to be found or assumed.
-		// For now, let's require a ref to be specified using '@' if not using blob/raw URLs.
-		// Example: github.com/owner/repo/some/file.go@main
-
+		// Handles /<owner>/<repo>/<path_to_file>@<ref>
+		if len(pathParts) < 3 { // Need at least owner/repo/fileish@ref
+			return nil, fmt.Errorf("ambiguous GitHub URL path: %s. Expected /owner/repo/path@ref or a full /blob/ or /raw/ URL", u.Path)
+		}
 		potentialPathWithRef := strings.Join(pathParts[2:], "/")
 		atSymbolIndex := strings.LastIndex(potentialPathWithRef, "@")
 
-		if atSymbolIndex != -1 {
+		if atSymbolIndex != -1 && atSymbolIndex < len(potentialPathWithRef)-1 && atSymbolIndex > 0 {
 			filePathInRepo = potentialPathWithRef[:atSymbolIndex]
 			ref = potentialPathWithRef[atSymbolIndex+1:]
 			pathElements := strings.Split(filePathInRepo, "/")
 			if len(pathElements) > 0 {
 				filename = pathElements[len(pathElements)-1]
-			} else {
-				filename = "default_filename"
+			} else { // Should not happen if atSymbolIndex > 0
+				return nil, fmt.Errorf("could not determine filename from path '%s' in URL '%s'", filePathInRepo, u.String())
 			}
 		} else {
-			// No explicit ref in path, no blob/raw.
-			// This case is ambiguous without fetching default branch info from GitHub API.
-			// For now, we'll error or require a more specific URL.
-			// Let's assume default ref = "main" for now, can be enhanced.
-			// This part might need adjustment based on how we fetch default branch or if we enforce explicit refs always.
-			// For simplicity in this step, let's error if ref is not obvious.
 			return nil, fmt.Errorf("ambiguous GitHub URL: %s. Specify a branch/tag/commit via '@' (e.g., file.txt@main) or use a full /blob/ or /raw/ URL", u.String())
+		}
+
+		if owner == "" || repo == "" || ref == "" || filePathInRepo == "" || filename == "" {
+			return nil, fmt.Errorf("invalid GitHub URL with '@ref' syntax '%s': one or more components (owner, repo, ref, path, filename) are empty", u.String())
 		}
 		rawURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, filePathInRepo)
 	}
 
-	if filePathInRepo == "" {
+	if filePathInRepo == "" { // Should be caught by earlier checks
 		return nil, fmt.Errorf("file path in repository could not be determined from URL: %s", u.String())
 	}
-	if ref == "" {
-		// This should ideally fetch the default branch, but that's an external call.
-		// For parsing, we'll state that ref couldn't be determined if not explicitly part of URL.
+	if ref == "" { // Should be caught by earlier checks
 		return nil, fmt.Errorf("ref (branch, tag, commit) could not be determined from URL: %s. Please specify it", u.String())
+	}
+	if filename == "" {
+		return nil, fmt.Errorf("filename could not be determined from URL: %s", u.String())
 	}
 
 	canonicalURL := fmt.Sprintf("github:%s/%s/%s@%s", owner, repo, filePathInRepo, ref)
@@ -6250,6 +6497,7 @@ func TestParseSourceURL_NonGitHubURLs(t *testing.T) {
 
 
 
+
 ================================================
 File: project/PRD.md
 ================================================
@@ -6607,7 +6855,7 @@ Almandine, implemented in Go, aims to provide a simple, robust, and reproducible
 Tech Stack
 
     Implementation Language: Go (e.g., 1.21 or later)
-    Target Project Language: Lua 5.1â€“5.4 / LuaJIT 2.1 (though Almandine itself is Go, it can manage files for any language)
+    Target Project Language: Lua 5.1–5.4 / LuaJIT 2.1 (though Almandine itself is Go, it can manage files for any language)
     Platform (Tool): Cross-platform executable (Linux, macOS, Windows) via Go compilation.
     Key Go Libraries (Potential):
         Standard Library: net/http, os, os/exec, path/filepath, crypto/sha256, flag or similar for CLI.
@@ -7350,6 +7598,10 @@ File: project/TASKS.md
     -   [x] Enabled Python virtual environment (`venv.enable = true`).
     -   [x] Added `gitingest` to `venv.requirements`.
     -   [x] Manual Verification: Run `devenv shell` and confirm `gitingest` command is available.
+
+-   [x] **Task 15.2: Fix `pre-commit-hooks` deprecated stage warning (2025-05-10)**
+    -   [x] Ran `pre-commit autoupdate --repo https://github.com/pre-commit/pre-commit-hooks`.
+    -   [x] Verified `.pre-commit-config.yaml` updated to `rev: v5.0.0` for `pre-commit-hooks`.
 ---
 
 ## Milestone 16: Code Standards Application (2025-05-09)
@@ -7360,6 +7612,94 @@ File: project/TASKS.md
     -   [x] Reviewed comments in `internal/cli/remove/remove_test.go` against `project/COMMENT_STANDARDS.txt`.
     -   [x] Removed obvious "what" comments.
     -   [x] Retained godoc comments and comments explaining test setup or "why".
+---
+
+## Milestone 17: Refactoring and Cleanup (2025-05-09)
+
+**Goal:** Improve code quality, maintainability, and reduce complexity in existing modules.
+
+-   [x] **Task 17.1: Refactor `internal/cli/add/add.go` (2025-05-09)**
+    -   [x] Break down the main `Action` function in `AddCmd` into smaller, focused helper functions (e.g., for arg parsing, URL handling, file operations, manifest updates, lockfile updates).
+    -   [x] Simplify the error handling and cleanup logic, potentially by returning errors more consistently and centralizing cleanup.
+    -   [x] Encapsulate filename determination logic (for manifest and disk) into a separate function.
+    -   [x] Encapsulate integrity hash determination logic into a separate function.
+    -   [x] Review and improve overall clarity and reduce nesting in the `Action` function.
+
+-   [x] **Task 17.2: Refactor `internal/cli/install/install.go` (2025-05-09)**
+    -   [x] Break down the main `Action` function in `InstallCmd` into smaller, manageable functions (e.g., for determining deps to process, resolving single dep state, deciding on action, performing install/update for a single dep).
+    -   [x] Consider refactoring the management of `dependencyInstallState` into a dedicated helper or struct with methods. (Decision: Kept as local types for now, helper functions manage transitions).
+    -   [x] Review and improve overall clarity and reduce nesting in the `Action` function.
+
+-   [x] **Task 17.3: Refactor `internal/core/source/source.go` (2025-05-09)**
+    -   [x] Break down the `ParseSourceURL` function into smaller helper functions for different URL types (e.g., `parseGitHubShorthandURL`, `parseGitHubFullURL`, `parseRawGitHubUserContentURL`).
+    -   [x] Review the usage of `testModeBypassHostValidation` and its mutex for clarity and safety.
+
+-   [ ] **Task 17.4: Consolidate CLI Test Helpers (2025-05-09)**
+    -   [ ] Identify common test helper functions in `internal/cli/*/ *_test.go` files (e.g., `setup...TestEnvironment`, `run...Command`, `startMockServer`, `readProjectToml`, `readAlmdLockToml`).
+    -   [ ] Create a shared internal test utility package (e.g., `internal/testutil` or `internal/cli/testhelper`).
+    -   [ ] Move common helpers to this shared package and update tests to use them.
+
+-   [x] **Task 17.5: Standardize Error Handling in CLI Commands (2025-05-09)**
+    -   [x] Review error handling and cleanup strategies in `add.go`, `remove.go`, and `install.go`.
+    -   [x] Define and apply a consistent approach for reporting errors to the user (via `cli.Exit` or other means).
+    -   [x] Ensure that partial changes are appropriately handled (e.g., cleanup of downloaded files if subsequent manifest/lockfile updates fail).
+
+-   [x] **Task 17.6: Review Installer Scripts (`install.ps1`, `install.sh`) (2025-05-09)**
+    -   [x] Review `install.ps1` and `install.sh` for clarity, robustness, and potential areas for simplification.
+        -   Both scripts are generally clear, robust, and maintainable.
+        -   Key finding: Both scripts download the full source archive and extract the binary/necessary files.
+        -   Recommendation: Standardize by downloading pre-compiled release assets from GitHub Releases for the target OS/architecture. This aligns with common practice and the `self-update` mechanism, simplifies scripts, and reduces download size.
+        -   `install.ps1`: Downloads source, expects `almd.exe` in extracted root.
+        -   `install.sh`: Downloads source, expects `install/almd` (executable) and `src/` (copied to `$APP_HOME`).
+        -   The role and content of `$APP_HOME` should be consistent based on `almd`'s runtime needs. If `almd` is a self-contained binary, `$APP_HOME` might only be for user-generated config/data.
+    -   [x] Document any shared logic or installation philosophy to ensure consistency if one script is updated.
+        -   Shared philosophy: Install latest/specific version from GitHub or local build, place executable in PATH, use temp dirs, advise on PATH configuration.
+    -   [x] Consider if any parts of the scripts could be made more maintainable.
+        -   Current maintainability is good. Switching to release assets would be the main improvement.
+        -   Minor: `ps1` could improve `curl/wget` exit code checks. `sh` could use `jq` for API parsing if available and improve `wget` error checks.
+
+---
+
+## Milestone 18: GitHub Actions Release Workflow (2025-05-10)
+
+**Goal:** Create a GitHub Action workflow to automate the building and releasing of Almandine.
+
+-   [x] **Task 18.1: Create GitHub Action for Releases**
+    -   [x] Define workflow trigger (e.g., manual `workflow_dispatch`).
+    -   [x] Implement versioning logic:
+        -   [x] Start at `0.2.0-alpha.1`.
+        -   [x] Fetch existing tags to determine the current latest version.
+        -   [x] Auto-increment pre-release number (e.g., `0.2.0-alpha.1` -> `0.2.0-alpha.2`).
+        -   [x] Handle promotion from alpha to beta, rc, and final release (e.g., `0.2.0-alpha.N` -> `0.2.0-beta.1` -> `0.2.0-rc.1` -> `0.2.0`).
+    -   [x] Implement build steps for Windows, macOS, and Linux using Go cross-compilation.
+        -   [x] Ensure `main.version` is correctly embedded using ldflags.
+    -   [x] Create release artifacts (e.g., zipped binaries).
+    -   [x] Create a Git tag for the new version.
+    -   [x] Create a GitHub Release, attaching artifacts and generating basic release notes.
+    -   [x] Document how to use the release workflow.
+        -   **Usage Instructions:**
+            1.  Navigate to the "Actions" tab in your GitHub repository.
+            2.  Under "Workflows", find and select "Create Release".
+            3.  Click the "Run workflow" button.
+            4.  Choose the `bump_type` from the dropdown:
+                *   `alpha`: Increments or starts an alpha version (e.g., `v0.2.0-alpha.1` -> `v0.2.0-alpha.2`, or `v0.2.0` -> `v0.2.0-alpha.1`). Use this for the very first release if no `v0.2.0-alpha.X` tags exist.
+                *   `beta`: Increments or starts a beta version (e.g., `v0.2.0-alpha.2` -> `v0.2.0-beta.1`).
+                *   `rc`: Increments or starts a release candidate (e.g., `v0.2.0-beta.1` -> `v0.2.0-rc.1`).
+                *   `promote_to_final`: Promotes the latest pre-release to a final version (e.g., `v0.2.0-rc.1` -> `v0.2.0`).
+                *   `patch`: Bumps the patch version of the latest final release (e.g., `v0.2.0` -> `v0.2.1`).
+                *   `minor`: Bumps the minor version of the latest final release (e.g., `v0.2.1` -> `v0.3.0`).
+                *   `major`: Bumps the major version of the latest final release (e.g., `v0.3.0` -> `v1.0.0`).
+            5.  Decide if the release should be a `draft_release` (Yes/No).
+            6.  Click "Run workflow".
+            7.  The action will:
+                *   Determine the next version based on existing tags and the chosen `bump_type`.
+                *   Build binaries for Linux (amd64, arm64), macOS (amd64, arm64), and Windows (amd64).
+                *   Create a new Git tag with the determined version.
+                *   Create a GitHub Release with the new tag, attaching the built binaries.
+            8.  **Important:** Ensure your `main.version` variable in `cmd/almd/main.go` is correctly set up to be populated by `ldflags` during the build process (e.g., `var version string` in the main package, and `cli.App{ Version: version, ...}`). The workflow uses `go build -ldflags="-X main.version=$VERSION"`.
+            9.  The initial release, if no tags like `v0.2.0-alpha.X` exist, should be triggered with `bump_type: alpha`. This will create `v0.2.0-alpha.1`.
+
+
 
 
 
@@ -7485,6 +7825,123 @@ updates:
       # Check for updates to GitHub Actions every week
       interval: "weekly"
 
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: daily
+
+
+
+================================================
+File: .github/scripts/determine_next_version.py
+================================================
+import os
+import subprocess
+import semver
+import sys
+
+def get_tags():
+    try:
+        result = subprocess.run(['git', 'tag', '-l', 'v*', '--sort=v:refname'], capture_output=True, text=True, check=True)
+        tags = result.stdout.strip().split('\n')
+        return [tag for tag in tags if tag] # Filter out empty strings if any
+    except subprocess.CalledProcessError as e:
+        print(f"Error fetching tags: {e}", file=sys.stderr)
+        return []
+
+def get_latest_semver(tags):
+    latest_v = None
+    for tag_str in reversed(tags): # Iterate from newest to oldest based on git sort
+        try:
+            v = semver.VersionInfo.parse(tag_str[1:]) # Remove 'v' prefix
+            if latest_v is None or v > latest_v:
+                latest_v = v
+        except ValueError:
+            # Not a valid semver tag, skip
+            continue
+    return latest_v
+
+def main():
+    bump_type = os.environ.get('BUMP_TYPE')
+    if not bump_type:
+        print("Error: BUMP_TYPE environment variable not set.", file=sys.stderr)
+        sys.exit(1)
+
+    tags = get_tags()
+    latest_v = get_latest_semver(tags)
+
+    next_v_str = ""
+    is_prerelease = "true"
+
+    if not latest_v:
+        if bump_type == 'alpha':
+            next_v_str = "0.2.0-alpha.1"
+        else:
+            print(f"Error: No existing tags found. Initial bump must be 'alpha' to start with 0.2.0-alpha.1.", file=sys.stderr)
+            sys.exit(1)
+    else:
+        current_v = latest_v
+        if bump_type == 'alpha':
+            if current_v.prerelease and current_v.prerelease[0] == 'alpha':
+                next_v = current_v.bump_prerelease(token='alpha')
+            else: # New alpha series for current major.minor.patch or next patch
+                # If current is final (e.g. 0.1.0), new alpha is 0.1.0-alpha.1
+                # If current is rc (e.g. 0.1.0-rc.1), new alpha is 0.1.0-alpha.1
+                # If current is beta (e.g. 0.1.0-beta.1), new alpha is 0.1.0-alpha.1
+                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease=('alpha', 1))
+            next_v_str = str(next_v)
+        elif bump_type == 'beta':
+            if current_v.prerelease and current_v.prerelease[0] == 'beta':
+                next_v = current_v.bump_prerelease(token='beta')
+            else: # New beta series, must come from alpha or be a new beta for a version
+                # e.g., 0.1.0-alpha.2 -> 0.1.0-beta.1
+                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease=('beta', 1))
+            next_v_str = str(next_v)
+        elif bump_type == 'rc':
+            if current_v.prerelease and current_v.prerelease[0] == 'rc':
+                next_v = current_v.bump_prerelease(token='rc')
+            else: # New RC series
+                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease=('rc', 1))
+            next_v_str = str(next_v)
+        elif bump_type == 'promote_to_final':
+            if not current_v.prerelease:
+                print(f"Error: Version {current_v} is already final. Cannot promote.", file=sys.stderr)
+                sys.exit(1)
+            next_v = current_v.finalize_version()
+            next_v_str = str(next_v)
+            is_prerelease = "false"
+        elif bump_type == 'patch':
+            base_v = current_v.finalize_version() # Ensure we bump from a stable part
+            next_v = base_v.bump_patch()
+            next_v_str = str(next_v)
+            is_prerelease = "false"
+        elif bump_type == 'minor':
+            base_v = current_v.finalize_version()
+            next_v = base_v.bump_minor()
+            next_v_str = str(next_v)
+            is_prerelease = "false"
+        elif bump_type == 'major':
+            base_v = current_v.finalize_version()
+            next_v = base_v.bump_major()
+            next_v_str = str(next_v)
+            is_prerelease = "false"
+        else:
+            print(f"Error: Unknown BUMP_TYPE '{bump_type}'", file=sys.stderr)
+            sys.exit(1)
+
+    if not next_v_str.startswith('v'):
+        next_v_tag = f"v{next_v_str}"
+    else:
+        next_v_tag = next_v_str
+
+
+    print(f"Calculated next version: {next_v_tag}", file=sys.stderr)
+    print(f"::set-output name=next_version::{next_v_tag}")
+    print(f"::set-output name=is_prerelease::{is_prerelease}")
+
+if __name__ == "__main__":
+    main()
+
 
 ================================================
 File: .github/workflows/ci.yml
@@ -7508,16 +7965,18 @@ jobs:
       matrix:
         go-version: [ '1.24' ]
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 2
 
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v3
-
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: ${{ matrix.go-version }}
 
@@ -7532,7 +7991,7 @@ jobs:
           go mod verify
 
       - name: Run govulncheck
-        uses: golang/govulncheck-action@v1
+        uses: golang/govulncheck-action@b625fbe08f3bccbe446d94fbf87fcc875a4f50ee # v1.0.4
 
       - name: Lint source
         run: golangci-lint run ./...
@@ -7547,6 +8006,297 @@ jobs:
         run: |
           goveralls -coverprofile=coverage.out -service=github -repotoken $COVERALLS_TOKEN
 
+
+
+================================================
+File: .github/workflows/codeql.yml
+================================================
+# For most projects, this workflow file will not need changing; you simply need
+# to commit it to your repository.
+#
+# You may wish to alter this file to override the set of languages analyzed,
+# or to provide custom queries or build logic.
+#
+# ******** NOTE ********
+# We have attempted to detect the languages in your repository. Please check
+# the `language` matrix defined below to confirm you have the correct set of
+# supported CodeQL languages.
+#
+name: "CodeQL"
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: ["main"]
+  schedule:
+    - cron: "0 0 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["go"]
+        # CodeQL supports [ $supported-codeql-languages ]
+        # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
+
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # Initializes the CodeQL tools for scanning.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@60168efe1c415ce0f5521ea06d5c2062adbeed1b # v3.28.17
+        with:
+          languages: ${{ matrix.language }}
+          # If you wish to specify custom queries, you can do so here or in a config file.
+          # By default, queries listed here will override any specified in a config file.
+          # Prefix the list here with "+" to use these queries and those in the config file.
+
+      # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
+      # If this step fails, then you should remove it and run the build manually (see below)
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@60168efe1c415ce0f5521ea06d5c2062adbeed1b # v3.28.17
+
+      # ℹ️ Command-line programs to run using the OS shell.
+      # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
+
+      #   If the Autobuild fails above, remove it and uncomment the following three lines.
+      #   modify them (or add more) to build your code if your project, please refer to the EXAMPLE below for guidance.
+
+      # - run: |
+      #   echo "Run, Build Application using script"
+      #   ./location_of_script_within_repo/buildscript.sh
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@60168efe1c415ce0f5521ea06d5c2062adbeed1b # v3.28.17
+        with:
+          category: "/language:${{matrix.language}}"
+
+
+
+================================================
+File: .github/workflows/dependency-review.yml
+================================================
+# Dependency Review Action
+#
+# This Action will scan dependency manifest files that change as part of a Pull Request,
+# surfacing known-vulnerable versions of the packages declared or updated in the PR.
+# Once installed, if the workflow run is marked as required,
+# PRs introducing known-vulnerable packages will be blocked from merging.
+#
+# Source repository: https://github.com/actions/dependency-review-action
+name: 'Dependency Review'
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - name: 'Checkout Repository'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: 'Dependency Review'
+        uses: actions/dependency-review-action@38ecb5b593bf0eb19e335c03f97670f792489a8b # v4.7.0
+
+
+
+================================================
+File: .github/workflows/release.yml
+================================================
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Type of version bump (alpha, beta, rc, promote_to_final, patch, minor, major)"
+        required: true
+        default: "alpha"
+        type: choice
+        options:
+          - alpha
+          - beta
+          - rc
+          - promote_to_final
+          - patch
+          - minor
+          - major
+      draft_release:
+        description: "Create as a draft release?"
+        required: true
+        default: "false"
+        type: boolean
+
+jobs:
+  determine_version:
+    runs-on: ubuntu-latest
+    outputs:
+      next_version: ${{ steps.get_version.outputs.next_version }}
+      is_prerelease: ${{ steps.get_version.outputs.is_prerelease }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required to fetch all tags
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install semver
+
+      - name: Determine next version
+        id: get_version
+        env:
+          BUMP_TYPE: ${{ github.event.inputs.bump_type }}
+        run: python .github/scripts/determine_next_version.py
+
+  build_and_release:
+    needs: determine_version
+    if: needs.determine_version.outputs.next_version != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create releases and tags
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+        exclude: # Add exclusions if some combinations are not needed/supported
+          - goos: windows
+            goarch: arm64 # Example: if windows arm64 is not a target
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21' # As per PRD
+
+      - name: Set version output
+        id: version_output
+        run: |
+          echo "NEXT_VERSION=${{ needs.determine_version.outputs.next_version }}" >> $GITHUB_ENV
+          echo "IS_PRERELEASE=${{ needs.determine_version.outputs.is_prerelease }}" >> $GITHUB_ENV
+
+      - name: Build application
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ env.NEXT_VERSION }}
+        run: |
+          echo "Building for $GOOS/$GOARCH with version $VERSION"
+          BINARY_NAME="almd"
+          if [ "$GOOS" == "windows" ]; then
+            BINARY_NAME="almd.exe"
+          fi
+          go build -v -o $BINARY_NAME -ldflags="-X main.version=$VERSION" ./cmd/almd
+          ls -la $BINARY_NAME # Verify binary exists
+
+      - name: Archive binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION_NO_V: ${{ env.NEXT_VERSION }} # Assuming NEXT_VERSION has 'v' prefix
+        run: |
+          VERSION_TAG=${VERSION_NO_V#v} # Remove 'v' prefix for filename
+          ARCHIVE_NAME="almd_${VERSION_TAG}_${GOOS}_${GOARCH}"
+          BINARY_NAME="almd"
+          if [ "$GOOS" == "windows" ]; then
+            BINARY_NAME="almd.exe"
+            zip "${ARCHIVE_NAME}.zip" $BINARY_NAME
+            echo "ASSET_NAME=${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
+            echo "ASSET_PATH=${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
+          else
+            tar -czvf "${ARCHIVE_NAME}.tar.gz" $BINARY_NAME
+            echo "ASSET_NAME=${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
+            echo "ASSET_PATH=${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
+          fi
+          ls -la $ASSET_PATH # Verify archive exists
+
+      - name: Upload artifact for this job
+        uses: actions/upload-artifact@v4
+        with:
+          name: almd-binaries-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ env.ASSET_PATH }}
+
+  create_release_tag:
+    needs: [determine_version, build_and_release] # Ensure build_and_release completes for all platforms
+    runs-on: ubuntu-latest
+    if: needs.determine_version.outputs.next_version != ''
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Git Tag
+        env:
+          NEXT_VERSION: ${{ needs.determine_version.outputs.next_version }}
+        run: |
+          echo "Creating tag $NEXT_VERSION"
+          git tag $NEXT_VERSION
+          git push origin $NEXT_VERSION
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts # Download all artifacts to this directory
+          # No specific name means download all artifacts from the run
+
+      - name: List downloaded artifacts
+        run: |
+          ls -R release-artifacts
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.determine_version.outputs.next_version }}
+          name: Release ${{ needs.determine_version.outputs.next_version }}
+          body: |
+            Automated release for version ${{ needs.determine_version.outputs.next_version }}.
+            See CHANGELOG.md for details (if available).
+          draft: ${{ github.event.inputs.draft_release == 'true' }}
+          prerelease: ${{ needs.determine_version.outputs.is_prerelease == 'true' }}
+          files: |
+            release-artifacts/almd-binaries-linux-amd64/*.tar.gz
+            release-artifacts/almd-binaries-linux-arm64/*.tar.gz
+            release-artifacts/almd-binaries-windows-amd64/*.zip
+            release-artifacts/almd-binaries-darwin-amd64/*.tar.gz
+            release-artifacts/almd-binaries-darwin-arm64/*.tar.gz
 
 
 ================================================
@@ -7587,6 +8337,11 @@ jobs:
       # actions: read
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
       - name: "Checkout code"
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -7618,7 +8373,7 @@ jobs:
       # Upload the results as artifacts (optional). Commenting out will disable uploads of run results in SARIF
       # format to the repository Actions tab.
       - name: "Upload artifact"
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: SARIF file
           path: results.sarif
@@ -7627,9 +8382,6 @@ jobs:
       # Upload the results to GitHub's code scanning dashboard (optional).
       # Commenting out will disable upload of results to your repo's Code Scanning dashboard
       - name: "Upload to code-scanning"
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@60168efe1c415ce0f5521ea06d5c2062adbeed1b # v3.28.17
         with:
           sarif_file: results.sarif
-
-
-

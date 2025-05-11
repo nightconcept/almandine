@@ -33,7 +33,7 @@ func RemoveCmd() *cli.Command {
 		Action: func(c *cli.Context) error {
 			startTime := time.Now()
 			if !c.Args().Present() {
-				return fmt.Errorf("dependency name is required")
+				return cli.Exit("Error: Dependency name argument is required.", 1)
 			}
 
 			depName := c.Args().First()

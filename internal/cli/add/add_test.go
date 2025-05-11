@@ -397,7 +397,7 @@ version = "0.1.0"
 	require.Error(t, err, "almd add command should return an error on download failure")
 
 	if exitErr, ok := err.(cli.ExitCoder); ok {
-		assert.Contains(t, exitErr.Error(), "Error downloading file", "Error message should indicate download failure")
+		assert.Contains(t, exitErr.Error(), "downloading file from", "Error message should indicate download failure")
 		assert.Contains(t, exitErr.Error(), "status code 404", "Error message should indicate 404 status")
 	} else {
 		assert.Fail(t, "Expected cli.ExitError for command failure")

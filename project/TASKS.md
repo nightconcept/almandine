@@ -671,6 +671,10 @@
     -   [x] Enabled Python virtual environment (`venv.enable = true`).
     -   [x] Added `gitingest` to `venv.requirements`.
     -   [x] Manual Verification: Run `devenv shell` and confirm `gitingest` command is available.
+
+-   [x] **Task 15.2: Fix `pre-commit-hooks` deprecated stage warning (2025-05-10)**
+    -   [x] Ran `pre-commit autoupdate --repo https://github.com/pre-commit/pre-commit-hooks`.
+    -   [x] Verified `.pre-commit-config.yaml` updated to `rev: v5.0.0` for `pre-commit-hooks`.
 ---
 
 ## Milestone 16: Code Standards Application (2025-05-09)
@@ -681,3 +685,89 @@
     -   [x] Reviewed comments in `internal/cli/remove/remove_test.go` against `project/COMMENT_STANDARDS.txt`.
     -   [x] Removed obvious "what" comments.
     -   [x] Retained godoc comments and comments explaining test setup or "why".
+---
+
+## Milestone 17: Refactoring and Cleanup (2025-05-09)
+
+**Goal:** Improve code quality, maintainability, and reduce complexity in existing modules.
+
+-   [x] **Task 17.1: Refactor `internal/cli/add/add.go` (2025-05-09)**
+    -   [x] Break down the main `Action` function in `AddCmd` into smaller, focused helper functions (e.g., for arg parsing, URL handling, file operations, manifest updates, lockfile updates).
+    -   [x] Simplify the error handling and cleanup logic, potentially by returning errors more consistently and centralizing cleanup.
+    -   [x] Encapsulate filename determination logic (for manifest and disk) into a separate function.
+    -   [x] Encapsulate integrity hash determination logic into a separate function.
+    -   [x] Review and improve overall clarity and reduce nesting in the `Action` function.
+
+-   [x] **Task 17.2: Refactor `internal/cli/install/install.go` (2025-05-09)**
+    -   [x] Break down the main `Action` function in `InstallCmd` into smaller, manageable functions (e.g., for determining deps to process, resolving single dep state, deciding on action, performing install/update for a single dep).
+    -   [x] Consider refactoring the management of `dependencyInstallState` into a dedicated helper or struct with methods. (Decision: Kept as local types for now, helper functions manage transitions).
+    -   [x] Review and improve overall clarity and reduce nesting in the `Action` function.
+
+-   [x] **Task 17.3: Refactor `internal/core/source/source.go` (2025-05-09)**
+    -   [x] Break down the `ParseSourceURL` function into smaller helper functions for different URL types (e.g., `parseGitHubShorthandURL`, `parseGitHubFullURL`, `parseRawGitHubUserContentURL`).
+    -   [x] Review the usage of `testModeBypassHostValidation` and its mutex for clarity and safety.
+
+-   [ ] **Task 17.4: Consolidate CLI Test Helpers (2025-05-09)**
+    -   [ ] Identify common test helper functions in `internal/cli/*/ *_test.go` files (e.g., `setup...TestEnvironment`, `run...Command`, `startMockServer`, `readProjectToml`, `readAlmdLockToml`).
+    -   [ ] Create a shared internal test utility package (e.g., `internal/testutil` or `internal/cli/testhelper`).
+    -   [ ] Move common helpers to this shared package and update tests to use them.
+
+-   [x] **Task 17.5: Standardize Error Handling in CLI Commands (2025-05-09)**
+    -   [x] Review error handling and cleanup strategies in `add.go`, `remove.go`, and `install.go`.
+    -   [x] Define and apply a consistent approach for reporting errors to the user (via `cli.Exit` or other means).
+    -   [x] Ensure that partial changes are appropriately handled (e.g., cleanup of downloaded files if subsequent manifest/lockfile updates fail).
+
+-   [x] **Task 17.6: Review Installer Scripts (`install.ps1`, `install.sh`) (2025-05-09)**
+    -   [x] Review `install.ps1` and `install.sh` for clarity, robustness, and potential areas for simplification.
+        -   Both scripts are generally clear, robust, and maintainable.
+        -   Key finding: Both scripts download the full source archive and extract the binary/necessary files.
+        -   Recommendation: Standardize by downloading pre-compiled release assets from GitHub Releases for the target OS/architecture. This aligns with common practice and the `self-update` mechanism, simplifies scripts, and reduces download size.
+        -   `install.ps1`: Downloads source, expects `almd.exe` in extracted root.
+        -   `install.sh`: Downloads source, expects `install/almd` (executable) and `src/` (copied to `$APP_HOME`).
+        -   The role and content of `$APP_HOME` should be consistent based on `almd`'s runtime needs. If `almd` is a self-contained binary, `$APP_HOME` might only be for user-generated config/data.
+    -   [x] Document any shared logic or installation philosophy to ensure consistency if one script is updated.
+        -   Shared philosophy: Install latest/specific version from GitHub or local build, place executable in PATH, use temp dirs, advise on PATH configuration.
+    -   [x] Consider if any parts of the scripts could be made more maintainable.
+        -   Current maintainability is good. Switching to release assets would be the main improvement.
+        -   Minor: `ps1` could improve `curl/wget` exit code checks. `sh` could use `jq` for API parsing if available and improve `wget` error checks.
+
+---
+
+## Milestone 18: GitHub Actions Release Workflow (2025-05-10)
+
+**Goal:** Create a GitHub Action workflow to automate the building and releasing of Almandine.
+
+-   [x] **Task 18.1: Create GitHub Action for Releases**
+    -   [x] Define workflow trigger (e.g., manual `workflow_dispatch`).
+    -   [x] Implement versioning logic:
+        -   [x] Start at `0.2.0-alpha.1`.
+        -   [x] Fetch existing tags to determine the current latest version.
+        -   [x] Auto-increment pre-release number (e.g., `0.2.0-alpha.1` -> `0.2.0-alpha.2`).
+        -   [x] Handle promotion from alpha to beta, rc, and final release (e.g., `0.2.0-alpha.N` -> `0.2.0-beta.1` -> `0.2.0-rc.1` -> `0.2.0`).
+    -   [x] Implement build steps for Windows, macOS, and Linux using Go cross-compilation.
+        -   [x] Ensure `main.version` is correctly embedded using ldflags.
+    -   [x] Create release artifacts (e.g., zipped binaries).
+    -   [x] Create a Git tag for the new version.
+    -   [x] Create a GitHub Release, attaching artifacts and generating basic release notes.
+    -   [x] Document how to use the release workflow.
+        -   **Usage Instructions:**
+            1.  Navigate to the "Actions" tab in your GitHub repository.
+            2.  Under "Workflows", find and select "Create Release".
+            3.  Click the "Run workflow" button.
+            4.  Choose the `bump_type` from the dropdown:
+                *   `alpha`: Increments or starts an alpha version (e.g., `v0.2.0-alpha.1` -> `v0.2.0-alpha.2`, or `v0.2.0` -> `v0.2.0-alpha.1`). Use this for the very first release if no `v0.2.0-alpha.X` tags exist.
+                *   `beta`: Increments or starts a beta version (e.g., `v0.2.0-alpha.2` -> `v0.2.0-beta.1`).
+                *   `rc`: Increments or starts a release candidate (e.g., `v0.2.0-beta.1` -> `v0.2.0-rc.1`).
+                *   `promote_to_final`: Promotes the latest pre-release to a final version (e.g., `v0.2.0-rc.1` -> `v0.2.0`).
+                *   `patch`: Bumps the patch version of the latest final release (e.g., `v0.2.0` -> `v0.2.1`).
+                *   `minor`: Bumps the minor version of the latest final release (e.g., `v0.2.1` -> `v0.3.0`).
+                *   `major`: Bumps the major version of the latest final release (e.g., `v0.3.0` -> `v1.0.0`).
+            5.  Decide if the release should be a `draft_release` (Yes/No).
+            6.  Click "Run workflow".
+            7.  The action will:
+                *   Determine the next version based on existing tags and the chosen `bump_type`.
+                *   Build binaries for Linux (amd64, arm64), macOS (amd64, arm64), and Windows (amd64).
+                *   Create a new Git tag with the determined version.
+                *   Create a GitHub Release with the new tag, attaching the built binaries.
+            8.  **Important:** Ensure your `main.version` variable in `cmd/almd/main.go` is correctly set up to be populated by `ldflags` during the build process (e.g., `var version string` in the main package, and `cli.App{ Version: version, ...}`). The workflow uses `go build -ldflags="-X main.version=$VERSION"`.
+            9.  The initial release, if no tags like `v0.2.0-alpha.X` exist, should be triggered with `bump_type: alpha`. This will create `v0.2.0-alpha.1`.
