@@ -16,6 +16,21 @@ Easily manage, install, and update Lua single-file dependencies..
 - 🔒 **Reproducible Installs**: Lockfiles ensure consistent environments across machines.
 - 🛠️ **Cross-Platform**: Works on Linux, macOS, and Windows.
 
+## 🚀 Installation
+
+You can install `almd` by running the following commands in your terminal. These scripts will download and run the appropriate installer for your system from the `main` branch of the official repository.
+
+### macOS and Linux
+
+```sh
+curl -LsSf https://raw.githubusercontent.com/nightconcept/almandine/main/install.sh | sh
+```
+
+### Windows
+
+```powershell
+powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/nightconcept/almandine/main/install.ps1 | iex"
+```
 ## Requirements
 
 ### macOS/Linux

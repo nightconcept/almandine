@@ -774,6 +774,27 @@
 
 ---
 
+---
+
+## Milestone 19: README Updates (2025-05-11)
+
+**Goal:** Keep the project README.md up-to-date with relevant information.
+---
+
+## Milestone 20: Installer Script Fixes (2025-05-11)
+
+**Goal:** Address issues in the installer scripts.
+
+- [x] **Task 20.1: Fix Windows Installer Script (`install.ps1`) (2025-05-11)**
+    - [x] Modified `install.ps1` to download the specific Windows release asset (e.g., `almd_VERSION_windows_amd64.zip`) instead of the full source code archive.
+    - [x] Updated extraction logic to expect `almd.exe` at the root of the downloaded zip.
+    - [x] This resolves the "Could not find extracted directory" error during installation.
+
+- [x] **Task 19.1: Add Installation Section to README.md (2025-05-11)**
+    - [x] Added a new "🚀 Installation" section to `README.md`.
+    - [x] Included `curl` command for macOS/Linux and `powershell` command for Windows to download and run installer scripts from the `main` branch on GitHub.
+    - [x] Ensured URLs point to `https://raw.githubusercontent.com/nightconcept/almandine/main/install.sh` and `https://raw.githubusercontent.com/nightconcept/almandine/main/install.ps1`.
+    - [x] Placed the new section after "Features" and before "Requirements".
 ## Miscellaneous Tasks
 
 - [x] **Task Misc.1: Create SECURITY.md (2025-05-11)**
