@@ -771,3 +771,11 @@
                 *   Create a GitHub Release with the new tag, attaching the built binaries.
             8.  **Important:** Ensure your `main.version` variable in `cmd/almd/main.go` is correctly set up to be populated by `ldflags` during the build process (e.g., `var version string` in the main package, and `cli.App{ Version: version, ...}`). The workflow uses `go build -ldflags="-X main.version=$VERSION"`.
             9.  The initial release, if no tags like `v0.2.0-alpha.X` exist, should be triggered with `bump_type: alpha`. This will create `v0.2.0-alpha.1`.
+
+---
+
+## Miscellaneous Tasks
+
+- [x] **Task Misc.1: Create SECURITY.md (2025-05-11)**
+    - [x] Create `SECURITY.md` in the root directory.
+    - [x] Ensure content meets requirements for vulnerability reporting, disclosure policy, contact links, keywords (vulnerability, disclosure), and time references.
