@@ -29,10 +29,9 @@ languages.python = {
     venv.enable = true;
     venv.requirements = ''
       gitingest
+      requests
+      python-gnupg
     '';
-    # If gitingest has specific non-Python system dependencies,
-    # they might need to be listed here using pkgs, for example:
-    # libraries = [ pkgs.someSystemLibrary ];
   };
 
   enterShell = ''

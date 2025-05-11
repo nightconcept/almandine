@@ -798,6 +798,14 @@
     - [x] Ensured URLs point to `https://raw.githubusercontent.com/nightconcept/almandine/main/install.sh` and `https://raw.githubusercontent.com/nightconcept/almandine/main/install.ps1`.
     - [x] Placed the new section after "Features" and before "Requirements".
 ## Miscellaneous Tasks
+## Milestone 21: Release Asset Signing (2025-05-11)
+
+**Goal:** Ensure release assets are GPG signed and the signing script is functional.
+
+- [ ] **Task 21.1: Debug and Fix `scripts/sign_releases.py` (2025-05-11)**
+    - [ ] Investigate why the script appears stuck during execution.
+    - [ ] Identify and resolve any issues preventing interactive input or script completion.
+    - [ ] Ensure the script can successfully sign and upload asset signatures.
 
 - [x] **Task Misc.1: Create SECURITY.md (2025-05-11)**
     - [x] Create `SECURITY.md` in the root directory.
