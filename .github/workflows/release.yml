@@ -101,7 +101,7 @@ jobs:
           if [ "$GOOS" == "windows" ]; then
             BINARY_NAME="almd.exe"
           fi
-          go build -v -o $BINARY_NAME -ldflags="-X main.version=$VERSION" ./cmd/almd
+          go build -v -o $BINARY_NAME -ldflags="-X 'main.version=$VERSION'" ./cmd/almd
           ls -la $BINARY_NAME # Verify binary exists
 
       - name: Archive binary

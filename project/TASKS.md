@@ -771,6 +771,13 @@
                 *   Create a GitHub Release with the new tag, attaching the built binaries.
             8.  **Important:** Ensure your `main.version` variable in `cmd/almd/main.go` is correctly set up to be populated by `ldflags` during the build process (e.g., `var version string` in the main package, and `cli.App{ Version: version, ...}`). The workflow uses `go build -ldflags="-X main.version=$VERSION"`.
             9.  The initial release, if no tags like `v0.2.0-alpha.X` exist, should be triggered with `bump_type: alpha`. This will create `v0.2.0-alpha.1`.
+-   [x] **Task 18.2: Fix Release Workflow Build and Versioning (2025-05-11)**
+    -   [x] **`go build` Linker Error:**
+        -   Problem: Version string with spaces/special characters (e.g., `v0.2.0-('alpha', 1)`) caused `go build` linker error in `release.yml`.
+        -   Solution: Added single quotes around `'main.version=$VERSION'` within the `-ldflags` argument in `.github/workflows/release.yml`.
+    -   [x] **Version Increment/Format:**
+        -   Problem: `.github/scripts/determine_next_version.py` produced incorrect version format like `v0.2.0-('alpha', 1)` and did not correctly increment pre-release numbers.
+        -   Solution: Modified the script to use string-based prerelease identifiers (e.g., `prerelease='alpha.1'`) for `semver.VersionInfo`, ensuring correct format and increment behavior.
 
 ---
 
