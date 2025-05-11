@@ -5,9 +5,10 @@
 [![Coverage Status](https://coveralls.io/repos/github/nightconcept/almandine/badge.svg)](https://coveralls.io/github/nightconcept/almandine)
 ![GitHub last commit](https://img.shields.io/github/last-commit/nightconcept/almandine)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/nightconcept/almandine/badge)](https://scorecard.dev/viewer/?uri=github.com/nightconcept/almandine)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10539/badge)](https://www.bestpractices.dev/projects/10539)
 
 A modern, cross-platform, developer-friendly package manager for Lua projects.
-Easily manage, install, and update Lua single-file dependencies with a single CLI: `almd`.
+Easily manage, install, and update Lua single-file dependencies..
 
 ---
 
@@ -15,7 +16,6 @@ Easily manage, install, and update Lua single-file dependencies with a single CL
 
 - 📦 **Easy Dependency Management**: Add, remove, and update Lua single-file dependencies with simple commands.
 - 🔒 **Reproducible Installs**: Lockfiles ensure consistent environments across machines.
-- 🏗️ **Project Initialization**: Scaffold new Lua projects with best practices.
 - 🛠️ **Cross-Platform**: Works on Linux, macOS, and Windows.
 
 ---
@@ -50,14 +50,6 @@ almd self update         # Update almd
 
 ## Tasks
 
-### lint
-
-Run linters.
-
-```sh
-golangci-lint run
-```
-
 ### build
 
 Builds the `almd` binary.
@@ -65,6 +57,14 @@ Builds the `almd` binary.
 ```sh
 go build -o build/almd ./cmd/almd
 go build -o build/almd.exe ./cmd/almd
+```
+
+### lint
+
+Run lint.
+
+```sh
+golangci-lint run
 ```
 
 ### test
@@ -75,12 +75,12 @@ Run tests.
 go test ./...
 ```
 
-
 ### ready
 
 Prepare for commit.
 
 ```sh
+go test ./...
 gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,project/digest.txt .
 go fmt ./...
 go vet ./...
