@@ -865,3 +865,5 @@ fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
     -   [x] Modify `.github/scripts/determine_next_version.py` to check if a calculated pre-release version (e.g., `v0.2.0-alpha.1`) already exists.
     -   [x] If it exists, increment the pre-release number (e.g., to `v0.2.0-alpha.2`) and re-check until a unique version is found.
     -   [x] Manual Verification: Run the script with `BUMP_TYPE=alpha` when `v0.2.0-alpha.1` exists. Verify it outputs `v0.2.0-alpha.2`. Test with `beta` and `rc` as well.
+
+- [x] Fix ShellCheck SC2016 warnings in install.sh (2025-05-12)

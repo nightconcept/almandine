@@ -12,7 +12,6 @@ Directory structure:
     ├── .devenv.flake.nix
     ├── .envrc
     ├── .pre-commit-config.yaml
-    ├── _test_sandboxes/
     ├── cmd/
     │   └── almd/
     │       └── main.go
@@ -37,35 +36,34 @@ Directory structure:
     │   │   │   └── remove_test.go
     │   │   └── self/
     │   │       └── self.go
-    │   └── core/
-    │       ├── config/
-    │       │   ├── config.go
-    │       │   └── config_test.go
-    │       ├── downloader/
-    │       │   ├── downloader.go
-    │       │   └── downloader_test.go
-    │       ├── hasher/
-    │       │   ├── hasher.go
-    │       │   └── hasher_test.go
-    │       ├── lockfile/
-    │       │   ├── lockfile.go
-    │       │   └── lockfile_test.go
-    │       ├── project/
-    │       │   ├── project.go
-    │       │   └── project_test.go
-    │       └── source/
-    │           ├── github_api.go
-    │           ├── github_api_test.go
-    │           ├── source.go
-    │           └── source_test.go
+    │   ├── core/
+    │   │   ├── config/
+    │   │   │   ├── config.go
+    │   │   │   └── config_test.go
+    │   │   ├── downloader/
+    │   │   │   ├── downloader.go
+    │   │   │   └── downloader_test.go
+    │   │   ├── hasher/
+    │   │   │   ├── hasher.go
+    │   │   │   └── hasher_test.go
+    │   │   ├── lockfile/
+    │   │   │   ├── lockfile.go
+    │   │   │   └── lockfile_test.go
+    │   │   ├── project/
+    │   │   │   ├── project.go
+    │   │   │   └── project_test.go
+    │   │   └── source/
+    │   │       ├── github_api.go
+    │   │       ├── github_api_test.go
+    │   │       ├── source.go
+    │   │       └── source_test.go
+    │   └── testutil/
     ├── project/
     │   ├── PRD.md
     │   └── TASKS.md
     ├── scripts/
     │   ├── README.md
     │   └── sign_releases.py
-    ├── src/
-    │   └── lib/
     ├── .cursor/
     ├── .devenv/
     ├── .direnv/
@@ -80,8 +78,7 @@ Directory structure:
     │       ├── codeql.yml
     │       ├── dependency-review.yml
     │       ├── release.yml
-    │       ├── scorecard.yml
-    │       └── slsa-provenance.yml
+    │       └── scorecard.yml
     ├── .roo/
     └── .slsa-goreleaser/
         ├── darwin-amd64.yml
@@ -749,46 +746,88 @@ if [ "$LOCAL_MODE" -eq 1 ]; then
   exit 0
 fi
 
-# Determine tag to install
-if [ -n "$VERSION" ]; then
-  TAG="$VERSION"
+# --- Determine OS and Architecture ---
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m)
+case "$ARCH" in
+  x86_64 | amd64) ARCH="amd64" ;;
+  arm64 | aarch64) ARCH="arm64" ;;
+  *)
+    printf "Error: Unsupported architecture: %s\n" "$ARCH" >&2
+    exit 1
+    ;;
+esac
+case "$OS" in
+  linux) OS_NAME="linux" ;;
+  darwin) OS_NAME="darwin" ;; # macOS
+  *)
+    printf "Error: Unsupported operating system: %s\n" "$OS" >&2
+    exit 1
+    ;;
+esac
+
+# --- Determine Tag to Install ---
+if [ -z "$VERSION" ]; then
+  printf '%s\n' "Fetching latest release tag ..."
+  # Get the latest *release* tag, not just the latest tag
+  RELEASE_API_URL="https://api.github.com/repos/$REPO/releases/latest"
+  if command -v jq >/dev/null 2>&1; then
+    TAG=$(curl -sL "$RELEASE_API_URL" | jq -r '.tag_name')
+  else
+    # Fallback using grep/sed (less robust)
+    TAG=$(curl -sL "$RELEASE_API_URL" | grep '"tag_name":' | head -n1 | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+  fi
+  if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
+    printf '%s\n' "Error: Could not determine latest release tag from GitHub." >&2
+    exit 1
+  fi
+  printf "Latest release tag: %s\n" "$TAG"
 else
-  printf '%s\n' "Fetching latest tag ..."
-  TAG=$(curl -sL "https://api.github.com/repos/$REPO/tags?per_page=1" | \
-    grep '"name"' | head -n1 | sed -E 's/ *\"name\": *\"([^\"]+)\".*/\1/')
-  if [ -z "$TAG" ]; then
-    printf '%s\n' "Error: Could not determine latest tag from GitHub." >&2
-    exit 1
-  fi
+  TAG="$VERSION"
+  printf "Using specified tag: %s\n" "$TAG"
+  RELEASE_API_URL="https://api.github.com/repos/$REPO/releases/tags/$TAG"
 fi
 
-ARCHIVE_URL="https://github.com/$REPO/archive/refs/tags/$TAG.zip"
-ARCHIVE_NAME="$(echo "$REPO-$TAG.zip" | tr '/' '-')"
+# --- Find Asset Download URL ---
+TAG_NO_V=$(echo "$TAG" | sed 's/^v//') # Remove leading 'v' for asset name
+ASSET_NAME="almd_${TAG_NO_V}_${OS_NAME}_${ARCH}.tar.gz" # Correct asset name format
+printf "Searching for asset: %s\n" "$ASSET_NAME"
 
-printf '%s\n' "Downloading archive for tag $TAG ..."
-download "$ARCHIVE_URL" "$TMP_DIR/$ARCHIVE_NAME"
-
-printf '%s\n' "Extracting CLI ..."
-unzip -q -o "$TMP_DIR/$ARCHIVE_NAME" -d "$TMP_DIR"
-
-# Find extracted folder (name format: almandine-<tag> or almandine-v<tag>)
-EXTRACTED_DIR="$TMP_DIR/almandine-$TAG"
-if [ ! -d "$EXTRACTED_DIR" ]; then
-  EXTRACTED_DIR="$TMP_DIR/almandine-v$TAG"
-  if [ ! -d "$EXTRACTED_DIR" ]; then
-    printf '%s\n' "Error: Could not find extracted directory for tag $TAG." >&2
-    exit 1
-  fi
+if command -v jq >/dev/null 2>&1; then
+  ASSET_URL=$(curl -sL "$RELEASE_API_URL" | jq -r --arg NAME "$ASSET_NAME" '.assets[] | select(.name == $NAME) | .browser_download_url')
+else
+  # Fallback using grep/sed (even less robust)
+  ASSET_URL=$(curl -sL "$RELEASE_API_URL" | grep -C 5 "\"name\": *\"$ASSET_NAME\"" | grep '"browser_download_url":' | head -n1 | sed -E 's/.*"browser_download_url": *"([^"]+)".*/\1/')
 fi
 
-printf '%s\n' "Installing CLI to $APP_HOME ..."
-mkdir -p "$APP_HOME"
-cp -r "$EXTRACTED_DIR/src" "$APP_HOME/"
+if [ -z "$ASSET_URL" ] || [ "$ASSET_URL" = "null" ]; then
+  printf "Error: Could not find asset '%s' for tag %s.\n" "$ASSET_NAME" "$TAG" >&2
+  printf "Please check the release page: https://github.com/%s/releases/tag/%s\n" "$REPO" "$TAG" >&2
+  exit 1
+fi
 
-printf '%s\n' "Installing wrapper script to $WRAPPER_DIR ..."
+# --- Download and Extract Binary ---
+ASSET_DEST="$TMP_DIR/$ASSET_NAME"
+printf "Downloading asset from %s ...\n" "$ASSET_URL"
+download "$ASSET_URL" "$ASSET_DEST"
+
+printf "Extracting binary from %s ...\n" "$ASSET_NAME"
+tar -xzf "$ASSET_DEST" -C "$TMP_DIR"
+# Verify extraction (optional but good practice)
+if [ ! -f "$TMP_DIR/almd" ]; then
+    printf "Error: Failed to extract 'almd' binary from %s\n" "$ASSET_NAME" >&2
+    ls -l "$TMP_DIR" >&2 # List contents for debugging
+    exit 1
+fi
+
+# --- Install Binary ---
+printf "Installing CLI to %s ...\n" "$WRAPPER_DIR"
 mkdir -p "$WRAPPER_DIR"
-cp "$EXTRACTED_DIR/install/almd" "$WRAPPER_DIR/almd"
+cp "$TMP_DIR/almd" "$WRAPPER_DIR/almd" # Copy the extracted binary
 chmod +x "$WRAPPER_DIR/almd"
+
+# Keep APP_HOME creation for potential future config/data storage
+mkdir -p "$APP_HOME"
 
 printf '\nInstallation complete!\n'
 printf 'Make sure %s is in your PATH. You may need to restart your shell.\n' "$WRAPPER_DIR"
@@ -821,13 +860,13 @@ File: .devenv.flake.nix
   inputs =
     let
       version = "1.6.0";
-system = "x86_64-linux";
-devenv_root = "/home/danny/git/almandine";
+system = "aarch64-darwin";
+devenv_root = "/Users/danny/Documents/GitHub/almandine";
 devenv_dotfile = ./.devenv;
 devenv_dotfile_string = ".devenv";
 container_name = null;
-devenv_tmpdir = "/run/user/1000/";
-devenv_runtime = "/run/user/1000/devenv-8ad1c7f";
+devenv_tmpdir = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/";
+devenv_runtime = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/devenv-8811323";
 devenv_istesting = false;
 devenv_direnvrc_latest_version = 1;
 
@@ -844,13 +883,13 @@ devenv_direnvrc_latest_version = 1;
       outputs = { nixpkgs, ... }@inputs:
         let
           version = "1.6.0";
-system = "x86_64-linux";
-devenv_root = "/home/danny/git/almandine";
+system = "aarch64-darwin";
+devenv_root = "/Users/danny/Documents/GitHub/almandine";
 devenv_dotfile = ./.devenv;
 devenv_dotfile_string = ".devenv";
 container_name = null;
-devenv_tmpdir = "/run/user/1000/";
-devenv_runtime = "/run/user/1000/devenv-8ad1c7f";
+devenv_tmpdir = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/";
+devenv_runtime = "/var/folders/th/410_cjb10xg9k6pjmlhcswd80000gn/T/devenv-8811323";
 devenv_istesting = false;
 devenv_direnvrc_latest_version = 1;
 
@@ -1041,7 +1080,6 @@ repos:
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
-
 
 
 
@@ -6569,6 +6607,7 @@ func TestParseSourceURL_NonGitHubURLs(t *testing.T) {
 
 
 
+
 ================================================
 File: project/PRD.md
 ================================================
@@ -7775,6 +7814,8 @@ fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
         -   Solution: Added single quotes around `'main.version=$VERSION'` within the `-ldflags` argument in `.github/workflows/release.yml`.
     -   [x] **Version Increment/Format:**
         -   Problem: `.github/scripts/determine_next_version.py` produced incorrect version format like `v0.2.0-('alpha', 1)` and did not correctly increment pre-release numbers.
+-   [ ] **Task 18.5: Fix `determine_next_version.py` for correct prerelease increment (2025-05-11)**
+        -   [ ] Modified `determine_next_version.py` to correctly find the latest existing prerelease for a given major.minor.patch base and increment it, rather than always starting a new prerelease series from the overall latest tag.
         -   Solution: Modified the script to use string-based prerelease identifiers (e.g., `prerelease='alpha.1'`) for `semver.VersionInfo`, ensuring correct format and increment behavior.
 
 ---
@@ -8176,7 +8217,6 @@ if __name__ == "__main__":
 
 
 
-
 ================================================
 File: .github/CODEOWNERS
 ================================================
@@ -8367,6 +8407,32 @@ def get_latest_semver(tags):
             continue
     return latest_v
 
+def get_latest_prerelease_for_base(tags, base_version, token):
+    """
+    Finds the latest prerelease tag for a given base version and token.
+    Example: base_version = 0.2.0, token = 'alpha' -> finds latest v0.2.0-alpha.N
+    Returns a semver.VersionInfo object or None.
+    """
+    latest_prerelease_v = None
+    for tag_str in reversed(tags): # Assumes tags are sorted v:refname
+        try:
+            v = semver.VersionInfo.parse(tag_str[1:])
+            if v.major == base_version.major and \
+               v.minor == base_version.minor and \
+               v.patch == base_version.patch and \
+               v.prerelease and len(v.prerelease) == 2 and v.prerelease[0] == token:
+                # Compare numeric part of the prerelease
+                if latest_prerelease_v is None or v.prerelease[1] > latest_prerelease_v.prerelease[1]:
+                    latest_prerelease_v = v
+        except ValueError:
+            # Not a valid semver tag or unexpected prerelease format
+            continue
+        except TypeError:
+            # Handle cases where prerelease[1] might not be comparable (e.g., not an int)
+            print(f"Warning: Prerelease part of tag {tag_str} is not as expected for comparison.", file=sys.stderr)
+            continue
+    return latest_prerelease_v
+
 def main():
     bump_type = os.environ.get('BUMP_TYPE')
     if not bump_type:
@@ -8441,7 +8507,8 @@ def main():
             next_v_str = str(next_v)
             is_prerelease = "false"
         elif bump_type == 'patch':
-            base_v = current_v.finalize_version() # Ensure we bump from a stable part
+            # For patch, minor, major, we always bump from the finalized version of the *overall* latest tag.
+            base_v = current_v.finalize_version()
             next_v = base_v.bump_patch()
             next_v_str = str(next_v)
             is_prerelease = "false"
@@ -8935,159 +9002,6 @@ jobs:
         uses: github/codeql-action/upload-sarif@60168efe1c415ce0f5521ea06d5c2062adbeed1b # v3.28.17
         with:
           sarif_file: results.sarif
-
-
-
-================================================
-File: .github/workflows/slsa-provenance.yml
-================================================
-name: SLSA Provenance for Go
-
-on:
-  push:
-    tags:
-      - 'v*' # Trigger on version tags like v1.0.0, v2.3.4-alpha
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: 'Git ref (branch, tag name e.g., "v1.2.3", or commit SHA) to build provenance for.'
-        required: true
-        default: 'main'
-      draft_release:
-        description: "If creating/updating a release, should it be a draft?"
-        required: true
-        default: "false"
-        type: boolean
-
-permissions:
-  # Required for SLSA builder
-  id-token: write # To sign the provenance.
-  # Required for uploading assets to release & creating tags by proxy (if builder does that)
-  contents: write
-  # Required for SLSA builder to read workflow path
-  actions: read
-
-jobs:
-  generate_provenance_args:
-    runs-on: ubuntu-latest
-    outputs:
-      version_for_ldflags: ${{ steps.version_info.outputs.VERSION_FOR_LDFLAGS }}
-      commit_sha: ${{ steps.version_info.outputs.COMMIT_SHA }}
-      commit_date: ${{ steps.version_info.outputs.COMMIT_DATE }}
-      tree_state: ${{ steps.version_info.outputs.TREE_STATE }}
-      effective_release_tag: ${{ steps.version_info.outputs.EFFECTIVE_RELEASE_TAG }}
-      is_prerelease_flag: ${{ steps.version_info.outputs.IS_PRERELEASE }}
-      upload_release_assets: ${{ steps.version_info.outputs.UPLOAD_RELEASE_ASSETS }}
-      actual_ref_to_checkout: ${{ steps.set_ref.outputs.ACTUAL_REF_TO_CHECKOUT }}
-
-    steps:
-      - name: Harden the runner
-        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
-        with:
-          egress-policy: audit
-
-      - name: Determine Ref to Checkout
-        id: set_ref
-        run: |
-          REF_TO_CHECKOUT=""
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
-            REF_TO_CHECKOUT="${{ github.ref }}"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            REF_TO_CHECKOUT="${{ github.event.inputs.ref }}"
-          else
-            echo "::error::Unsupported event type or missing ref."
-            exit 1
-          fi
-          echo "ACTUAL_REF_TO_CHECKOUT=$REF_TO_CHECKOUT" >> $GITHUB_OUTPUT
-          echo "Resolved ref to checkout: $REF_TO_CHECKOUT"
-
-      - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          ref: ${{ steps.set_ref.outputs.ACTUAL_REF_TO_CHECKOUT }}
-          fetch-depth: 0 # Required for git describe --tags
-
-      - name: Determine Version and Release Info
-        id: version_info
-        shell: bash
-        run: |
-          # Version for ldflags, e.g., v1.2.3 or v1.2.3-10-gabc123-dirty
-          VERSION_FOR_LDFLAGS=$(git describe --tags --always --dirty --match="v*")
-          echo "VERSION_FOR_LDFLAGS=$VERSION_FOR_LDFLAGS" >> $GITHUB_OUTPUT
-          echo "Version for ldflags: $VERSION_FOR_LDFLAGS"
-
-          COMMIT_SHA=$(git rev-parse HEAD)
-          echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_OUTPUT
-          echo "Commit SHA: $COMMIT_SHA"
-
-          COMMIT_DATE=$(git log -1 --pretty=%ct)
-          echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_OUTPUT
-          echo "Commit Date: $COMMIT_DATE"
-
-          TREE_STATE="clean"
-          if ! git diff --quiet; then
-            TREE_STATE="dirty"
-          fi
-          echo "TREE_STATE=$TREE_STATE" >> $GITHUB_OUTPUT
-          echo "Tree State: $TREE_STATE"
-
-          EFFECTIVE_RELEASE_TAG=""
-          UPLOAD_RELEASE_ASSETS="false"
-          IS_PRERELEASE="false"
-
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
-            # This is a tag push, github.ref_name is the tag (e.g., v1.2.3)
-            EFFECTIVE_RELEASE_TAG="${{ github.ref_name }}"
-            UPLOAD_RELEASE_ASSETS="true"
-            echo "Event: Tag push. Effective Release Tag: $EFFECTIVE_RELEASE_TAG"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            # For workflow_dispatch, check if inputs.ref is a valid tag that exists
-            # We use the already checked-out ref for git describe
-            # If VERSION_FOR_LDFLAGS is a clean tag (no extra commits, no -dirty), then it's a tag.
-            # And if that clean tag matches inputs.ref (if inputs.ref was intended as a tag).
-            INPUT_REF="${{ github.event.inputs.ref }}"
-            # Check if INPUT_REF is a simple tag name (e.g. v1.2.3) and if it matches the current fully resolved tag
-            if [[ "$VERSION_FOR_LDFLAGS" == "$INPUT_REF" && ! "$VERSION_FOR_LDFLAGS" == *-* ]]; then
-                EFFECTIVE_RELEASE_TAG="$INPUT_REF"
-                UPLOAD_RELEASE_ASSETS="true"
-                echo "Event: Workflow dispatch for tag. Effective Release Tag: $EFFECTIVE_RELEASE_TAG"
-            else
-                echo "Event: Workflow dispatch for branch/commit/non-clean-tag. No release will be created by default."
-            fi
-          fi
-          echo "EFFECTIVE_RELEASE_TAG=$EFFECTIVE_RELEASE_TAG" >> $GITHUB_OUTPUT
-          echo "UPLOAD_RELEASE_ASSETS=$UPLOAD_RELEASE_ASSETS" >> $GITHUB_OUTPUT
-
-          if [[ -n "$EFFECTIVE_RELEASE_TAG" && ( "$EFFECTIVE_RELEASE_TAG" == *-alpha* || "$EFFECTIVE_RELEASE_TAG" == *-beta* || "$EFFECTIVE_RELEASE_TAG" == *-rc* ) ]]; then
-            IS_PRERELEASE="true"
-          fi
-          echo "IS_PRERELEASE=$IS_PRERELEASE" >> $GITHUB_OUTPUT
-          echo "Is Prerelease: $IS_PRERELEASE"
-
-  build_with_provenance:
-    needs: generate_provenance_args
-    permissions:
-      id-token: write # To sign the provenance.
-      contents: write # To upload assets to release.
-      actions: read   # To read the workflow path.
-    strategy:
-      matrix:
-        goos: [linux, windows, darwin]
-        goarch: [amd64, arm64]
-        exclude:
-          - goos: windows
-            goarch: arm64
-    uses: slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v2.1.0
-    with:
-      go-version: '1.21' # As per PRD
-      config-file: .slsa-goreleaser/${{ matrix.os }}-${{ matrix.arch }}.yml
-      evaluated-envs: "VERSION:${{ needs.generate_provenance_args.outputs.version_for_ldflags }},COMMIT:${{ needs.generate_provenance_args.outputs.commit_sha }},COMMIT_DATE:${{ needs.generate_provenance_args.outputs.commit_date }},TREE_STATE:${{ needs.generate_provenance_args.outputs.tree_state }}"
-      upload-assets: ${{ needs.generate_provenance_args.outputs.upload_release_assets }}
-      upload-tag-name: ${{ needs.generate_provenance_args.outputs.effective_release_tag }}
-      prerelease: ${{ needs.generate_provenance_args.outputs.is_prerelease_flag }}
-      draft-release: ${{ github.event.inputs.draft_release }}
-      # private-repository: false # Default, set to true if this is a private repo and you accept name leakage
-      # compile-builder: true # Only if needed for workaround for specific builder versions/issues
 
 
 
