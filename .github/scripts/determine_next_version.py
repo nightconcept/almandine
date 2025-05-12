@@ -24,6 +24,32 @@ def get_latest_semver(tags):
             continue
     return latest_v
 
+def get_latest_prerelease_for_base(tags, base_version, token):
+    """
+    Finds the latest prerelease tag for a given base version and token.
+    Example: base_version = 0.2.0, token = 'alpha' -> finds latest v0.2.0-alpha.N
+    Returns a semver.VersionInfo object or None.
+    """
+    latest_prerelease_v = None
+    for tag_str in reversed(tags): # Assumes tags are sorted v:refname
+        try:
+            v = semver.VersionInfo.parse(tag_str[1:])
+            if v.major == base_version.major and \
+               v.minor == base_version.minor and \
+               v.patch == base_version.patch and \
+               v.prerelease and len(v.prerelease) == 2 and v.prerelease[0] == token:
+                # Compare numeric part of the prerelease
+                if latest_prerelease_v is None or v.prerelease[1] > latest_prerelease_v.prerelease[1]:
+                    latest_prerelease_v = v
+        except ValueError:
+            # Not a valid semver tag or unexpected prerelease format
+            continue
+        except TypeError:
+            # Handle cases where prerelease[1] might not be comparable (e.g., not an int)
+            print(f"Warning: Prerelease part of tag {tag_str} is not as expected for comparison.", file=sys.stderr)
+            continue
+    return latest_prerelease_v
+
 def main():
     bump_type = os.environ.get('BUMP_TYPE')
     if not bump_type:
@@ -43,28 +69,27 @@ def main():
             print(f"Error: No existing tags found. Initial bump must be 'alpha' to start with 0.2.0-alpha.1.", file=sys.stderr)
             sys.exit(1)
     else:
-        current_v = latest_v
-        if bump_type == 'alpha':
-            if current_v.prerelease and current_v.prerelease[0] == 'alpha':
-                next_v = current_v.bump_prerelease(token='alpha')
-            else: # New alpha series for current major.minor.patch or next patch
-                # If current is final (e.g. 0.1.0), new alpha is 0.1.0-alpha.1
-                # If current is rc (e.g. 0.1.0-rc.1), new alpha is 0.1.0-alpha.1
-                # If current is beta (e.g. 0.1.0-beta.1), new alpha is 0.1.0-alpha.1
-                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease='alpha.1')
-            next_v_str = str(next_v)
-        elif bump_type == 'beta':
-            if current_v.prerelease and current_v.prerelease[0] == 'beta':
-                next_v = current_v.bump_prerelease(token='beta')
-            else: # New beta series, must come from alpha or be a new beta for a version
-                # e.g., 0.1.0-alpha.2 -> 0.1.0-beta.1
-                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease='beta.1')
-            next_v_str = str(next_v)
-        elif bump_type == 'rc':
-            if current_v.prerelease and current_v.prerelease[0] == 'rc':
-                next_v = current_v.bump_prerelease(token='rc')
-            else: # New RC series
-                next_v = semver.VersionInfo(current_v.major, current_v.minor, current_v.patch, prerelease='rc.1')
+        current_v = latest_v # overall latest tag
+        if bump_type in ['alpha', 'beta', 'rc']:
+            prerelease_token = bump_type
+            # Determine the base version for the new prerelease series.
+            # This should be the major.minor.patch of the *overall* latest version.
+            base_for_series = current_v.finalize_version()
+
+            latest_specific_prerelease = get_latest_prerelease_for_base(tags, base_for_series, prerelease_token)
+
+            if latest_specific_prerelease:
+                # An existing prerelease series for this base and token was found. Bump its numeric part.
+                # e.g., if latest_specific_prerelease is 0.2.0-alpha.1, next_v becomes 0.2.0-alpha.2
+                next_v = latest_specific_prerelease.bump_prerelease()
+            else:
+                # No existing prerelease series for this base and token type.
+                # Start a new one at .1 for this base_for_series.
+                # e.g., if base_for_series is 0.2.0 and token is 'alpha', next_v becomes 0.2.0-alpha.1.
+                # This correctly handles:
+                #   - Starting a new alpha for 0.2.0 if latest_v was 0.2.0 (final).
+                #   - Starting a new beta for 0.2.0 (as 0.2.0-beta.1) if latest_v was 0.2.0-alpha.5.
+                next_v = base_for_series.replace(prerelease=(prerelease_token, 1))
             next_v_str = str(next_v)
         elif bump_type == 'promote_to_final':
             if not current_v.prerelease:
@@ -74,7 +99,8 @@ def main():
             next_v_str = str(next_v)
             is_prerelease = "false"
         elif bump_type == 'patch':
-            base_v = current_v.finalize_version() # Ensure we bump from a stable part
+            # For patch, minor, major, we always bump from the finalized version of the *overall* latest tag.
+            base_v = current_v.finalize_version()
             next_v = base_v.bump_patch()
             next_v_str = str(next_v)
             is_prerelease = "false"
