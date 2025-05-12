@@ -93,7 +93,7 @@ go fmt ./...
 go vet ./...
 go mod tidy -v
 golangci-lint run --fix
-gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,docs/digest.txt,docs/archive/* .
+gitingest -o docs/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,docs/digest.txt,docs/archive/* .
 ```
 
 ### sign
