@@ -371,6 +371,7 @@ in {
   packages = with pkgs; [
     golangci-lint
     pre-commit
+    shellcheck
     xc
   ];
 
@@ -842,9 +843,9 @@ case ":$PATH:" in
     if [ "$WRAPPER_DIR" = "$PRIMARY_WRAPPER_DIR" ]; then
       printf 'You may want to add it to your PATH or check your shell configuration.\n'
     else
-      printf 'To add it, run (for bash):\n  echo ''export PATH="$HOME/.local/bin:$PATH"'' >> ~/.bashrc && source ~/.bashrc\n'
-      printf 'Or for zsh:\n  echo ''export PATH="$HOME/.local/bin:$PATH"'' >> ~/.zshrc && source ~/.zshrc\n'
-      printf 'Then restart your terminal or run ''exec $SHELL'' to reload your PATH.\n'
+      printf "To add it, run (for bash):\n  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc && source ~/.bashrc\n"
+      printf "Or for zsh:\n  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc && source ~/.zshrc\n"
+      printf "Then restart your terminal or run 'exec %s' to reload your PATH.\n" "$SHELL"
     fi
     ;;
 esac
@@ -7902,6 +7903,8 @@ fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
     -   [x] Modify `.github/scripts/determine_next_version.py` to check if a calculated pre-release version (e.g., `v0.2.0-alpha.1`) already exists.
     -   [x] If it exists, increment the pre-release number (e.g., to `v0.2.0-alpha.2`) and re-check until a unique version is found.
     -   [x] Manual Verification: Run the script with `BUMP_TYPE=alpha` when `v0.2.0-alpha.1` exists. Verify it outputs `v0.2.0-alpha.2`. Test with `beta` and `rc` as well.
+
+- [x] Fix ShellCheck SC2016 warnings in install.sh (2025-05-12)
 
 
 
