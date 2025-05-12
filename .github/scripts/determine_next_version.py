@@ -24,6 +24,32 @@ def get_latest_semver(tags):
             continue
     return latest_v
 
+def get_latest_prerelease_for_base(tags, base_version, token):
+    """
+    Finds the latest prerelease tag for a given base version and token.
+    Example: base_version = 0.2.0, token = 'alpha' -> finds latest v0.2.0-alpha.N
+    Returns a semver.VersionInfo object or None.
+    """
+    latest_prerelease_v = None
+    for tag_str in reversed(tags): # Assumes tags are sorted v:refname
+        try:
+            v = semver.VersionInfo.parse(tag_str[1:])
+            if v.major == base_version.major and \
+               v.minor == base_version.minor and \
+               v.patch == base_version.patch and \
+               v.prerelease and len(v.prerelease) == 2 and v.prerelease[0] == token:
+                # Compare numeric part of the prerelease
+                if latest_prerelease_v is None or v.prerelease[1] > latest_prerelease_v.prerelease[1]:
+                    latest_prerelease_v = v
+        except ValueError:
+            # Not a valid semver tag or unexpected prerelease format
+            continue
+        except TypeError:
+            # Handle cases where prerelease[1] might not be comparable (e.g., not an int)
+            print(f"Warning: Prerelease part of tag {tag_str} is not as expected for comparison.", file=sys.stderr)
+            continue
+    return latest_prerelease_v
+
 def main():
     bump_type = os.environ.get('BUMP_TYPE')
     if not bump_type:
@@ -98,7 +124,8 @@ def main():
             next_v_str = str(next_v)
             is_prerelease = "false"
         elif bump_type == 'patch':
-            base_v = current_v.finalize_version() # Ensure we bump from a stable part
+            # For patch, minor, major, we always bump from the finalized version of the *overall* latest tag.
+            base_v = current_v.finalize_version()
             next_v = base_v.bump_patch()
             next_v_str = str(next_v)
             is_prerelease = "false"

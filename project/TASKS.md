@@ -777,6 +777,8 @@ fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
         -   Solution: Added single quotes around `'main.version=$VERSION'` within the `-ldflags` argument in `.github/workflows/release.yml`.
     -   [x] **Version Increment/Format:**
         -   Problem: `.github/scripts/determine_next_version.py` produced incorrect version format like `v0.2.0-('alpha', 1)` and did not correctly increment pre-release numbers.
+-   [ ] **Task 18.5: Fix `determine_next_version.py` for correct prerelease increment (2025-05-11)**
+        -   [ ] Modified `determine_next_version.py` to correctly find the latest existing prerelease for a given major.minor.patch base and increment it, rather than always starting a new prerelease series from the overall latest tag.
         -   Solution: Modified the script to use string-based prerelease identifiers (e.g., `prerelease='alpha.1'`) for `semver.VersionInfo`, ensuring correct format and increment behavior.
 
 ---
