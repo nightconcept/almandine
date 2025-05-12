@@ -852,3 +852,14 @@ fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
 -   [x] **Task 22.1: Create `CODEOWNERS` file**
     -   [x] Create `.github/CODEOWNERS` with standard template and placeholders.
     -   [x] Manual Verification: File exists at `.github/CODEOWNERS` and contains placeholder content.
+
+---
+
+## Milestone 23: Fix Version Bumping Logic (2025-05-11)
+
+**Goal:** Correct the version bumping script to handle existing pre-release tags.
+
+-   [x] **Task 23.1: Fix `determine_next_version.py` for existing pre-release tags**
+    -   [x] Modify `.github/scripts/determine_next_version.py` to check if a calculated pre-release version (e.g., `v0.2.0-alpha.1`) already exists.
+    -   [x] If it exists, increment the pre-release number (e.g., to `v0.2.0-alpha.2`) and re-check until a unique version is found.
+    -   [x] Manual Verification: Run the script with `BUMP_TYPE=alpha` when `v0.2.0-alpha.1` exists. Verify it outputs `v0.2.0-alpha.2`. Test with `beta` and `rc` as well.
