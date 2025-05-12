@@ -1,6 +1,8 @@
-{ pkgs, inputs, ... }:
-
-let
+{
+  pkgs,
+  inputs,
+  ...
+}: let
   xc = pkgs.buildGoModule rec {
     pname = "xc";
     version = "v0.8.5";
@@ -13,8 +15,7 @@ let
     };
     vendorHash = "sha256-EbIuktQ2rExa2DawyCamTrKRC1yXXMleRB8/pcKFY5c=";
   };
-in
-{
+in {
   packages = with pkgs; [
     golangci-lint
     pre-commit
@@ -24,13 +25,14 @@ in
   languages.go = {
     enable = true;
   };
-languages.python = {
+  languages.python = {
     enable = true;
     venv.enable = true;
     venv.requirements = ''
       gitingest
       requests
       python-gnupg
+      semver
     '';
   };
 
