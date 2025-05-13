@@ -1,4 +1,4 @@
-fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
+# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
 
 **Purpose:** Tracks tasks and milestones for implementing the core `init` and `add` commands for the Almandine Go CLI (`almd`), based on the specifications in `project/PRD.md`.
 
@@ -878,3 +878,5 @@ fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
     -   [x] Refactor `executeInstallOperations` to reduce complexity.
 -   [x] **Task 24.2: Refactor `parseGitHubFullURL` in `internal/core/source/source.go` (2025-05-13)**
     -   [x] Reduced cyclomatic complexity from 26 by extracting logic into `parseGitHubURLWithType` and `parseGitHubURLWithAtRef` helper functions.
+-   [x] **Task 24.3: Fix Cyclomatic Complexity in `internal/cli/add/add.go` (2025-05-13)**
+    -   [x] Refactored `AddCmd()` (complexity 19) and `calculateIntegrityHash()` (complexity 18) in [`internal/cli/add/add.go`](internal/cli/add/add.go:0) by extracting helper functions.

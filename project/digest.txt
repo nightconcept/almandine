@@ -1187,6 +1187,7 @@ File: internal/cli/add/add.go
 package add
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -1203,6 +1204,44 @@ import (
 	"github.com/nightconcept/almandine/internal/core/source"
 	"github.com/urfave/cli/v2"
 )
+
+// isGitHubSourceWithSufficientInfo checks if the parsed source information
+// points to a GitHub source with all necessary details for advanced integrity checks.
+func isGitHubSourceWithSufficientInfo(p *source.ParsedSourceInfo) bool {
+	return p.Provider == "github" &&
+		p.Owner != "" &&
+		p.Repo != "" &&
+		p.PathInRepo != "" &&
+		p.Ref != "" &&
+		!strings.HasPrefix(p.Ref, "error:")
+}
+
+// determineGitHubIntegrity attempts to determine a commit-based integrity string for GitHub sources.
+// If the ref is already a commit SHA, it's used. Otherwise, it attempts to fetch the latest commit SHA.
+// If fetching fails or is not applicable, it returns the fallbackHashSHA256.
+func determineGitHubIntegrity(parsedInfo *source.ParsedSourceInfo, fallbackHashSHA256 string) string {
+	// isLikelyCommitSHA checks if the ref string looks like a 40-char hex string (e.g., a full commit SHA).
+	isLikelyCommitSHA := func(ref string) bool {
+		if len(ref) != 40 {
+			return false
+		}
+		_, err := hex.DecodeString(ref)
+		return err == nil
+	}
+
+	if isLikelyCommitSHA(parsedInfo.Ref) {
+		return fmt.Sprintf("commit:%s", parsedInfo.Ref)
+	}
+
+	// Attempt to get the specific commit SHA for the file at the given ref.
+	commitSHA, err := source.GetLatestCommitSHAForFile(parsedInfo.Owner, parsedInfo.Repo, parsedInfo.PathInRepo, parsedInfo.Ref)
+	if err != nil {
+		// If fetching the specific commit SHA fails, fallback to the provided SHA256 hash.
+		// Consider logging err here if verbose mode is enabled or for debugging.
+		return fallbackHashSHA256
+	}
+	return fmt.Sprintf("commit:%s", commitSHA)
+}
 
 func parseAddArgs(cCtx *cli.Context) (sourceURLInput, targetDir, customName string, verbose bool, err error) {
 	if cCtx.NArg() > 0 {
@@ -1274,29 +1313,10 @@ func calculateIntegrityHash(parsedInfo *source.ParsedSourceInfo, fileContent []b
 		return "", fmt.Errorf("calculating SHA256 hash: %w", hashErr)
 	}
 
-	isLikelyCommitSHA := func(ref string) bool {
-		if len(ref) != 40 {
-			return false
-		}
-		for _, r := range ref {
-			if (r < '0' || r > '9') && (r < 'a' || r > 'f') && (r < 'A' || r > 'F') {
-				return false
-			}
-		}
-		return true
+	if isGitHubSourceWithSufficientInfo(parsedInfo) {
+		return determineGitHubIntegrity(parsedInfo, fileHashSHA256), nil
 	}
 
-	if parsedInfo.Provider == "github" && parsedInfo.Owner != "" && parsedInfo.Repo != "" && parsedInfo.PathInRepo != "" && parsedInfo.Ref != "" && !strings.HasPrefix(parsedInfo.Ref, "error:") {
-		if isLikelyCommitSHA(parsedInfo.Ref) {
-			return fmt.Sprintf("commit:%s", parsedInfo.Ref), nil
-		}
-		commitSHA, getCommitErr := source.GetLatestCommitSHAForFile(parsedInfo.Owner, parsedInfo.Repo, parsedInfo.PathInRepo, parsedInfo.Ref)
-		if getCommitErr != nil {
-			// Fallback to SHA256 if commit SHA cannot be fetched
-			return fileHashSHA256, nil
-		}
-		return fmt.Sprintf("commit:%s", commitSHA), nil
-	}
 	return fileHashSHA256, nil
 }
 
@@ -1337,6 +1357,36 @@ func updateLockfile(projectRoot, dependencyNameInManifest, rawURL, relativeDestP
 		return fmt.Errorf("saving %s: %w", lockfile.LockfileName, saveLockErr)
 	}
 	return nil
+}
+
+// determineDisplayVersion determines the version string to display for a dependency.
+// It prioritizes the Ref field, then tries to parse from CanonicalURL, and defaults to "latest".
+func determineDisplayVersion(parsedInfo *source.ParsedSourceInfo) string {
+	versionStr := parsedInfo.Ref
+	if versionStr == "" || strings.HasPrefix(versionStr, "error:") {
+		parts := strings.Split(parsedInfo.CanonicalURL, "@")
+		if len(parts) > 1 {
+			return parts[len(parts)-1]
+		}
+		return "latest" // Default if no version info found
+	}
+	return versionStr
+}
+
+// performCleanupOnPotentialError is called by a defer in AddCmd.Action.
+// It checks if an error occurred during the AddCmd action and if a file was (potentially) written,
+// then attempts to clean up the file, warning if the cleanup fails.
+func performCleanupOnPotentialError(actionErr error, fileWasWritten bool, filePathToDelete string, cCtx *cli.Context) {
+	if actionErr != nil && fileWasWritten {
+		cleanupErr := os.Remove(filePathToDelete)
+		if cleanupErr != nil {
+			var errWriter io.Writer = os.Stderr // Default to os.Stderr
+			if cCtx.App != nil && cCtx.App.ErrWriter != nil {
+				errWriter = cCtx.App.ErrWriter
+			}
+			_, _ = fmt.Fprintf(errWriter, "Warning: Failed to clean up downloaded file '%s' during error handling: %v\n", filePathToDelete, cleanupErr)
+		}
+	}
 }
 
 // AddCmd provides the CLI command definition for 'add'.
@@ -1380,30 +1430,16 @@ func AddCmd() *cli.Command {
 			}
 
 			fullPath, relativeDestPath, saveFileErr := saveDependencyFile(projectRoot, targetDir, fileNameOnDisk, fileContent)
-			// fileWritten is true if saveFileErr is nil, or if saveFileErr is not nil but fullPath was determined (meaning an attempt to write was made).
 			fileWritten := saveFileErr == nil || (saveFileErr != nil && fullPath != "")
 
-			// Defer cleanup logic. This runs when the Action function returns.
-			// It checks the Action's named return 'err'.
 			defer func() {
-				if err != nil && fileWritten { // If the Action is returning an error AND a file was (potentially partially) written
-					cleanupErr := os.Remove(fullPath)
-					if cleanupErr != nil {
-						var errWriter io.Writer = os.Stderr
-						if cCtx.App != nil && cCtx.App.ErrWriter != nil {
-							errWriter = cCtx.App.ErrWriter
-						}
-						_, _ = fmt.Fprintf(errWriter, "Warning: Failed to clean up downloaded file '%s' during error handling: %v\n", fullPath, cleanupErr)
-					}
-				}
+				performCleanupOnPotentialError(err, fileWritten, fullPath, cCtx)
 			}()
 
 			if saveFileErr != nil {
 				err = cli.Exit(fmt.Sprintf("Error saving dependency file to '%s': %v. Attempting to clean up.", fullPath, saveFileErr), 1)
-				return // This sets Action's 'err' and triggers the defer.
+				return
 			}
-			// At this point, file is successfully written.
-			// Subsequent errors will set Action's 'err' and trigger the deferred cleanup.
 
 			integrityHash, integrityHashErr := calculateIntegrityHash(parsedInfo, fileContent)
 			if integrityHashErr != nil {
@@ -1429,15 +1465,7 @@ func AddCmd() *cli.Command {
 			fmt.Println("Progress: resolved 1, downloaded 1, added 1, done")
 			fmt.Println()
 			_, _ = color.New(color.FgWhite, color.Bold).Println("dependencies:")
-			dependencyVersionStr := parsedInfo.Ref
-			if dependencyVersionStr == "" || strings.HasPrefix(dependencyVersionStr, "error:") {
-				parts := strings.Split(parsedInfo.CanonicalURL, "@")
-				if len(parts) > 1 {
-					dependencyVersionStr = parts[len(parts)-1]
-				} else {
-					dependencyVersionStr = "latest" // Or some other default
-				}
-			}
+			dependencyVersionStr := determineDisplayVersion(parsedInfo)
 			_, _ = color.New(color.FgGreen).Printf("+ %s %s\n", dependencyNameInManifest, dependencyVersionStr)
 			fmt.Println()
 			duration := time.Since(startTime)
@@ -7140,7 +7168,7 @@ These rules specify how testing and behavior specification are implemented using
 ================================================
 File: project/TASKS.md
 ================================================
-fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
+# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
 
 **Purpose:** Tracks tasks and milestones for implementing the core `init` and `add` commands for the Almandine Go CLI (`almd`), based on the specifications in `project/PRD.md`.
 
@@ -8020,6 +8048,9 @@ fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
     -   [x] Refactor `executeInstallOperations` to reduce complexity.
 -   [x] **Task 24.2: Refactor `parseGitHubFullURL` in `internal/core/source/source.go` (2025-05-13)**
     -   [x] Reduced cyclomatic complexity from 26 by extracting logic into `parseGitHubURLWithType` and `parseGitHubURLWithAtRef` helper functions.
+-   [x] **Task 24.3: Fix Cyclomatic Complexity in `internal/cli/add/add.go` (2025-05-13)**
+    -   [x] Refactored `AddCmd()` (complexity 19) and `calculateIntegrityHash()` (complexity 18) in [`internal/cli/add/add.go`](internal/cli/add/add.go:0) by extracting helper functions.
+
 
 
 
