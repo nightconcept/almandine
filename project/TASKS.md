@@ -869,6 +869,10 @@
 - [x] Fix ShellCheck SC2016 warnings in install.sh (2025-05-12)
 
 ## Milestone 24: Code Quality Improvements
+-   [ ] **Task 24.1: Refactor `internal/cli/list/list.go:ListCmd` to reduce cyclomatic complexity (2025-05-13)**
+    -   [ ] Identify complex sections in `ListCmd`.
+    -   [ ] Extract logic into private helper functions.
+    -   [ ] Ensure tests in `internal/cli/list/list_test.go` still pass.
 
 **Goal:** Address code quality issues and improve maintainability.
 

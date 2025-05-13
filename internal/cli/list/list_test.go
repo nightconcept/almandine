@@ -181,7 +181,7 @@ func TestListCommand_ProjectTomlNotFound(t *testing.T) {
 
 	require.Error(t, err, "Expected an error when project.toml is not found")
 	require.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Error: project.toml not found. No project configuration loaded.")
+	assert.Contains(t, err.Error(), fmt.Sprintf("%s not found in %s, no project configuration loaded", config.ProjectTomlName, "."))
 }
 
 // Tests list command with a single dependency that is fully installed and properly locked
