@@ -5,8 +5,7 @@ devenv.local.nix
 # direnv
 .direnv
 
-project.toml
-almd-lock.toml
+# build artifacts
 build/*
 build/almd
 build/almd.exe

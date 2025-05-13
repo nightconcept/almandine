@@ -16,7 +16,10 @@ Directory structure:
     │   └── almd/
     │       └── main.go
     ├── docs/
-    │   └── SECURITY.md
+    │   ├── PRD.md
+    │   ├── SECURITY.md
+    │   ├── TASKS.md
+    │   └── archive/
     ├── internal/
     │   ├── cli/
     │   │   ├── add/
@@ -36,31 +39,27 @@ Directory structure:
     │   │   │   └── remove_test.go
     │   │   └── self/
     │   │       └── self.go
-    │   ├── core/
-    │   │   ├── config/
-    │   │   │   ├── config.go
-    │   │   │   └── config_test.go
-    │   │   ├── downloader/
-    │   │   │   ├── downloader.go
-    │   │   │   └── downloader_test.go
-    │   │   ├── hasher/
-    │   │   │   ├── hasher.go
-    │   │   │   └── hasher_test.go
-    │   │   ├── lockfile/
-    │   │   │   ├── lockfile.go
-    │   │   │   └── lockfile_test.go
-    │   │   ├── project/
-    │   │   │   ├── project.go
-    │   │   │   └── project_test.go
-    │   │   └── source/
-    │   │       ├── github_api.go
-    │   │       ├── github_api_test.go
-    │   │       ├── source.go
-    │   │       └── source_test.go
-    │   └── testutil/
-    ├── project/
-    │   ├── PRD.md
-    │   └── TASKS.md
+    │   └── core/
+    │       ├── config/
+    │       │   ├── config.go
+    │       │   └── config_test.go
+    │       ├── downloader/
+    │       │   ├── downloader.go
+    │       │   └── downloader_test.go
+    │       ├── hasher/
+    │       │   ├── hasher.go
+    │       │   └── hasher_test.go
+    │       ├── lockfile/
+    │       │   ├── lockfile.go
+    │       │   └── lockfile_test.go
+    │       ├── project/
+    │       │   ├── project.go
+    │       │   └── project_test.go
+    │       └── source/
+    │           ├── github_api.go
+    │           ├── github_api_test.go
+    │           ├── source.go
+    │           └── source_test.go
     ├── scripts/
     │   ├── README.md
     │   └── sign_releases.py
@@ -79,13 +78,7 @@ Directory structure:
     │       ├── dependency-review.yml
     │       ├── release.yml
     │       └── scorecard.yml
-    ├── .roo/
-    └── .slsa-goreleaser/
-        ├── darwin-amd64.yml
-        ├── darwin-arm64.yml
-        ├── linux-amd64.yml
-        ├── linux-arm64.yml
-        └── windows-amd64.yml
+    └── .roo/
 
 ================================================
 File: README.md
@@ -185,7 +178,7 @@ go fmt ./...
 go vet ./...
 go mod tidy -v
 golangci-lint run --fix
-gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,project/digest.txt .
+gitingest -o docs/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,docs/digest.txt,docs/archive/* .
 ```
 
 ### sign
@@ -1135,6 +1128,431 @@ func main() {
 
 
 ================================================
+File: docs/PRD.md
+================================================
+# Almandine Package Manager (Go Version) - PRD
+
+## 1. Introduction
+
+Almandine (`almd` as the CLI command) is a lightweight package manager for Go projects, migrating the core concepts from the original Lua version. It enables simple, direct management of single-file dependencies (initially from GitHub), project scripts, and project metadata. Almandine is designed for projects that want to pin specific versions or commits of files without managing complex dependency trees, leveraging Go's strengths and the `urfave/cli` framework.
+
+## 2. Core Features
+
+-   **Single-file Downloads:** Fetch individual files (initially Lua, but adaptable) from remote repositories (e.g., GitHub), pinning by git commit hash or potentially tags/versions later.
+-   **No Dependency Tree Management:** Only downloads files explicitly listed in the project; does not resolve or manage full dependency trees.
+-   **Project Metadata:** Maintains project name, type, version, license, and package description in `project.toml` (using TOML format).
+-   **Script Runner:** Provides a central point for running project scripts defined in `project.toml`.
+-   **Lockfile:** Tracks exact versions or commit hashes of all downloaded files for reproducible builds (`almd-lock.toml`, using TOML format).
+-   **License & Description:** Exposes license and package description fields in `project.toml`.
+-   **Cross-Platform:** Built as a standard Go binary, naturally cross-platform (Linux, macOS, Windows).
+
+### 2.1. Core Commands (Initial Focus using `urfave/cli`)
+
+-   **`init` command:**
+    -   **Goal:** Interactively initialize a new Almandine project by creating a `project.toml` manifest file in the current directory.
+    -   **Implementation:** Implemented as a `urfave/cli` command (in `internal/cli/init/init.go`).
+    -   **Functionality:**
+        -   **Interactive Prompts:** Prompts the user for core project metadata:
+            -   `package` name (defaults to `my-go-project` or derived from current dir).
+            -   `version` (defaults to `0.1.0`).
+            -   `license` (defaults to `MIT`).
+            -   `description` (defaults to `A sample Go project using Almandine.`).
+            -   Optionally prompts for `language` details (e.g., name `go`, version `>= 1.21`).
+        -   **Script Definition:** Interactively prompts the user to add scripts ([`scripts`] table).
+            -   Prompts for script `name` and `command`.
+            -   Continues prompting until an empty name is entered.
+            -   **Default `run` script:** If no `run` script is provided by the user, adds a default (e.g., `go run ./cmd/almd` or a user-project specific default like `go run .`).
+        -   **Dependency Placeholders (Simplified):** Interactively prompts the user to add initial dependencies ([`dependencies`] table).
+            -   Prompts for dependency `name` and a simple `source/version` string.
+            -   Continues prompting until an empty name is entered.
+            -   **Note:** `init` creates basic dependency entries. The `add` command is responsible for fleshing these out into the full structure (`source` identifier, `path`).
+        -   **Manifest Creation/Overwrite:** Creates `project.toml` in the current directory with the collected information. If `project.toml` already exists, it **overwrites** the existing file.
+        -   **Output:** Prints confirmation message upon successful creation/overwrite. Reports errors clearly via `urfave/cli` if file writing fails.
+    -   **Arguments & Flags (`urfave/cli`):**
+        -   Typically run without arguments or flags, relying purely on interactive input.
+
+-   **`add` command:**
+    -   **Goal:** Adds a single-file dependency from a supported source (initially GitHub URLs) to the project.
+    -   **Implementation:** Implemented as a `urfave/cli` command (defined in `internal/cli/add/add.go`).
+    -   **Functionality:**
+        -   Parses the provided URL using Go's `net/url`.
+        -   **GitHub URL Processing:** Handles various GitHub URL formats (blob, raw, potentially commit/tag specific). Normalizes the input URL to the **raw content download URL**. Extracts the commit hash if present in the URL. Creates a **canonical source identifier** (e.g., `github:user/repo/path/to/file@commit_hash_or_ref`) for storage in `project.toml`. This logic is encapsulated in `internal/source`.
+        -   Downloads the specified file using Go's `net/http` client from the resolved raw content URL (logic in `internal/downloader`).
+        -   **Target Directory/Path Handling:** Determines the final destination path for the downloaded file based on the `-d` and `-n` flags. Ensures the target directory exists, creating it if necessary using `os.MkdirAll`.
+        -   Saves the downloaded file to the determined target path using `os` and `io` packages.
+        -   **Manifest Update (`project.toml`):** Updates the `project.toml` file (using a Go TOML library like `github.com/BurntSushi/toml` and logic in `internal/core/config`). Adds or modifies the dependency entry under the `[dependencies]` table. The key is the derived or specified dependency name (`-n` flag). The value **must be a sub-table** containing:
+            -   `source`: The **canonical source identifier** derived from the input URL.
+            -   `path`: The relative path (using forward slashes) from the project root to the downloaded file.
+        -   **Lockfile Update (`almd-lock.toml`):** Updates the `almd-lock.toml` file (using a TOML library and logic in `internal/core/lockfile`). Adds or updates the entry for the dependency under the `[package]` table. This entry stores:
+            -   `source`: The **exact raw download URL** used to fetch the file.
+            -   `path`: The relative path (using forward slashes) matching the manifest.
+            -   `hash`: A string representing the file's integrity. Format: `commit:<commit_hash>` if a commit was extracted from the URL, otherwise `sha256:<sha256_hash>` calculated from the downloaded content using `crypto/sha256` (logic in `internal/hasher`). Defines how hash calculation errors are represented (e.g., `hash_error:<reason>`).
+        -   **Error Handling & Atomicity:** Implement robust error handling. If the process fails after download but before saving manifest/lockfile, attempts to clean up the downloaded file. Reports errors clearly via `urfave/cli` (e.g., using `cli.Exit`).
+    -   **Arguments & Flags (`urfave/cli`):**
+        -   `<source_url>`: Argument accessed from `*cli.Context` for the source URL of the file (required).
+        -   `-d, --directory string`: Flag definition (`cli.StringFlag`) for specifying the target directory. If the path ends in a separator or points to an existing directory, the file is saved inside that directory using the name derived from the `-n` flag or the URL. Otherwise, the flag value is treated as the full relative path for the saved file. Defaults to saving within the `libs/` directory (or `src/lib/` if specified).
+        -   `-n, --name string`: Flag definition (`cli.StringFlag`) for specifying the logical name of the dependency (used as the key in `project.toml` and `almd-lock.toml`) and the base filename. If omitted, the name is inferred from the URL's filename component.
+        -   `--verbose`: Optional flag (`cli.BoolFlag`) to enable detailed output during execution.
+
+-   **`remove` command:**
+    -   **Goal:** Removes a specified dependency from the project manifest (`project.toml`) and lockfile (`almd-lock.toml`), and deletes the corresponding downloaded file.
+    -   **Implementation:** Implemented as a `urfave/cli` command (e.g., `commands/remove.go`).
+    -   **Functionality:**
+        -   **Argument Parsing:** Takes the `<dependency_name>` as a required argument from `*cli.Context`.
+        -   **Manifest Loading:** Loads the `project.toml` file (using `internal/config`).
+        -   **Dependency Check:** Verifies if the specified `<dependency_name>` exists under the `[dependencies]` table in the manifest.
+        -   **Path Retrieval:** Retrieves the relative `path` associated with the dependency from the manifest entry.
+        -   **Manifest Update:** Removes the entry corresponding to `<dependency_name>` from the `[dependencies]` table.
+        -   **Manifest Saving:** Saves the modified manifest back to `project.toml`.
+        -   **File Deletion:** Deletes the file specified by the retrieved `path` using `os.Remove`. Handles potential errors gracefully (e.g., file not found, permissions).
+        -   **Lockfile Update:** Loads the `almd-lock.toml` file (using `internal/lockfile`), removes the corresponding entry under the `[package]` table, and saves the updated lockfile.
+        -   **Output:** Prints confirmation messages for successful removal from manifest, file deletion (or warnings if deletion fails), and lockfile update. Reports errors clearly via `urfave/cli`.
+    -   **Arguments & Flags (`urfave/cli`):**
+        -   `<dependency_name>`: Argument accessed from `*cli.Context` for the logical name of the dependency to remove (required).
+-   **`install` command:**
+    -   **Goal:** Installs or updates specified dependencies to the versions dictated by `project.toml`, or refreshes all dependencies if no specific ones are named. It ensures that the local project state (downloaded files and `almd-lock.toml`) aligns with the desired state specified in `project.toml`.
+    -   **Implementation:** To be implemented as a `urfave/cli` command (e.g., in `internal/cli/install/install.go`).
+    -   **Functionality:**
+        -   **Argument Parsing:** Accepts an optional list of `<dependency_name>` arguments from `*cli.Context`. If no names are provided, it targets all dependencies listed in `project.toml`.
+        -   **Manifest & Lockfile Loading:** Loads `project.toml` (using `internal/core/config`) and `almd-lock.toml` (using `internal/core/lockfile`).
+        -   **Dependency Iteration:** For each targeted dependency:
+            1.  **Retrieve Project Configuration:** Fetches the dependency's configuration (its canonical `source` identifier and `path`) from the `[dependencies]` table in `project.toml`. If a specified dependency name is not found in `project.toml`, it will be skipped with a warning.
+            2.  **Resolve Target Version/Source:** The `source` string from `project.toml` (e.g., `github:user/repo/file.lua@main` or `github:user/repo/file.lua@v1.2.3`) defines the desired state. This source identifier is resolved to a concrete, downloadable raw URL and a definitive commit hash or version identifier (e.g., the latest commit hash on the `main` branch, or the commit hash corresponding to tag `v1.2.3`). This resolution logic resides in `internal/source`.
+            3.  **Retrieve Current Lockfile State:** Fetches the current locked state for this dependency from `almd-lock.toml`, if an entry exists. This includes the exact raw `source` URL previously used for download and the integrity `hash` (e.g., `commit:<hash>` or `sha256:<hash>`).
+            4.  **Comparison and Decision Logic:**
+                -   An install/update is required if:
+                    -   The resolved target commit hash (from step 2) differs from the commit hash recorded in `almd-lock.toml` (from step 3).
+                    -   The dependency is present in `project.toml` but missing from `almd-lock.toml`.
+                    -   The local file at the dependency's `path` is missing, even if hashes might otherwise match.
+                    -   A `--force` flag is used by the user.
+                -   If the resolved target commit hash matches the one in `almd-lock.toml` and the local file exists, the dependency is considered up-to-date with its `project.toml` specification, and no action is taken unless forced.
+            5.  **Perform Install/Update (if required):**
+                -   The file is downloaded from the resolved target raw URL (using `internal/downloader`).
+                -   The integrity hash is calculated for the downloaded content (commit hash is preferred if available from the source URL, otherwise SHA256 via `internal/hasher`).
+                -   The downloaded file is saved to its designated `path` (from `project.toml`), ensuring that any necessary parent directories are created.
+                -   The `almd-lock.toml` file is updated: the entry for the dependency will store the exact raw download URL used, the `path`, and the new integrity `hash`.
+                -   **Note on `project.toml`:** The `source` field in `project.toml` typically remains as specified by the user (e.g., it can continue to point to a branch like `main`). The `almd-lock.toml` file is always updated to store the pinned, concrete version details (specific commit hash and exact download URL).
+        -   **Output:** Provides clear feedback, indicating which dependencies were checked, which were installed/updated, and which were already up-to-date. Errors encountered during the process are reported clearly via `urfave/cli`.
+    -   **Arguments & Flags (`urfave/cli`):**
+        -   `[dependency_names...]`: Optional argument(s) accessed from `*cli.Context` specifying the logical names of the dependencies to install/update. If omitted, all dependencies defined in `project.toml` are targeted.
+        -   `--force`, `-f`: Optional flag (`cli.BoolFlag`) to compel re-downloading of files and updating of lockfile entries, even if the resolved version appears to be identical to the currently locked version.
+        -   `--verbose`: Optional flag (`cli.BoolFlag`) to enable more detailed logging output during execution.
+
+-   **`list` command (aliased as `ls`):**
+    -   **Goal:** Displays a list of project dependencies, showing their configured sources from `project.toml`, their local paths, and their locked versions or hashes from `almd-lock.toml`.
+    -   **Implementation:** To be implemented as a `urfave/cli` command (e.g., in `internal/cli/list/list.go`).
+    -   **Functionality:**
+        -   **Manifest & Lockfile Loading:** Loads `project.toml` (via `internal/core/config`) and `almd-lock.toml` (via `internal/core/lockfile`).
+        -   **Dependency Traversal:** Iterates through the dependencies defined in the `[dependencies]` table of `project.toml`. For each dependency:
+            -   Retrieves its logical name, the configured `source` identifier, and its relative `path` from `project.toml`.
+            -   Attempts to retrieve its corresponding entry from `almd-lock.toml` to get the locked raw `source` URL and the integrity `hash`.
+        -   **Output Formatting:** Displays information in a format similar to `pnpm list`. It will use the `fatih/color` library for terminal coloring, respecting the `NO_COLOR` environment variable.
+            -   **Project Information Line:**
+                -   Format: `ProjectName@Version /path/to/project/root`
+                -   Colors:
+                    -   Project Name: Magenta (`color.FgMagenta`)
+                    -   `@`: Standard terminal color
+                    -   Version: Magenta (`color.FgMagenta`)
+                    -   Path: Dim Gray (`color.FgHiBlack`)
+            -   An empty line follows the project information.
+            -   **"dependencies:" Header:**
+                -   Text: `dependencies:`
+                -   Color: Cyan and Bold (`color.FgCyan`, `color.Bold`)
+            -   **Dependency Lines:**
+                -   Format: `DependencyName LockedHash RelativePath`
+                -   Colors:
+                    -   Dependency Name: White (`color.FgWhite`)
+                    -   Locked Hash: Yellow (`color.FgYellow`) (e.g., `commit:<hash>` or `sha256:<hash>`, or "not locked" in standard color if applicable)
+                    -   Relative Path: Dim Gray (`color.FgHiBlack`)
+            -   If no dependencies, after the "dependencies:" header, "(none)" will be printed in standard color.
+        -   **Extended Information (e.g., with a `--long` or `-l` flag):**
+            -   The full locked raw `source` URL from `almd-lock.toml`.
+            -   Status indication, e.g., "INSTALLED" (if local file at `path` exists and optionally matches hash), "MISSING" (if local file at `path` does not exist), "NOT_LOCKED".
+            -   (Future/Advanced) Potentially indicate if a newer version is available if the `project.toml` source is a "floating" reference (like a branch name) and it resolves to a newer commit than what's in the lockfile. This would require resolving the `project.toml` source during the list operation.
+        -   **No Dependencies:** If `project.toml` contains no dependencies, the "dependencies:" header is still printed, followed by "(none)".
+    -   **Arguments & Flags (`urfave/cli`):**
+        -   `--long`, `-l`: Optional flag (`cli.BoolFlag`) to display more detailed information for each listed dependency.
+        -   `--json`: Optional flag (`cli.BoolFlag`) to output the dependency list in JSON format, suitable for machine parsing.
+        -   `--porcelain`: Optional flag (`cli.BoolFlag`) for a simple, scriptable output format (e.g., `name@version_hash path`).
+
+-   **`self` command:**
+    -   **Goal:** Provides commands related to the Almandine tool itself, such as self-updating.
+    -   **Subcommands:**
+        -   **`update` subcommand:**
+            -   **Goal:** Allows the `almd` tool to update itself to the latest version from its release source (initially GitHub).
+            -   **Full Command:** `almd self update`
+            -   **Implementation:** To be implemented as a `urfave/cli` subcommand. It will utilize a library like `github.com/creativeprojects/go-selfupdate` (which supports various sources including GitHub) or a similar robust self-update library.
+            -   **Functionality:**
+                -   Checks the configured release source (e.g., the official `almandine` GitHub repository) for the latest release.
+                -   Compares the latest available version with the version of the currently running `almd` executable. The current version of `almd` **must** be embedded into the binary at build time (e.g., using Go's `-ldflags "-X main.version=vX.Y.Z"`).
+                -   If a newer version is found, it can prompt the user for confirmation before proceeding or update directly if a force/yes flag is used.
+                -   Downloads the binary asset appropriate for the user's operating system and architecture from the release source.
+                -   Verifies the integrity of the downloaded binary (e.g., via checksums if provided by the release).
+                -   Safely replaces the current `almd` executable with the downloaded version.
+                -   Provides clear feedback to the user regarding the update process (e.g., "Checking for updates...", "Updating to vX.Y.Z...", "Update successful.", "Almandine is already up-to-date.").
+            -   **Arguments & Flags (`urfave/cli` for `almd self update`):**
+                -   `--yes` / `-y` (optional `cli.BoolFlag`): Skips confirmation and proceeds with the update automatically if a new version is found.
+                -   `--check` (optional `cli.BoolFlag`): Only checks for available updates and reports the status without performing the update.
+                -   `--source <url>` (optional `cli.StringFlag`): Potentially allows specifying an alternative update source URL (though typically this would be hardcoded or configured for the official build).
+                -   `--verbose` (optional `cli.BoolFlag`): Enables detailed output during the update check and process.
+
+
+## 3. Almandine Tool Project Structure (Go Implementation)
+
+Standard Go project layout combined with Almandine specifics:
+
+-   `project.toml`       # Default project manifest filename for projects using Almandine
+-   `almd-lock.toml`     # Default lockfile filename for projects using Almandine
+-   `go.mod`               # Go module definition for Almandine tool
+-   `go.sum`               # Go module checksums for Almandine tool
+-   `README.md`            # Project README for Almandine development
+-   `.github/`             # GitHub-specific files (workflows, issue templates, etc.)
+-   `cmd/`                 # Main applications for the project
+    -   `almd/`            # The Almandine CLI application (assuming CLI command is 'almd')
+        -   `main.go`      # Main entry point, CLI argument parsing, command dispatch
+-   `internal/`            # Private application and library code (not for external import)
+    -   `cli/`             # CLI command logic and definitions
+        -   `add/`         # Logic for the 'add' command
+            -   `add.go`
+            -   `add_test.go`
+        -   `init/`     # Logic for the 'init' command
+            -   `init.go`
+            -   `init_test.go`
+        -   `remove/`      # Logic for the 'remove' command
+            -   `remove.go`
+        -   `...`          # Other command packages/modules
+    -   `core/`            # Core application logic (business logic)
+        -   `config/`      # Loading, parsing, and updating `project.toml`
+            -   `config.go`
+            -   `config_test.go`
+        -   `lockfile/`    # Loading, parsing, and updating `almd-lock.toml`
+            -   `lockfile.go`
+            -   `lockfile_test.go`
+        -   `downloader/`  # File downloading logic
+            -   `downloader.go`
+            -   `downloader_test.go`
+        -   `hasher/`      # Content hashing logic (e.g., SHA256)
+            -   `hasher.go`
+            -   `hasher_test.go`
+        -   `project/`     # Go structs representing project/lockfile data models
+            -   `project.go`
+        -   `source/`      # Handling source URL parsing, normalization, identifier creation
+            -   `source.go`
+            -   `source_test.go`
+    -   `util/`            # General utility functions shared across internal packages
+-   `pkg/`                 # Public library code, reusable by other projects (if any - initially empty)
+    -   `...`              # Example: `pkg/somepublicapi/`
+-   `scripts/`             # Scripts for building, installing, analyzing the Almandine tool itself (e.g., `build.sh`, `install.sh`)
+-   `configs/`             # Configuration files for the Almandine tool (e.g., for different environments - placeholder)
+-   `docs/`                # Almandine tool's own documentation (user guides, design documents, PRD, etc.)
+-   `test/`                # Additional tests (e.g., E2E, integration) and test data
+    -   `e2e/`             # End-to-end tests
+    -   `data/`            # Test data, fixtures (optional)
+
+The directory `lib/` (mentioned in the previous structure) is not part of the Almandine tool's own source code structure. It typically refers to the default output directory within a *user's project* where Almandine might download dependencies (e.g., `src/lib/` or a user-configured path).
+
+Unit tests (e.g., `foo_test.go`) should be co-located with the Go source files they test (e.g., in the same package/directory like `internal/core/config/config_test.go`). The top-level `test/` directory is for tests that span multiple packages or require specific data/environments (e.g., end-to-end tests).
+
+## 3.1 Example Lua Project Structure (Using Almandine)
+
+This shows a typical layout for a Lua project managed by the Almandine tool:
+
+-   `project.toml`       # Defines project metadata, scripts, and dependencies for Almandine
+-   `almd-lock.toml`  # Stores locked dependency versions/hashes generated by Almandine
+
+-   `src/`                 # Lua project source code
+    -   `main.lua`         # Example entry point for the Lua project
+    -   `my_module.lua`
+    -   `lib/`                 # Default directory where Almandine downloads dependencies (user-configurable)
+        -   `some_dependency.lua` # Example file downloaded by Almandine
+        -   `another_lib/`        # Example library downloaded by Almandine
+        -   `module.lua`
+-   `scripts/`             # Optional directory for Lua scripts runnable via `almd run <script_name>`
+    -   `build.lua`
+
+## 4. File Descriptions
+
+### `project.toml`
+
+Project manifest in TOML format. Example structure based on user input:
+
+```toml
+# Example project.toml
+package = "sample-project"
+version = "0.1.0"
+license = "MIT"
+description = "A sample Go project using Almandine."
+# language = { name = "go", version = ">=1.21" } # Example if language details are added
+
+# Optional: Define primary source if needed for context
+# [source]
+# url = "https://github.com/nvim-neorocks/luarocks-stub" # Example purpose
+
+# Dependencies section
+[dependencies]
+# Name inferred from URL (e.g., 'lua-cjson')
+# [dependencies."lua-cjson"] # Name can be explicitly set with -n
+#   source = "github:user/repo/lua-cjson.lua@tag-2.1.0" # Canonical identifier
+#   path = "src/lib/lua-cjson.lua" # Relative path in project
+
+# Dependency added with -n flag and custom path via -d
+[dependencies."plenary"] # Specified via -n plenary
+  source = "github:nvim-lua/plenary.nvim/some/file.lua@v0.1.4"
+  path = "src/vendor/plenary.lua" # Specified via -d src/vendor/plenary.lua
+  # Could potentially add other metadata like 'pin = true' if needed later
+
+# Optional: Build or script definitions
+[build]
+type = "builtin" # Example build type
+
+# Example scripts section (similar to npm scripts)
+[scripts]
+game = "love src/"
+debug = "love src/ --console"
+test = "love src/ --console --test"
+
+```
+-   Handles project metadata (name, version, etc.).
+-   Defines dependencies under `[dependencies]`. Each dependency is a key (the logical name) mapping to a **sub-table** containing `source` (canonical identifier) and `path` (relative location).
+-   Defines project scripts under `[scripts]`.
+
+### `almd-lock.toml`
+
+Tracks resolved dependencies for reproducible installs in TOML format. Example structure:
+
+```toml
+# Example almd-lock.toml
+# Lockfile format version (increment if structure changes significantly)
+api_version = "1"
+
+# Package table holds all locked dependencies
+[package]
+
+# Entry for a dependency 'mylib', locked from project.toml entry
+[package.mylib]
+  # The *exact* raw download URL used to fetch this version
+  source = "https://raw.githubusercontent.com/user/repo/v1.0.0/path/to/file.ext"
+  # Relative path within the project (forward slashes)
+  path = "vendor/custom/mylib" # Example, matches project.toml path
+  # Integrity hash: commit hash if available from source URL, otherwise sha256 of content
+  hash = "sha256:deadbeef..." # Example sha256 hash
+  # Example of a commit hash from URL:
+  # hash = "commit:abcdef123..."
+
+# Entry for 'anotherdep', locked from project.toml entry
+[package."anotherdep"]
+  source = "https://raw.githubusercontent.com/another/repo/main/lib.lua"
+  path = "libs/lib.lua" # Example, default path
+  hash = "commit:abcdef123" # Example if pinned to a specific commit hash
+  # Example of a hash error state:
+  # hash = "hash_error:tool_not_found" # Or "hash_error:calculation_failed"
+
+```
+-   Stores the exact resolved `source` (raw download URL), `path`, and `hash` (content or commit or error state) for each dependency under the `[package]` table.
+-   The `api_version` helps manage potential future format changes.
+
+### `go.mod` & `go.sum`
+
+Standard Go module files defining the project module path and managing Go dependencies.
+
+### `main.go`
+
+Main entry point for the `almd` CLI. This file initializes and configures the primary `cli.App` instance from the `urfave/cli` library. It defines global application metadata (like name, usage, version), global flags, registers all command definitions (e.g., from the `commands/` package or defined directly), and then executes the application logic by calling `app.Run(os.Args)`, which parses arguments and routes execution to the appropriate command's `Action` function.
+
+commands/ (Go Project Command Packages)
+
+Contains Go packages, each implementing a specific CLI command (e.g., add, init, remove). The add package would contain the Go logic for the add command.
+cmd/almd/main.go (Go Project Entrypoint)
+
+    Main entry point for the almd CLI executable.
+    Responsible for:
+        Parsing CLI arguments using a Go library (e.g., standard flag, cobra, urfave/cli).
+        Dispatching execution to the appropriate command package in cmd/almd/commands/.
+        Handling standard command aliases (e.g., install/in/ins, remove/rm/uninstall/un, update/up/upgrade, add/i, etc.) within the CLI library configuration.
+        All usage/help output, documentation, and examples must use almd as the CLI tool name (never almandine).
+        Updates here are required when adding/modifying commands or aliases.
+
+Build & Distribution (Go Context)
+
+    The install/ directory (containing Lua bootstrap scripts) is removed.
+    Distribution involves building the Go project (go build ./cmd/almd) to produce a native executable (almd or almd.exe) for each target platform (Linux, macOS, Windows).
+    Standard Go cross-compilation techniques will be used. Users simply download and place the appropriate binary in their PATH.
+
+5. Conclusion
+
+Almandine, implemented in Go, aims to provide a simple, robust, and reproducible workflow for Lua projects needing lightweight dependency management and script automation, without the complexity of full dependency trees. It leverages Go's strengths for building reliable, cross-platform CLI tools while managing Lua project structures and manifests.
+Tech Stack
+
+    Implementation Language: Go (e.g., 1.21 or later)
+    Target Project Language: Lua 5.1–5.4 / LuaJIT 2.1 (though Almandine itself is Go, it can manage files for any language)
+    Platform (Tool): Cross-platform executable (Linux, macOS, Windows) via Go compilation.
+    Key Go Libraries (Potential):
+        Standard Library: net/http, os, os/exec, path/filepath, crypto/sha256, flag or similar for CLI.
+        External Go Modules:
+            A TOML parser/generator library (e.g., `github.com/BurntSushi/toml`).
+            A robust CLI framework (e.g., `github.com/urfave/cli/v2`).
+            An assertion library for testing (e.g., `github.com/stretchr/testify/assert`).
+            A terminal color library (e.g., `github.com/fatih/color`) for enhanced CLI output.
+            Possibly a Git client library (e.g., go-git/go-git) if direct Git operations are needed beyond simple HTTP downloads (not currently planned for initial features).
+
+## 5. Project-Specific Coding Rules (Go Implementation)
+
+These rules supplement the mandatory Global AI Project Guidelines and define standards specific to this Go project.
+### 5.1 Language, Environment & Dependencies
+
+    Target Language: Go (specify version, e.g., Go 1.21+).
+    Environment: Standard Go development environment.
+    Dependencies:
+        Leverage the Go Standard Library extensively.
+        External Go modules should be carefully chosen and documented in go.mod. Justify non-standard library dependencies. Key required external dependency: a library for parsing/generating Lua table syntax accurately.
+        The compiled almd tool must have no runtime dependencies (like needing a specific interpreter installed).
+
+### 5.2 Go Coding Standards
+
+These standards guide Go development within this project.
+
+    Formatting: All Go code must be formatted using gofmt (or goimports). This is non-negotiable and should be enforced by CI.
+    Style: Adhere to the principles outlined in Effective Go and the Go Code Review Comments guide.
+        Naming: Use CamelCase for exported identifiers and camelCase for unexported identifiers. Package names should be short, concise, and lowercase.
+        Simplicity: Prefer clear, simple code over overly complex or clever solutions.
+    Error Handling: Use standard Go error handling practices (if err != nil { return ..., err }). Errors should be handled or propagated explicitly. Use errors.Is, errors.As, and error wrapping (fmt.Errorf("...: %w", err)) where appropriate.
+    Concurrency: Use goroutines and channels only when concurrency genuinely simplifies the problem or improves performance, and do so carefully, considering race conditions and synchronization.
+    Packages: Structure code into logical, well-defined packages with clear APIs. Minimize unnecessary coupling between packages. Utilize internal packages (internal/) for code not meant to be imported by other modules.
+    Documentation:
+        All exported identifiers (variables, constants, functions, types, methods) must have documentation comments (// style comments preceding the declaration).
+        Package comments (// package mypackage ...) should provide an overview of the package's purpose.
+        Comments should explain why something is done, not just what is being done, unless the code itself is unclear. Follow godoc conventions.
+
+### 5.3 Testing & Behavior Specification (Prototype Phase - Go Context)
+
+These rules specify how testing and behavior specification are implemented using Go's standard testing package during the prototype phase.
+
+    Framework: Use Go's built-in `testing` package. Test assertions use `github.com/stretchr/testify/assert`.
+    Specification Location:
+        Unit/Integration tests: Place test files (`*_test.go`) alongside the Go code they are testing (e.g., `internal/core/config/config_test.go` tests `internal/core/config/config.go`). Command-specific unit tests (e.g., for `init`, `add`) are located in their respective packages (e.g., `internal/cli/add/add_test.go`).
+        E2E Tests (Prototype Focus): Place E2E tests in a dedicated location, such as `cmd/almd/main_e2e_test.go` or a top-level `test/e2e/` directory. For the prototype, command-specific tests that execute the CLI (like those in `internal/cli/add/add_test.go` which run an `app.Run` instance) serve as focused E2E-like tests for command behavior.
+    File Naming: Test files must end with `_test.go`. Test functions must start with `Test` (e.g., `TestAddCommand_HappyPath`).
+    Test Type Focus (Prototype):
+        Command Unit Tests: Test individual command actions (e.g., the `Action` func of an `urfave/cli.Command`). These tests mock external dependencies like network calls (`net/http/httptest`) and operate on a temporary file system.
+        E2E Tests: Verify system behavior by executing the compiled `almd` binary (or a test `cli.App` instance) against temporary project structures. Simulate user interactions via CLI arguments.
+    Test Sandboxing & Scaffolding: Tests must run in isolated, temporary directories.
+        Use `t.TempDir()` (available in Go 1.15+) within test functions to create sandboxed directories.
+        Develop Go helper functions (e.g., within test files or a shared test utility package) to:
+            Set up temporary project structures (creating directories, minimal `project.toml`).
+            Run the `almd` command or its action, capturing output and errors. For `add` command tests, this includes setting up mock HTTP servers (`net/http/httptest`).
+            Provide functions for asserting file existence, file content (using `os.ReadFile`), and parsing/asserting the content of the resulting `project.toml` and `almd-lock.toml` files within the sandbox.
+            Cleanup is handled automatically by `t.TempDir()` or explicit `defer os.RemoveAll()`.
+    Scenario Coverage: Each test function or suite (`t.Run`) should cover specific scenarios:
+        Expected Behavior: Successful flows (e.g., `almd add ...` works correctly, `almd init` creates files as expected).
+        Boundary Conditions: Edge cases (e.g., adding the same file twice, invalid URLs, empty inputs for `init`).
+        Undesired Situations: Error handling (e.g., non-existent URLs, file system permission errors, invalid `project.toml` format). Use helper functions to assert expected error messages or exit codes.
+    Test Dependencies:
+        Command unit tests mock external dependencies (network, file system interactions beyond the temp dir).
+        E2E-style tests will naturally depend on the internal Go packages used for parsing/validation (e.g., `internal/core/config`, `internal/core/lockfile`).
+
+
+
+================================================
 File: docs/SECURITY.md
 ================================================
 # Security Policy
@@ -1175,6 +1593,43 @@ The following are generally considered out of scope for our vulnerability disclo
 *Vulnerabilities in third-party dependencies (please report those to the respective projects, though we appreciate a heads-up if it impacts Almandine).
 
 Thank you for helping keep Almandine secure. Your efforts in responsible disclosure are highly valued.
+
+
+
+================================================
+File: docs/TASKS.md
+================================================
+# Task Checklist
+
+## Milestone 1:EXAMPLE, DELETE ME
+
+**Goal:** Create the basic Go project structure and the main CLI entry point using `urfave/cli`.
+
+-   [x] **Task 1.1: Initialize Go Module**
+    -   [x] Run `go mod init <module_path>` (e.g., `go mod init github.com/your-user/almandine`). *User needs to determine the module path.*
+    -   [x] Add `urfave/cli/v2` dependency (`go get github.com/urfave/cli/v2`).
+    -   [x] Manual Verification: `go.mod` and `go.sum` are created/updated.
+
+-   [x] **Task 1.2: Create `main.go`**
+    -   [x] Create the `main.go` file at the project root.
+    -   [x] Add the basic `main` function.
+    -   [x] Manual Verification: File exists.
+
+-   [x] **Task 1.3: Basic `urfave/cli` App Setup**
+    -   [x] Import `urfave/cli/v2`.
+    -   [x] Create a new `cli.App` instance in `main`.
+    -   [x] Set the `Name` (`almd`), `Usage`, and `Version` for the app.
+    -   [x] Implement the `app.Run(os.Args)` call.
+    -   [x] Manual Verification: Run `go run main.go --version` and confirm the version is printed. Run `go run main.go --help` and confirm basic usage is shown.
+
+-   [x] **Task 1.4: Define CLI Binary Name Convention**
+    -   [x] Ensure the target executable name built by Go is `almd`.
+    -   [x] *Note:* A separate wrapper script/alias named `almd` will be used by end-users to call `almd`. This task is about the Go build output name. (Build command might be `go build -o almd .`)
+    -   [x] Manual Verification: Build the project (`go build -o almd .`) and confirm the output file is named `almd`.
+
+-   [x] **Task: Fix cyclomatic complexity in `updateAction`** (2025-05-13)
+    -   Refactor `internal/cli/self/self.go:updateAction()` to reduce cyclomatic complexity below 15.
+
 
 
 
@@ -4969,72 +5424,29 @@ func SelfCmd() *cli.Command {
 // The function handles version comparison, user confirmation (unless --yes is specified),
 // and supports custom GitHub repositories via the --source flag.
 func updateAction(c *cli.Context) error {
-	currentVersionStr := c.App.Version
 	verbose := c.Bool("verbose")
+	currentVersionStr := c.App.Version
 
-	if verbose {
-		fmt.Printf("almd current version: %s\n", currentVersionStr)
-	}
-
-	// Handle version strings both with and without 'v' prefix for compatibility
-	currentSemVer, err := semver.NewVersion(strings.TrimPrefix(currentVersionStr, "v"))
+	currentSemVer, err := parseVersion(currentVersionStr, verbose)
 	if err != nil {
-		if !strings.HasPrefix(currentVersionStr, "v") {
-			currentSemVer, err = semver.NewVersion(currentVersionStr)
-		}
-		if err != nil {
-			return cli.Exit(fmt.Sprintf("Error parsing current version '%s': %v. Ensure version is like vX.Y.Z or X.Y.Z.", currentVersionStr, err), 1)
-		}
-	}
-	if verbose {
-		fmt.Printf("Parsed current semantic version: %s\n", currentSemVer.String())
+		return err // error is already a cli.Exit error
 	}
 
-	sourceFlag := c.String("source")
-	repoSlug := "nightconcept/almandine" // Default repository
-
-	if sourceFlag != "" {
-		parts := strings.Split(sourceFlag, "/")
-		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
-			repoSlug = sourceFlag
-			if verbose {
-				fmt.Printf("Using custom GitHub source: %s\n", repoSlug)
-			}
-		} else {
-			return cli.Exit(fmt.Sprintf("Invalid --source format. Expected 'owner/repo', got: %s.", sourceFlag), 1)
-		}
-	} else {
-		if verbose {
-			fmt.Printf("Using default GitHub source: %s\n", repoSlug)
-		}
-	}
-
-	ghSource, err := selfupdate.NewGitHubSource(selfupdate.GitHubConfig{})
+	repoSlug, err := getRepoSlug(c.String("source"), verbose)
 	if err != nil {
-		return cli.Exit(fmt.Sprintf("Error creating GitHub source: %v", err), 1)
+		return err // error is already a cli.Exit error
 	}
 
-	updater, err := selfupdate.NewUpdater(selfupdate.Config{
-		Source: ghSource,
-	})
+	updater, err := newUpdater(verbose)
 	if err != nil {
-		return cli.Exit(fmt.Sprintf("Failed to initialize updater: %v", err), 1)
+		return err // error is already a cli.Exit error
 	}
 
-	if verbose {
-		fmt.Println("Checking for latest version...")
-	}
-
-	repository := selfupdate.ParseSlug(repoSlug)
-	latestRelease, found, err := updater.DetectLatest(c.Context, repository)
+	latestRelease, found, err := detectLatestVersion(c, updater, repoSlug, verbose)
 	if err != nil {
-		return cli.Exit(fmt.Sprintf("Error detecting latest version: %v", err), 1)
+		return err // error is already a cli.Exit error
 	}
-
 	if !found {
-		if verbose {
-			fmt.Println("No update available (checked with source, no newer version found).")
-		}
 		fmt.Printf("Current version %s is already the latest.\n", currentVersionStr)
 		return nil
 	}
@@ -5060,14 +5472,14 @@ func updateAction(c *cli.Context) error {
 		return nil
 	}
 
-	if !c.Bool("yes") {
-		fmt.Print("Do you want to update? (y/N): ")
-		reader := bufio.NewReader(os.Stdin)
-		input, _ := reader.ReadString('\n')
-		if strings.TrimSpace(strings.ToLower(input)) != "y" {
-			fmt.Println("Update cancelled.")
-			return nil
-		}
+	proceed, err := confirmUpdate(c.Bool("yes"))
+	if err != nil {
+		// This case should ideally not be reached if confirmUpdate handles its errors properly.
+		return cli.Exit(fmt.Sprintf("Error during confirmation: %v", err), 1)
+	}
+	if !proceed {
+		fmt.Println("Update cancelled.")
+		return nil
 	}
 
 	fmt.Printf("Updating to %s...\n", latestRelease.Version())
@@ -5086,6 +5498,114 @@ func updateAction(c *cli.Context) error {
 
 	fmt.Printf("Successfully updated to version %s.\n", latestRelease.Version())
 	return nil
+}
+
+// parseVersion parses the version string and returns a semver.Version.
+// It handles versions with or without a 'v' prefix.
+func parseVersion(versionStr string, verbose bool) (*semver.Version, error) {
+	if verbose {
+		fmt.Printf("almd current version: %s\n", versionStr)
+	}
+
+	v, err := semver.NewVersion(strings.TrimPrefix(versionStr, "v"))
+	if err != nil {
+		// Try parsing without trimming 'v' if the first attempt failed and it didn't have 'v'
+		// This case is mostly defensive, as NewVersion usually handles 'v' prefix.
+		if !strings.HasPrefix(versionStr, "v") {
+			v, err = semver.NewVersion(versionStr)
+		}
+		if err != nil {
+			return nil, cli.Exit(fmt.Sprintf("Error parsing current version '%s': %v. Ensure version is like vX.Y.Z or X.Y.Z.", versionStr, err), 1)
+		}
+	}
+
+	if verbose {
+		fmt.Printf("Parsed current semantic version: %s\n", v.String())
+	}
+	return v, nil
+}
+
+// getRepoSlug determines the GitHub repository slug to use for updates.
+// It uses the default "nightconcept/almandine" unless a valid --source is provided.
+func getRepoSlug(sourceFlag string, verbose bool) (string, error) {
+	defaultRepoSlug := "nightconcept/almandine"
+	repoSlug := defaultRepoSlug
+
+	if sourceFlag != "" {
+		parts := strings.Split(sourceFlag, "/")
+		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
+			repoSlug = sourceFlag
+			if verbose {
+				fmt.Printf("Using custom GitHub source: %s\n", repoSlug)
+			}
+		} else {
+			return "", cli.Exit(fmt.Sprintf("Invalid --source format. Expected 'owner/repo', got: %s.", sourceFlag), 1)
+		}
+	} else {
+		if verbose {
+			fmt.Printf("Using default GitHub source: %s\n", repoSlug)
+		}
+	}
+	return repoSlug, nil
+}
+
+// newUpdater creates and returns a new selfupdate.Updater instance.
+func newUpdater(verbose bool) (*selfupdate.Updater, error) {
+	ghSource, err := selfupdate.NewGitHubSource(selfupdate.GitHubConfig{})
+	if err != nil {
+		return nil, cli.Exit(fmt.Sprintf("Error creating GitHub source: %v", err), 1)
+	}
+
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{
+		Source: ghSource,
+	})
+	if err != nil {
+		return nil, cli.Exit(fmt.Sprintf("Failed to initialize updater: %v", err), 1)
+	}
+	if verbose {
+		fmt.Println("Updater initialized.")
+	}
+	return updater, nil
+}
+
+// detectLatestVersion checks for the latest release using the provided updater and repository slug.
+// It returns the latest release information, a boolean indicating if a release was found, and an error.
+func detectLatestVersion(c *cli.Context, updater *selfupdate.Updater, repoSlug string, verbose bool) (*selfupdate.Release, bool, error) {
+	if verbose {
+		fmt.Println("Checking for latest version...")
+	}
+
+	repository := selfupdate.ParseSlug(repoSlug)
+	latestRelease, found, err := updater.DetectLatest(c.Context, repository)
+	if err != nil {
+		return nil, false, cli.Exit(fmt.Sprintf("Error detecting latest version: %v", err), 1)
+	}
+
+	if !found {
+		if verbose {
+			fmt.Println("No update available (checked with source, no newer version found).")
+		}
+		return nil, false, nil
+	}
+	return latestRelease, true, nil
+}
+
+// confirmUpdate handles the user confirmation step for the update.
+// It returns true if the user confirms or if --yes is specified, false otherwise.
+func confirmUpdate(autoConfirm bool) (bool, error) {
+	if autoConfirm {
+		return true, nil
+	}
+
+	fmt.Print("Do you want to update? (y/N): ")
+	reader := bufio.NewReader(os.Stdin)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		// Handle potential error from ReadString, though it's often EOF or similar.
+		return false, fmt.Errorf("error reading user input: %w", err)
+	}
+
+	return strings.TrimSpace(strings.ToLower(input)) == "y", nil
 }
 
 
@@ -6817,1323 +7337,6 @@ func TestParseSourceURL_NonGitHubURLs(t *testing.T) {
 
 
 
-
-================================================
-File: project/PRD.md
-================================================
-# Almandine Package Manager (Go Version) - PRD
-
-## 1. Introduction
-
-Almandine (`almd` as the CLI command) is a lightweight package manager for Go projects, migrating the core concepts from the original Lua version. It enables simple, direct management of single-file dependencies (initially from GitHub), project scripts, and project metadata. Almandine is designed for projects that want to pin specific versions or commits of files without managing complex dependency trees, leveraging Go's strengths and the `urfave/cli` framework.
-
-## 2. Core Features
-
--   **Single-file Downloads:** Fetch individual files (initially Lua, but adaptable) from remote repositories (e.g., GitHub), pinning by git commit hash or potentially tags/versions later.
--   **No Dependency Tree Management:** Only downloads files explicitly listed in the project; does not resolve or manage full dependency trees.
--   **Project Metadata:** Maintains project name, type, version, license, and package description in `project.toml` (using TOML format).
--   **Script Runner:** Provides a central point for running project scripts defined in `project.toml`.
--   **Lockfile:** Tracks exact versions or commit hashes of all downloaded files for reproducible builds (`almd-lock.toml`, using TOML format).
--   **License & Description:** Exposes license and package description fields in `project.toml`.
--   **Cross-Platform:** Built as a standard Go binary, naturally cross-platform (Linux, macOS, Windows).
-
-### 2.1. Core Commands (Initial Focus using `urfave/cli`)
-
--   **`init` command:**
-    -   **Goal:** Interactively initialize a new Almandine project by creating a `project.toml` manifest file in the current directory.
-    -   **Implementation:** Implemented as a `urfave/cli` command (in `internal/cli/init/init.go`).
-    -   **Functionality:**
-        -   **Interactive Prompts:** Prompts the user for core project metadata:
-            -   `package` name (defaults to `my-go-project` or derived from current dir).
-            -   `version` (defaults to `0.1.0`).
-            -   `license` (defaults to `MIT`).
-            -   `description` (defaults to `A sample Go project using Almandine.`).
-            -   Optionally prompts for `language` details (e.g., name `go`, version `>= 1.21`).
-        -   **Script Definition:** Interactively prompts the user to add scripts ([`scripts`] table).
-            -   Prompts for script `name` and `command`.
-            -   Continues prompting until an empty name is entered.
-            -   **Default `run` script:** If no `run` script is provided by the user, adds a default (e.g., `go run ./cmd/almd` or a user-project specific default like `go run .`).
-        -   **Dependency Placeholders (Simplified):** Interactively prompts the user to add initial dependencies ([`dependencies`] table).
-            -   Prompts for dependency `name` and a simple `source/version` string.
-            -   Continues prompting until an empty name is entered.
-            -   **Note:** `init` creates basic dependency entries. The `add` command is responsible for fleshing these out into the full structure (`source` identifier, `path`).
-        -   **Manifest Creation/Overwrite:** Creates `project.toml` in the current directory with the collected information. If `project.toml` already exists, it **overwrites** the existing file.
-        -   **Output:** Prints confirmation message upon successful creation/overwrite. Reports errors clearly via `urfave/cli` if file writing fails.
-    -   **Arguments & Flags (`urfave/cli`):**
-        -   Typically run without arguments or flags, relying purely on interactive input.
-
--   **`add` command:**
-    -   **Goal:** Adds a single-file dependency from a supported source (initially GitHub URLs) to the project.
-    -   **Implementation:** Implemented as a `urfave/cli` command (defined in `internal/cli/add/add.go`).
-    -   **Functionality:**
-        -   Parses the provided URL using Go's `net/url`.
-        -   **GitHub URL Processing:** Handles various GitHub URL formats (blob, raw, potentially commit/tag specific). Normalizes the input URL to the **raw content download URL**. Extracts the commit hash if present in the URL. Creates a **canonical source identifier** (e.g., `github:user/repo/path/to/file@commit_hash_or_ref`) for storage in `project.toml`. This logic is encapsulated in `internal/source`.
-        -   Downloads the specified file using Go's `net/http` client from the resolved raw content URL (logic in `internal/downloader`).
-        -   **Target Directory/Path Handling:** Determines the final destination path for the downloaded file based on the `-d` and `-n` flags. Ensures the target directory exists, creating it if necessary using `os.MkdirAll`.
-        -   Saves the downloaded file to the determined target path using `os` and `io` packages.
-        -   **Manifest Update (`project.toml`):** Updates the `project.toml` file (using a Go TOML library like `github.com/BurntSushi/toml` and logic in `internal/core/config`). Adds or modifies the dependency entry under the `[dependencies]` table. The key is the derived or specified dependency name (`-n` flag). The value **must be a sub-table** containing:
-            -   `source`: The **canonical source identifier** derived from the input URL.
-            -   `path`: The relative path (using forward slashes) from the project root to the downloaded file.
-        -   **Lockfile Update (`almd-lock.toml`):** Updates the `almd-lock.toml` file (using a TOML library and logic in `internal/core/lockfile`). Adds or updates the entry for the dependency under the `[package]` table. This entry stores:
-            -   `source`: The **exact raw download URL** used to fetch the file.
-            -   `path`: The relative path (using forward slashes) matching the manifest.
-            -   `hash`: A string representing the file's integrity. Format: `commit:<commit_hash>` if a commit was extracted from the URL, otherwise `sha256:<sha256_hash>` calculated from the downloaded content using `crypto/sha256` (logic in `internal/hasher`). Defines how hash calculation errors are represented (e.g., `hash_error:<reason>`).
-        -   **Error Handling & Atomicity:** Implement robust error handling. If the process fails after download but before saving manifest/lockfile, attempts to clean up the downloaded file. Reports errors clearly via `urfave/cli` (e.g., using `cli.Exit`).
-    -   **Arguments & Flags (`urfave/cli`):**
-        -   `<source_url>`: Argument accessed from `*cli.Context` for the source URL of the file (required).
-        -   `-d, --directory string`: Flag definition (`cli.StringFlag`) for specifying the target directory. If the path ends in a separator or points to an existing directory, the file is saved inside that directory using the name derived from the `-n` flag or the URL. Otherwise, the flag value is treated as the full relative path for the saved file. Defaults to saving within the `libs/` directory (or `src/lib/` if specified).
-        -   `-n, --name string`: Flag definition (`cli.StringFlag`) for specifying the logical name of the dependency (used as the key in `project.toml` and `almd-lock.toml`) and the base filename. If omitted, the name is inferred from the URL's filename component.
-        -   `--verbose`: Optional flag (`cli.BoolFlag`) to enable detailed output during execution.
-
--   **`remove` command:**
-    -   **Goal:** Removes a specified dependency from the project manifest (`project.toml`) and lockfile (`almd-lock.toml`), and deletes the corresponding downloaded file.
-    -   **Implementation:** Implemented as a `urfave/cli` command (e.g., `commands/remove.go`).
-    -   **Functionality:**
-        -   **Argument Parsing:** Takes the `<dependency_name>` as a required argument from `*cli.Context`.
-        -   **Manifest Loading:** Loads the `project.toml` file (using `internal/config`).
-        -   **Dependency Check:** Verifies if the specified `<dependency_name>` exists under the `[dependencies]` table in the manifest.
-        -   **Path Retrieval:** Retrieves the relative `path` associated with the dependency from the manifest entry.
-        -   **Manifest Update:** Removes the entry corresponding to `<dependency_name>` from the `[dependencies]` table.
-        -   **Manifest Saving:** Saves the modified manifest back to `project.toml`.
-        -   **File Deletion:** Deletes the file specified by the retrieved `path` using `os.Remove`. Handles potential errors gracefully (e.g., file not found, permissions).
-        -   **Lockfile Update:** Loads the `almd-lock.toml` file (using `internal/lockfile`), removes the corresponding entry under the `[package]` table, and saves the updated lockfile.
-        -   **Output:** Prints confirmation messages for successful removal from manifest, file deletion (or warnings if deletion fails), and lockfile update. Reports errors clearly via `urfave/cli`.
-    -   **Arguments & Flags (`urfave/cli`):**
-        -   `<dependency_name>`: Argument accessed from `*cli.Context` for the logical name of the dependency to remove (required).
--   **`install` command:**
-    -   **Goal:** Installs or updates specified dependencies to the versions dictated by `project.toml`, or refreshes all dependencies if no specific ones are named. It ensures that the local project state (downloaded files and `almd-lock.toml`) aligns with the desired state specified in `project.toml`.
-    -   **Implementation:** To be implemented as a `urfave/cli` command (e.g., in `internal/cli/install/install.go`).
-    -   **Functionality:**
-        -   **Argument Parsing:** Accepts an optional list of `<dependency_name>` arguments from `*cli.Context`. If no names are provided, it targets all dependencies listed in `project.toml`.
-        -   **Manifest & Lockfile Loading:** Loads `project.toml` (using `internal/core/config`) and `almd-lock.toml` (using `internal/core/lockfile`).
-        -   **Dependency Iteration:** For each targeted dependency:
-            1.  **Retrieve Project Configuration:** Fetches the dependency's configuration (its canonical `source` identifier and `path`) from the `[dependencies]` table in `project.toml`. If a specified dependency name is not found in `project.toml`, it will be skipped with a warning.
-            2.  **Resolve Target Version/Source:** The `source` string from `project.toml` (e.g., `github:user/repo/file.lua@main` or `github:user/repo/file.lua@v1.2.3`) defines the desired state. This source identifier is resolved to a concrete, downloadable raw URL and a definitive commit hash or version identifier (e.g., the latest commit hash on the `main` branch, or the commit hash corresponding to tag `v1.2.3`). This resolution logic resides in `internal/source`.
-            3.  **Retrieve Current Lockfile State:** Fetches the current locked state for this dependency from `almd-lock.toml`, if an entry exists. This includes the exact raw `source` URL previously used for download and the integrity `hash` (e.g., `commit:<hash>` or `sha256:<hash>`).
-            4.  **Comparison and Decision Logic:**
-                -   An install/update is required if:
-                    -   The resolved target commit hash (from step 2) differs from the commit hash recorded in `almd-lock.toml` (from step 3).
-                    -   The dependency is present in `project.toml` but missing from `almd-lock.toml`.
-                    -   The local file at the dependency's `path` is missing, even if hashes might otherwise match.
-                    -   A `--force` flag is used by the user.
-                -   If the resolved target commit hash matches the one in `almd-lock.toml` and the local file exists, the dependency is considered up-to-date with its `project.toml` specification, and no action is taken unless forced.
-            5.  **Perform Install/Update (if required):**
-                -   The file is downloaded from the resolved target raw URL (using `internal/downloader`).
-                -   The integrity hash is calculated for the downloaded content (commit hash is preferred if available from the source URL, otherwise SHA256 via `internal/hasher`).
-                -   The downloaded file is saved to its designated `path` (from `project.toml`), ensuring that any necessary parent directories are created.
-                -   The `almd-lock.toml` file is updated: the entry for the dependency will store the exact raw download URL used, the `path`, and the new integrity `hash`.
-                -   **Note on `project.toml`:** The `source` field in `project.toml` typically remains as specified by the user (e.g., it can continue to point to a branch like `main`). The `almd-lock.toml` file is always updated to store the pinned, concrete version details (specific commit hash and exact download URL).
-        -   **Output:** Provides clear feedback, indicating which dependencies were checked, which were installed/updated, and which were already up-to-date. Errors encountered during the process are reported clearly via `urfave/cli`.
-    -   **Arguments & Flags (`urfave/cli`):**
-        -   `[dependency_names...]`: Optional argument(s) accessed from `*cli.Context` specifying the logical names of the dependencies to install/update. If omitted, all dependencies defined in `project.toml` are targeted.
-        -   `--force`, `-f`: Optional flag (`cli.BoolFlag`) to compel re-downloading of files and updating of lockfile entries, even if the resolved version appears to be identical to the currently locked version.
-        -   `--verbose`: Optional flag (`cli.BoolFlag`) to enable more detailed logging output during execution.
-
--   **`list` command (aliased as `ls`):**
-    -   **Goal:** Displays a list of project dependencies, showing their configured sources from `project.toml`, their local paths, and their locked versions or hashes from `almd-lock.toml`.
-    -   **Implementation:** To be implemented as a `urfave/cli` command (e.g., in `internal/cli/list/list.go`).
-    -   **Functionality:**
-        -   **Manifest & Lockfile Loading:** Loads `project.toml` (via `internal/core/config`) and `almd-lock.toml` (via `internal/core/lockfile`).
-        -   **Dependency Traversal:** Iterates through the dependencies defined in the `[dependencies]` table of `project.toml`. For each dependency:
-            -   Retrieves its logical name, the configured `source` identifier, and its relative `path` from `project.toml`.
-            -   Attempts to retrieve its corresponding entry from `almd-lock.toml` to get the locked raw `source` URL and the integrity `hash`.
-        -   **Output Formatting:** Displays information in a format similar to `pnpm list`. It will use the `fatih/color` library for terminal coloring, respecting the `NO_COLOR` environment variable.
-            -   **Project Information Line:**
-                -   Format: `ProjectName@Version /path/to/project/root`
-                -   Colors:
-                    -   Project Name: Magenta (`color.FgMagenta`)
-                    -   `@`: Standard terminal color
-                    -   Version: Magenta (`color.FgMagenta`)
-                    -   Path: Dim Gray (`color.FgHiBlack`)
-            -   An empty line follows the project information.
-            -   **"dependencies:" Header:**
-                -   Text: `dependencies:`
-                -   Color: Cyan and Bold (`color.FgCyan`, `color.Bold`)
-            -   **Dependency Lines:**
-                -   Format: `DependencyName LockedHash RelativePath`
-                -   Colors:
-                    -   Dependency Name: White (`color.FgWhite`)
-                    -   Locked Hash: Yellow (`color.FgYellow`) (e.g., `commit:<hash>` or `sha256:<hash>`, or "not locked" in standard color if applicable)
-                    -   Relative Path: Dim Gray (`color.FgHiBlack`)
-            -   If no dependencies, after the "dependencies:" header, "(none)" will be printed in standard color.
-        -   **Extended Information (e.g., with a `--long` or `-l` flag):**
-            -   The full locked raw `source` URL from `almd-lock.toml`.
-            -   Status indication, e.g., "INSTALLED" (if local file at `path` exists and optionally matches hash), "MISSING" (if local file at `path` does not exist), "NOT_LOCKED".
-            -   (Future/Advanced) Potentially indicate if a newer version is available if the `project.toml` source is a "floating" reference (like a branch name) and it resolves to a newer commit than what's in the lockfile. This would require resolving the `project.toml` source during the list operation.
-        -   **No Dependencies:** If `project.toml` contains no dependencies, the "dependencies:" header is still printed, followed by "(none)".
-    -   **Arguments & Flags (`urfave/cli`):**
-        -   `--long`, `-l`: Optional flag (`cli.BoolFlag`) to display more detailed information for each listed dependency.
-        -   `--json`: Optional flag (`cli.BoolFlag`) to output the dependency list in JSON format, suitable for machine parsing.
-        -   `--porcelain`: Optional flag (`cli.BoolFlag`) for a simple, scriptable output format (e.g., `name@version_hash path`).
-
--   **`self` command:**
-    -   **Goal:** Provides commands related to the Almandine tool itself, such as self-updating.
-    -   **Subcommands:**
-        -   **`update` subcommand:**
-            -   **Goal:** Allows the `almd` tool to update itself to the latest version from its release source (initially GitHub).
-            -   **Full Command:** `almd self update`
-            -   **Implementation:** To be implemented as a `urfave/cli` subcommand. It will utilize a library like `github.com/creativeprojects/go-selfupdate` (which supports various sources including GitHub) or a similar robust self-update library.
-            -   **Functionality:**
-                -   Checks the configured release source (e.g., the official `almandine` GitHub repository) for the latest release.
-                -   Compares the latest available version with the version of the currently running `almd` executable. The current version of `almd` **must** be embedded into the binary at build time (e.g., using Go's `-ldflags "-X main.version=vX.Y.Z"`).
-                -   If a newer version is found, it can prompt the user for confirmation before proceeding or update directly if a force/yes flag is used.
-                -   Downloads the binary asset appropriate for the user's operating system and architecture from the release source.
-                -   Verifies the integrity of the downloaded binary (e.g., via checksums if provided by the release).
-                -   Safely replaces the current `almd` executable with the downloaded version.
-                -   Provides clear feedback to the user regarding the update process (e.g., "Checking for updates...", "Updating to vX.Y.Z...", "Update successful.", "Almandine is already up-to-date.").
-            -   **Arguments & Flags (`urfave/cli` for `almd self update`):**
-                -   `--yes` / `-y` (optional `cli.BoolFlag`): Skips confirmation and proceeds with the update automatically if a new version is found.
-                -   `--check` (optional `cli.BoolFlag`): Only checks for available updates and reports the status without performing the update.
-                -   `--source <url>` (optional `cli.StringFlag`): Potentially allows specifying an alternative update source URL (though typically this would be hardcoded or configured for the official build).
-                -   `--verbose` (optional `cli.BoolFlag`): Enables detailed output during the update check and process.
-
-
-## 3. Almandine Tool Project Structure (Go Implementation)
-
-Standard Go project layout combined with Almandine specifics:
-
--   `project.toml`       # Default project manifest filename for projects using Almandine
--   `almd-lock.toml`     # Default lockfile filename for projects using Almandine
--   `go.mod`               # Go module definition for Almandine tool
--   `go.sum`               # Go module checksums for Almandine tool
--   `README.md`            # Project README for Almandine development
--   `.github/`             # GitHub-specific files (workflows, issue templates, etc.)
--   `cmd/`                 # Main applications for the project
-    -   `almd/`            # The Almandine CLI application (assuming CLI command is 'almd')
-        -   `main.go`      # Main entry point, CLI argument parsing, command dispatch
--   `internal/`            # Private application and library code (not for external import)
-    -   `cli/`             # CLI command logic and definitions
-        -   `add/`         # Logic for the 'add' command
-            -   `add.go`
-            -   `add_test.go`
-        -   `init/`     # Logic for the 'init' command
-            -   `init.go`
-            -   `init_test.go`
-        -   `remove/`      # Logic for the 'remove' command
-            -   `remove.go`
-        -   `...`          # Other command packages/modules
-    -   `core/`            # Core application logic (business logic)
-        -   `config/`      # Loading, parsing, and updating `project.toml`
-            -   `config.go`
-            -   `config_test.go`
-        -   `lockfile/`    # Loading, parsing, and updating `almd-lock.toml`
-            -   `lockfile.go`
-            -   `lockfile_test.go`
-        -   `downloader/`  # File downloading logic
-            -   `downloader.go`
-            -   `downloader_test.go`
-        -   `hasher/`      # Content hashing logic (e.g., SHA256)
-            -   `hasher.go`
-            -   `hasher_test.go`
-        -   `project/`     # Go structs representing project/lockfile data models
-            -   `project.go`
-        -   `source/`      # Handling source URL parsing, normalization, identifier creation
-            -   `source.go`
-            -   `source_test.go`
-    -   `util/`            # General utility functions shared across internal packages
--   `pkg/`                 # Public library code, reusable by other projects (if any - initially empty)
-    -   `...`              # Example: `pkg/somepublicapi/`
--   `scripts/`             # Scripts for building, installing, analyzing the Almandine tool itself (e.g., `build.sh`, `install.sh`)
--   `configs/`             # Configuration files for the Almandine tool (e.g., for different environments - placeholder)
--   `docs/`                # Almandine tool's own documentation (user guides, design documents, PRD, etc.)
--   `test/`                # Additional tests (e.g., E2E, integration) and test data
-    -   `e2e/`             # End-to-end tests
-    -   `data/`            # Test data, fixtures (optional)
-
-The directory `lib/` (mentioned in the previous structure) is not part of the Almandine tool's own source code structure. It typically refers to the default output directory within a *user's project* where Almandine might download dependencies (e.g., `src/lib/` or a user-configured path).
-
-Unit tests (e.g., `foo_test.go`) should be co-located with the Go source files they test (e.g., in the same package/directory like `internal/core/config/config_test.go`). The top-level `test/` directory is for tests that span multiple packages or require specific data/environments (e.g., end-to-end tests).
-
-## 3.1 Example Lua Project Structure (Using Almandine)
-
-This shows a typical layout for a Lua project managed by the Almandine tool:
-
--   `project.toml`       # Defines project metadata, scripts, and dependencies for Almandine
--   `almd-lock.toml`  # Stores locked dependency versions/hashes generated by Almandine
-
--   `src/`                 # Lua project source code
-    -   `main.lua`         # Example entry point for the Lua project
-    -   `my_module.lua`
-    -   `lib/`                 # Default directory where Almandine downloads dependencies (user-configurable)
-        -   `some_dependency.lua` # Example file downloaded by Almandine
-        -   `another_lib/`        # Example library downloaded by Almandine
-        -   `module.lua`
--   `scripts/`             # Optional directory for Lua scripts runnable via `almd run <script_name>`
-    -   `build.lua`
-
-## 4. File Descriptions
-
-### `project.toml`
-
-Project manifest in TOML format. Example structure based on user input:
-
-```toml
-# Example project.toml
-package = "sample-project"
-version = "0.1.0"
-license = "MIT"
-description = "A sample Go project using Almandine."
-# language = { name = "go", version = ">=1.21" } # Example if language details are added
-
-# Optional: Define primary source if needed for context
-# [source]
-# url = "https://github.com/nvim-neorocks/luarocks-stub" # Example purpose
-
-# Dependencies section
-[dependencies]
-# Name inferred from URL (e.g., 'lua-cjson')
-# [dependencies."lua-cjson"] # Name can be explicitly set with -n
-#   source = "github:user/repo/lua-cjson.lua@tag-2.1.0" # Canonical identifier
-#   path = "src/lib/lua-cjson.lua" # Relative path in project
-
-# Dependency added with -n flag and custom path via -d
-[dependencies."plenary"] # Specified via -n plenary
-  source = "github:nvim-lua/plenary.nvim/some/file.lua@v0.1.4"
-  path = "src/vendor/plenary.lua" # Specified via -d src/vendor/plenary.lua
-  # Could potentially add other metadata like 'pin = true' if needed later
-
-# Optional: Build or script definitions
-[build]
-type = "builtin" # Example build type
-
-# Example scripts section (similar to npm scripts)
-[scripts]
-game = "love src/"
-debug = "love src/ --console"
-test = "love src/ --console --test"
-
-```
--   Handles project metadata (name, version, etc.).
--   Defines dependencies under `[dependencies]`. Each dependency is a key (the logical name) mapping to a **sub-table** containing `source` (canonical identifier) and `path` (relative location).
--   Defines project scripts under `[scripts]`.
-
-### `almd-lock.toml`
-
-Tracks resolved dependencies for reproducible installs in TOML format. Example structure:
-
-```toml
-# Example almd-lock.toml
-# Lockfile format version (increment if structure changes significantly)
-api_version = "1"
-
-# Package table holds all locked dependencies
-[package]
-
-# Entry for a dependency 'mylib', locked from project.toml entry
-[package.mylib]
-  # The *exact* raw download URL used to fetch this version
-  source = "https://raw.githubusercontent.com/user/repo/v1.0.0/path/to/file.ext"
-  # Relative path within the project (forward slashes)
-  path = "vendor/custom/mylib" # Example, matches project.toml path
-  # Integrity hash: commit hash if available from source URL, otherwise sha256 of content
-  hash = "sha256:deadbeef..." # Example sha256 hash
-  # Example of a commit hash from URL:
-  # hash = "commit:abcdef123..."
-
-# Entry for 'anotherdep', locked from project.toml entry
-[package."anotherdep"]
-  source = "https://raw.githubusercontent.com/another/repo/main/lib.lua"
-  path = "libs/lib.lua" # Example, default path
-  hash = "commit:abcdef123" # Example if pinned to a specific commit hash
-  # Example of a hash error state:
-  # hash = "hash_error:tool_not_found" # Or "hash_error:calculation_failed"
-
-```
--   Stores the exact resolved `source` (raw download URL), `path`, and `hash` (content or commit or error state) for each dependency under the `[package]` table.
--   The `api_version` helps manage potential future format changes.
-
-### `go.mod` & `go.sum`
-
-Standard Go module files defining the project module path and managing Go dependencies.
-
-### `main.go`
-
-Main entry point for the `almd` CLI. This file initializes and configures the primary `cli.App` instance from the `urfave/cli` library. It defines global application metadata (like name, usage, version), global flags, registers all command definitions (e.g., from the `commands/` package or defined directly), and then executes the application logic by calling `app.Run(os.Args)`, which parses arguments and routes execution to the appropriate command's `Action` function.
-
-commands/ (Go Project Command Packages)
-
-Contains Go packages, each implementing a specific CLI command (e.g., add, init, remove). The add package would contain the Go logic for the add command.
-cmd/almd/main.go (Go Project Entrypoint)
-
-    Main entry point for the almd CLI executable.
-    Responsible for:
-        Parsing CLI arguments using a Go library (e.g., standard flag, cobra, urfave/cli).
-        Dispatching execution to the appropriate command package in cmd/almd/commands/.
-        Handling standard command aliases (e.g., install/in/ins, remove/rm/uninstall/un, update/up/upgrade, add/i, etc.) within the CLI library configuration.
-        All usage/help output, documentation, and examples must use almd as the CLI tool name (never almandine).
-        Updates here are required when adding/modifying commands or aliases.
-
-Build & Distribution (Go Context)
-
-    The install/ directory (containing Lua bootstrap scripts) is removed.
-    Distribution involves building the Go project (go build ./cmd/almd) to produce a native executable (almd or almd.exe) for each target platform (Linux, macOS, Windows).
-    Standard Go cross-compilation techniques will be used. Users simply download and place the appropriate binary in their PATH.
-
-5. Conclusion
-
-Almandine, implemented in Go, aims to provide a simple, robust, and reproducible workflow for Lua projects needing lightweight dependency management and script automation, without the complexity of full dependency trees. It leverages Go's strengths for building reliable, cross-platform CLI tools while managing Lua project structures and manifests.
-Tech Stack
-
-    Implementation Language: Go (e.g., 1.21 or later)
-    Target Project Language: Lua 5.1–5.4 / LuaJIT 2.1 (though Almandine itself is Go, it can manage files for any language)
-    Platform (Tool): Cross-platform executable (Linux, macOS, Windows) via Go compilation.
-    Key Go Libraries (Potential):
-        Standard Library: net/http, os, os/exec, path/filepath, crypto/sha256, flag or similar for CLI.
-        External Go Modules:
-            A TOML parser/generator library (e.g., `github.com/BurntSushi/toml`).
-            A robust CLI framework (e.g., `github.com/urfave/cli/v2`).
-            An assertion library for testing (e.g., `github.com/stretchr/testify/assert`).
-            A terminal color library (e.g., `github.com/fatih/color`) for enhanced CLI output.
-            Possibly a Git client library (e.g., go-git/go-git) if direct Git operations are needed beyond simple HTTP downloads (not currently planned for initial features).
-
-## 5. Project-Specific Coding Rules (Go Implementation)
-
-These rules supplement the mandatory Global AI Project Guidelines and define standards specific to this Go project.
-### 5.1 Language, Environment & Dependencies
-
-    Target Language: Go (specify version, e.g., Go 1.21+).
-    Environment: Standard Go development environment.
-    Dependencies:
-        Leverage the Go Standard Library extensively.
-        External Go modules should be carefully chosen and documented in go.mod. Justify non-standard library dependencies. Key required external dependency: a library for parsing/generating Lua table syntax accurately.
-        The compiled almd tool must have no runtime dependencies (like needing a specific interpreter installed).
-
-### 5.2 Go Coding Standards
-
-These standards guide Go development within this project.
-
-    Formatting: All Go code must be formatted using gofmt (or goimports). This is non-negotiable and should be enforced by CI.
-    Style: Adhere to the principles outlined in Effective Go and the Go Code Review Comments guide.
-        Naming: Use CamelCase for exported identifiers and camelCase for unexported identifiers. Package names should be short, concise, and lowercase.
-        Simplicity: Prefer clear, simple code over overly complex or clever solutions.
-    Error Handling: Use standard Go error handling practices (if err != nil { return ..., err }). Errors should be handled or propagated explicitly. Use errors.Is, errors.As, and error wrapping (fmt.Errorf("...: %w", err)) where appropriate.
-    Concurrency: Use goroutines and channels only when concurrency genuinely simplifies the problem or improves performance, and do so carefully, considering race conditions and synchronization.
-    Packages: Structure code into logical, well-defined packages with clear APIs. Minimize unnecessary coupling between packages. Utilize internal packages (internal/) for code not meant to be imported by other modules.
-    Documentation:
-        All exported identifiers (variables, constants, functions, types, methods) must have documentation comments (// style comments preceding the declaration).
-        Package comments (// package mypackage ...) should provide an overview of the package's purpose.
-        Comments should explain why something is done, not just what is being done, unless the code itself is unclear. Follow godoc conventions.
-
-### 5.3 Testing & Behavior Specification (Prototype Phase - Go Context)
-
-These rules specify how testing and behavior specification are implemented using Go's standard testing package during the prototype phase.
-
-    Framework: Use Go's built-in `testing` package. Test assertions use `github.com/stretchr/testify/assert`.
-    Specification Location:
-        Unit/Integration tests: Place test files (`*_test.go`) alongside the Go code they are testing (e.g., `internal/core/config/config_test.go` tests `internal/core/config/config.go`). Command-specific unit tests (e.g., for `init`, `add`) are located in their respective packages (e.g., `internal/cli/add/add_test.go`).
-        E2E Tests (Prototype Focus): Place E2E tests in a dedicated location, such as `cmd/almd/main_e2e_test.go` or a top-level `test/e2e/` directory. For the prototype, command-specific tests that execute the CLI (like those in `internal/cli/add/add_test.go` which run an `app.Run` instance) serve as focused E2E-like tests for command behavior.
-    File Naming: Test files must end with `_test.go`. Test functions must start with `Test` (e.g., `TestAddCommand_HappyPath`).
-    Test Type Focus (Prototype):
-        Command Unit Tests: Test individual command actions (e.g., the `Action` func of an `urfave/cli.Command`). These tests mock external dependencies like network calls (`net/http/httptest`) and operate on a temporary file system.
-        E2E Tests: Verify system behavior by executing the compiled `almd` binary (or a test `cli.App` instance) against temporary project structures. Simulate user interactions via CLI arguments.
-    Test Sandboxing & Scaffolding: Tests must run in isolated, temporary directories.
-        Use `t.TempDir()` (available in Go 1.15+) within test functions to create sandboxed directories.
-        Develop Go helper functions (e.g., within test files or a shared test utility package) to:
-            Set up temporary project structures (creating directories, minimal `project.toml`).
-            Run the `almd` command or its action, capturing output and errors. For `add` command tests, this includes setting up mock HTTP servers (`net/http/httptest`).
-            Provide functions for asserting file existence, file content (using `os.ReadFile`), and parsing/asserting the content of the resulting `project.toml` and `almd-lock.toml` files within the sandbox.
-            Cleanup is handled automatically by `t.TempDir()` or explicit `defer os.RemoveAll()`.
-    Scenario Coverage: Each test function or suite (`t.Run`) should cover specific scenarios:
-        Expected Behavior: Successful flows (e.g., `almd add ...` works correctly, `almd init` creates files as expected).
-        Boundary Conditions: Edge cases (e.g., adding the same file twice, invalid URLs, empty inputs for `init`).
-        Undesired Situations: Error handling (e.g., non-existent URLs, file system permission errors, invalid `project.toml` format). Use helper functions to assert expected error messages or exit codes.
-    Test Dependencies:
-        Command unit tests mock external dependencies (network, file system interactions beyond the temp dir).
-        E2E-style tests will naturally depend on the internal Go packages used for parsing/validation (e.g., `internal/core/config`, `internal/core/lockfile`).
-
-
-================================================
-File: project/TASKS.md
-================================================
-# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
-
-**Purpose:** Tracks tasks and milestones for implementing the core `init` and `add` commands for the Almandine Go CLI (`almd`), based on the specifications in `project/PRD.md`.
-
-**Multiplatform Policy:** All implementations MUST be compatible with Linux, macOS, and Windows.
-
----
-
-## Milestone 0: Initial Setup & `main.go` Entrypoint
-
-**Goal:** Create the basic Go project structure and the main CLI entry point using `urfave/cli`.
-
--   [x] **Task 0.1: Initialize Go Module**
-    -   [x] Run `go mod init <module_path>` (e.g., `go mod init github.com/your-user/almandine`). *User needs to determine the module path.*
-    -   [x] Add `urfave/cli/v2` dependency (`go get github.com/urfave/cli/v2`).
-    -   [x] Manual Verification: `go.mod` and `go.sum` are created/updated.
-
--   [x] **Task 0.2: Create `main.go`**
-    -   [x] Create the `main.go` file at the project root.
-    -   [x] Add the basic `main` function.
-    -   [x] Manual Verification: File exists.
-
--   [x] **Task 0.3: Basic `urfave/cli` App Setup**
-    -   [x] Import `urfave/cli/v2`.
-    -   [x] Create a new `cli.App` instance in `main`.
-    -   [x] Set the `Name` (`almd`), `Usage`, and `Version` for the app.
-    -   [x] Implement the `app.Run(os.Args)` call.
-    -   [x] Manual Verification: Run `go run main.go --version` and confirm the version is printed. Run `go run main.go --help` and confirm basic usage is shown.
-
--   [x] **Task 0.4: Define CLI Binary Name Convention**
-    -   [x] Ensure the target executable name built by Go is `almd`.
-    -   [x] *Note:* A separate wrapper script/alias named `almd` will be used by end-users to call `almd`. This task is about the Go build output name. (Build command might be `go build -o almd .`)
-    -   [x] Manual Verification: Build the project (`go build -o almd .`) and confirm the output file is named `almd`.
-
----
-
-## CLI Tool Name
-
--   The CLI executable is called `almd`.
--   All documentation, usage, and examples should refer to the CLI as `almd`.
-
----
-
-## Milestone 1: `init` Command Implementation
-
-**Goal:** Implement the `almd init` command to interactively create a `project.toml` manifest file.
-
--   [x] **Task 1.1: `urfave/cli` Command Setup**
-    -   [x] Define the `init` command structure (`cli.Command`) within `commands/init.go`.
-    -   [x] Add the command to the `urfave/cli` App in `main.go`.
-    -   [x] Ensure basic command registration works (`almd init --help`).
-    -   [x] Manual Verification: Run `almd init --help` and confirm the command is listed.
-
--   [x] **Task 1.2: Implement Interactive Prompts for Metadata**
-    -   [x] Add logic within the `init` command's `Action` to prompt the user for:
-        -   `package` name (with default).
-        -   `version` (with default `0.1.0`).
-        -   `license` (with default `MIT`).
-        -   `description` (with default).
-        -   Optional: `language` details (consider defaulting initially).
-    -   [x] Manual Verification: Run `almd init` interactively and confirm prompts appear and capture input correctly.
-
--   [x] **Task 1.3: Implement Interactive Prompts for Scripts**
-    -   [x] Add logic to loop, prompting for script `name` and `command`.
-    -   [x] Store collected scripts (e.g., in a `map[string]string`).
-    -   [x] Exit the loop when an empty script name is entered.
-    -   [x] Implement logic to add a default `run` script (`lua src/main.lua`) if the user doesn't define one.
-    -   [x] Manual Verification: Run `almd init` interactively, add a few scripts, skip adding `run`, and verify the default is included conceptually (actual file writing is next).
-
--   [x] **Task 1.4: Implement Interactive Prompts for Dependencies (Placeholders)**
-    -   [x] Add logic to loop, prompting for dependency `name` and a simple `source/version` string (as per PRD).
-    -   [x] Store collected dependency placeholders (e.g., in a `map[string]string` or `map[string]interface{}`).
-    -   [x] Exit the loop when an empty dependency name is entered.
-    -   [x] Manual Verification: Run `almd init` interactively, add a few placeholder dependencies.
-
--   [x] **Task 1.5: Implement `project.toml` Structure and Writing**
-    -   [x] Define Go structs in `internal/project/` to represent the `project.toml` structure (package info, scripts, dependencies).
-    -   [x] Create functions in `internal/config/` to marshal the collected data into the Go struct and write it to `project.toml` using a TOML library (`github.com/BurntSushi/toml`).
-    -   [x] Ensure the function correctly handles overwriting an existing `project.toml`.
-    -   [x] Integrate this writing logic into the `init` command's `Action`.
-    -   [x] Add clear output messages (success, errors).
-    -   [x] Manual Verification: Run `almd init`, provide input, and verify `project.toml` is created correctly with the specified data and defaults. Run again and verify it overwrites. Check error handling for write failures (e.g., permissions).
-
-## Milestone 2: `add` Command Implementation
-
-**Goal:** Implement the `almd add <source_url>` command to download a single-file dependency, update `project.toml`, and update `almd-lock.toml`.
-
--   [x] **Task 2.1: `urfave/cli` Command Setup & Argument/Flag Parsing**
-    -   [x] Define the `add` command structure (`cli.Command`) in `commands/add.go`.
-    -   [x] Define the required `<source_url>` argument.
-    -   [x] Define the flags: `-d, --directory string`, `-n, --name string`, `--verbose bool`.
-    -   [x] Add the command to the `urfave/cli` App in `main.go`.
-    -   [x] Implement basic parsing logic within the `Action` to retrieve the argument and flag values.
-    -   [x] Manual Verification: Run `almd add --help` and confirm the command, argument, and flags are listed correctly. Run `almd add some-url -n test -d testdir --verbose` and verify the values are accessible within the (currently empty) action.
-
--   [x] **Task 2.2: Implement Source URL Handling (`internal/source`)**
-    -   [x] Create package `internal/source`.
-    -   [x] Implement functions to parse the input `<source_url>` (`net/url`).
-    -   [x] Implement logic specifically for GitHub URLs:
-        -   Normalize various formats (blob, raw) to the raw content download URL.
-        -   Extract commit hash/ref if present.
-        -   Create the canonical source identifier string (e.g., `github:user/repo/path@hash`).
-    -   [x] Define return structures or values for the raw URL, canonical identifier, and extracted commit hash.
-    -   [x] Manual Verification: Test the parsing functions with various valid and invalid GitHub URL formats. (Code review of parsing logic done, specific unit tests are outside this immediate task but recommended next)
-
--   [x] **Task 2.3: Implement File Downloading (`internal/downloader`)**
-    -   [x] Create package `internal/downloader`.
-    -   [x] Implement a function that takes a URL (the raw download URL from Task 2.2) and fetches the content using `net/http`.
-    -   [x] Handle potential HTTP errors (status codes, network issues).
-    -   [x] Return the downloaded content (e.g., as `[]byte`).
-    -   [x] Manual Verification: Test the download function with a known raw GitHub file URL. (Code implemented; manual test by user pending integration)
-
--   [x] **Task 2.4: Implement Target Path Logic & File Saving**
-    -   [x] Add logic within the `add` command's `Action` to determine the final destination path based on the `-d` flag, `-n` flag (or inferred name), and the project root.
-    -   [x] Use `os.MkdirAll` to create the target directory if it doesn't exist.
-    -   [x] Use `os.WriteFile` to save the downloaded content (`[]byte` from Task 2.3) to the determined path.
-    -   [x] Handle file writing errors.
-    -   [x] Manual Verification: Run `almd add <url>` with different `-d` and `-n` combinations and verify the file is saved to the correct location with the correct name. Test directory creation.
-
--   [x] **Task 2.5: Implement Hashing (`internal/hasher`)**
-    -   [x] Create package `internal/hasher`.
-    -   [x] Implement a function to calculate the SHA256 hash of file content (`[]byte`) using `crypto/sha256`.
-    -   [x] Format the output hash string as `sha256:<hex_hash>`.
-    -   [x] Manual Verification: Test the hashing function with known content and verify the output hash.
-
--   [x] **Task 2.6: Define Data Structures (`internal/project`)**
-    -   [x] Extend Go structs in `internal/project/` to represent the `dependencies` table structure in `project.toml` (sub-table with `source`, `path`).
-    -   [x] Define Go structs for the `almd-lock.toml` structure (`api_version`, `[package]` table with entries containing `source`, `path`, `hash`).
-    -   [x] Manual Verification: Code review confirms structs accurately model the TOML structures defined in `PRD.md`.
-
--   [x] **Task 2.7: Implement Manifest Update (`internal/config`)**
-    -   [x] Add functions in `internal/config/` to:
-        -   [x] Load an existing `project.toml`.
-        -   [x] Add or update a dependency entry in the `[dependencies]` map using the dependency name (from `-n` or inferred), canonical source identifier (Task 2.2), and relative file path (Task 2.4).
-        -   [x] Save the updated manifest back to `project.toml`.
-    -   [x] Integrate this logic into the `add` command's `Action`.
-    -   [x] Manual Verification: Run `almd add <url>`, then inspect `project.toml` to verify the dependency entry is added/updated correctly.
-
--   [x] **Task 2.8: Implement Lockfile Update (`internal/lockfile`)**
-    -   [x] Create package `internal/lockfile`.
-    -   [x] Add functions to:
-        -   [x] Load `almd-lock.toml` (handling file not found initially).
-        -   [x] Calculate the integrity hash string: `commit:<commit_hash>` (if available from Task 2.2) or `sha256:<hash>` (from Task 2.5). Handle potential hashing errors (`hash_error:<reason>`).
-        -   [x] Add or update an entry in the `[package]` map using the dependency name, the *exact raw download URL* (Task 2.2), the relative file path (Task 2.4), and the calculated hash string.
-        -   [x] Set/ensure `api_version = "1"`.
-        -   [x] Save the updated lockfile back to `almd-lock.toml`.
-    -   [x] Integrate this logic into the `add` command's `Action`.
-    -   [x] Manual Verification: Run `almd add <url>`, then inspect `almd-lock.toml` to verify the entry is added/updated with the correct source URL, path, and hash format.
-
--   [x] **Task 2.9: Error Handling and Cleanup**
-    -   [x] Review the `add` command's `Action` logic.
-    -   [x] Implement error handling using `urfave/cli`'s error reporting (e.g., `cli.Exit`).
-    -   [x] If an error occurs *after* downloading the file but *before* successfully updating both manifest and lockfile, attempt to delete the downloaded file to maintain consistency.
-    -   [x] Ensure clear error messages are provided to the user.
-    -   [x] Manual Verification: Test error scenarios: invalid URL, download failure, write permission errors for manifest/lockfile, simulate failures mid-process to check cleanup.
-
-## Milestone 3: Initial Testing Setup
-
-**Goal:** Establish the basic structure for tests for the `init` and `add` commands.
-
--   [x] **Task 3.1: Define Testing Strategy**
-    -   [x] Framework: Standard Go `testing` package with `testify` for assertions.
-    -   [x] `init` command: Unit tests directly invoking the command's `Action`, simulating user input (as in `commands/init_test.go`).
-    -   [x] `add` command: Unit tests directly invoking the command's `Action` (via `app.Run` within the test).
-        -   [x] Network calls for `add` will be mocked using `net/http/httptest`.
-        -   [x] File system operations will occur in temporary directories created by tests.
-    -   [x] Setup/Teardown: Tests will create temporary directories and necessary initial files (e.g., `project.toml`), and these will be cleaned up automatically by `t.TempDir()` or explicit `defer os.RemoveAll`.
-    -   [x] Manual Verification: Review the chosen strategy for feasibility.
-
--   [x] **Task 3.2: Create Test File Structure**
-    -   [x] Test file for `init` command: `commands/init_test.go` (exists).
-    -   [x] Create test file for `add` command: `commands/add_test.go`.
-    -   [x] Implement shared test helpers if applicable (e.g., for creating temp env, running command actions).
-    -   [x] Manual Verification: Run `go test ./...` and confirm test files are picked up.
-
--   [ ] **Task 3.3: Implement `init` Command Test Cases (Existing)**
-    -   [x] Basic `init` test case (as in `commands/init_test.go`).
-    -   [x] `init` test case with defaults and empty inputs (as in `commands/init_test.go`).
-    -   [x] **Sub-Task 3.3.1: Fix `TestInitCommand` failure "project.toml\project.toml: The system cannot find the path specified." (2025-05-08)**
-        -   [x] Changed `config.WriteProjectToml("project.toml", ...)` to `config.WriteProjectToml(".", ...)` in `internal/cli/init/init.go` to correctly specify the current directory for `project.toml` creation.
-
--   [ ] **Task 3.4: Implement `add` Command Unit Test Cases**
-    -   [x] **Sub-Task 3.4.1: Setup for `add` tests in `commands/add_test.go`**
-        -   [x] Define `TestMain` if any global setup/teardown for `add` tests is needed.
-        -   [x] Create helper: `setupAddTestEnvironment(t *testing.T, initialProjectTomlContent string) (tempDir string)` that creates a temp dir and a `project.toml`.
-        -   [x] Create helper: `runAddCommand(t *testing.T, tempDir string, mockServerURL string, cliArgs ...string) error` to set up and run the `add` command's action using an `cli.App` instance.
-        -   [x] Create helper: `startMockHTTPServer(t *testing.T, content string, expectedPath string, statusCode int) *httptest.Server`.
-    -   [x] **Sub-Task 3.4.2: Test `almd add` - Successful Download and Update (Explicit Name, Custom Directory)**
-        -   [x] Setup: Temp dir, basic `project.toml`, mock HTTP server serving test content.
-        -   [x] Execute: `almd add <mock_url_to_file> -n mylib -d vendor/custom`.
-        -   [x] Verify:
-            -   `vendor/custom/mylib` created with correct content.
-            -   `project.toml` updated with `[dependencies.mylib]` pointing to `source` and `path="vendor/custom/mylib"`.
-            -   `almd-lock.toml` created/updated with `[package.mylib]` including `source`, `path`, and `hash="sha256:..."`.
-    -   [x] **Sub-Task 3.4.3: Test `almd add` - Successful Download (Inferred Name, Default Directory)**
-        -   [x] Execute: `almd add <mock_url_to_file.lua>`.
-        -   [x] Verify:
-            -   `libs/file.lua` (or project root, per PRD) created.
-            -   Manifest and lockfile updated with inferred name `file.sh`.
-    -   [x] **Sub-Task 3.4.4: Test `almd add` - GitHub URL with Commit Hash**
-        -   [x] URL can include a commit hash segment (e.g., `file.lua@commitsha`) or a branch/tag name (e.g., `file.lua@main`).
-        -   [x] Verify `almd-lock.toml` `hash` field reflects `commit:<actual_commit_sha>`. If original URL was a branch/tag, it's resolved to the latest commit SHA for that file on that branch/tag. If original URL was a commit SHA, that SHA is used.
-        -   [x] If GitHub API call fails to resolve a branch/tag, or if not a GitHub URL, verify fallback to `sha256:<content_hash>`.
-    -   [x] **Sub-Task 3.4.5: Test `almd add` - Error: Download Failure (HTTP Error)**
-        -   [x] Mock server returns non-200 status.
-        -   [x] Verify command returns an error.
-        -   [x] Verify no dependency file is created.
-        -   [x] Verify `project.toml` and `almd-lock.toml` are not modified (or created if they didn't exist).
-    -   [x] **Sub-Task 3.4.6: Test `almd add` - Error: `project.toml` Not Found**
-        -   [x] Run `add` in a temp dir without `project.toml`.
-        -   [x] Verify command returns an appropriate error.
-    -   [x] **Sub-Task 3.4.7: Test `almd add` - Cleanup on Failure (e.g., Lockfile Write Error)**
-        -   [x] Difficult to precisely mock file system write errors without more DI.
-        -   [x] Focus on: If download happens, but a subsequent step like TOML marshaling or lockfile writing fails, does the downloaded file get removed? (This might require a test where the mock HTTP server succeeds, but we introduce an error in a subsequent, controllable step if possible, or inspect code paths for this cleanup logic). Initially, can be a lower priority if hard to test cleanly.
-    -   [x] **Sub-Task 3.4.8: Fix `TestAddCommand_ProjectTomlNotFound` (2025-05-07)**
-        -   [x] Modified error message in `internal/cli/add/add.go` to include "no such file or directory" when `project.toml` is not found.
-        -   [x] Refactored `Action` in `internal/cli/add/add.go` to use a named return error, ensuring the deferred cleanup logic correctly removes downloaded files when `project.toml` is missing and an error is returned.
-        -   [x] Corrected variable types for `proj` (to `*project.Project`) and `lf` (to `*lockfile.Lockfile`) in `internal/cli/add/add.go` to resolve compiler errors.
-
-
-## Milestone 4: `remove` Command Implementation
-
-**Goal:** Implement the `almd remove <dependency_name>` command to remove a dependency from the project.
-
--   [x] **Task 4.1: `urfave/cli` Command Setup**
-    -   [x] Define the `remove` command structure (`cli.Command`) in `commands/remove.go` (or `internal/cli/remove/remove.go` as per PRD folder structure).
-    -   [x] Add the command to the `urfave/cli` App in `main.go`.
-    -   [x] Define the required `<dependency_name>` argument.
-    -   [x] Manual Verification: Run `almd remove --help` and confirm the command and argument are listed correctly. Run `almd remove some-dep` and verify the argument value is accessible within the (currently empty) action.
-
--   [x] **Task 4.2: Implement Manifest Loading and Dependency Path Retrieval**
-    -   [x] Add logic within the `remove` command's `Action` to load `project.toml` (using `internal/config`).
-    -   [x] Verify if the specified `<dependency_name>` exists in the `[dependencies]` table.
-    -   [x] If it exists, retrieve the relative `path` of the dependency.
-    -   [x] Handle errors if `project.toml` is not found or the dependency does not exist.
-    -   [x] Manual Verification: Test with an existing `project.toml`. Try removing an existing and a non-existing dependency. Check error messages.
-
--   [x] **Task 4.3: Implement Manifest Update and File Deletion**
-    -   [x] Remove the entry for `<dependency_name>` from the `[dependencies]` table in the loaded manifest data.
-    -   [x] Save the updated manifest back to `project.toml`.
-    -   [x] Delete the file specified by the retrieved `path` using `os.Remove`.
-    -   [x] Handle potential errors during file saving and deletion (e.g., permissions, file not found for deletion).
-    -   [x] Manual Verification: Add a dependency using `almd add`. Then use `almd remove <dep_name>`. Verify `project.toml` is updated and the file is deleted. Test error conditions like read-only `project.toml` or non-existent dependency file.
-
--   [x] **Task 4.4: Implement Lockfile Update**
-    -   [x] Load `almd-lock.toml` (using `internal/lockfile`).
-    -   [x] Remove the entry for `<dependency_name>` from the `[package]` table in the loaded lockfile data.
-    -   [x] Save the updated lockfile back to `almd-lock.toml`.
-    -   [x] Handle errors if `almd-lock.toml` is not found or during saving. Handle cases where the dependency might not be in the lockfile even if it was in the manifest.
-    -   [x] Manual Verification: After successfully running `almd add`, run `almd remove <dep_name>`. Verify `almd-lock.toml` is updated. Test with missing or read-only `almd-lock.toml`.
-
--   [x] **Task 4.5: Error Handling and Output**
-    -   [x] Ensure robust error handling for all operations using `urfave/cli`'s error reporting (e.g., `cli.Exit`).
-    -   [x] Provide clear confirmation messages for successful removal (manifest, file, lockfile).
-    -   [x] Provide clear error messages for different failure scenarios.
-    -   [x] Manual Verification: Test various error paths (missing files, non-existent dependency, permission issues) and check for clear, user-friendly output.
-
--   [x] **Task 4.6: Implement Empty Directory Cleanup**
-    -   [x] After successful file deletion in `remove` (Task 4.3), check if the parent directory of the deleted file is empty.
-    -   [x] If the directory is empty, delete it.
-    -   [x] Repeat this process, moving upwards to parent directories, deleting them if they become empty.
-    -   [x] Stop if a directory is not empty, an error occurs, or a predefined boundary (e.g., project root, `libs/`, `vendor/`) is reached.
-    -   [x] Ensure directory emptiness check is robust to prevent accidental deletion of non-empty directories.
-    -   [x] Manual Verification: Test scenarios where single and multiple empty parent directories are cleaned up. Test scenarios where cleanup stops appropriately. (Note: Manual verification by user is pending actual use, code implements the logic).
-
-## Milestone 5: `remove` Command Testing
-
-**Goal:** Implement unit tests for the `remove` command.
-
--   [x] **Task 5.1: Create Test File Structure for `remove`**
-    -   [x] Create test file: `internal/cli/remove/remove_test.go`.
-    -   [x] Implement shared test helpers if applicable (e.g., for creating temp env with `project.toml`, `almd-lock.toml`, and dummy dependency files).
-
--   [ ] **Task 5.2: Implement `remove` Command Unit Test Cases**
-    -   [x] **Sub-Task 5.2.1: Setup for `remove` tests**
-        -   [x] Define `TestMain` if any global setup/teardown for `remove` tests is needed. (Skipped for now, can be added if specific global setup is identified)
-        -   [x] Create helper: `setupRemoveTestEnvironment(t *testing.T, initialProjectTomlContent string, initialLockfileContent string, depFiles map[string]string) (tempDir string)` that creates a temp dir, `project.toml`, `almd-lock.toml`, and specified dependency files.
-        -   [x] Create helper: `runRemoveCommand(t *testing.T, tempDir string, cliArgs ...string) error` to set up and run the `remove` command's action.
-    -   [x] **Sub-Task 5.2.2: Test `almd remove` - Successful Removal**
-        -   [x] Setup: Temp dir with `project.toml`, `almd-lock.toml`, and a dummy dependency file, all correctly linked.
-        -   [x] Execute: `almd remove <dependency_name>`.
-        -   [x] Verify:
-            -   Dependency entry removed from `project.toml`.
-            -   Dependency entry removed from `almd-lock.toml`.
-            -   Dependency file deleted from the filesystem.
-            -   Command returns no error.
-    -   [x] **Sub-Task 5.2.3: Test `almd remove` - Error: Dependency Not Found in Manifest**
-        -   [x] Setup: Temp dir with `project.toml` that does not contain the target dependency.
-        -   [x] Execute: `almd remove <non_existent_dependency_name>`.
-        -   [x] Verify:
-            -   Command returns an appropriate error.
-            -   `project.toml` and `almd-lock.toml` remain unchanged.
-            -   No file deletion attempted for the non-existent dependency.
-           -   [x] **Sub-Task 5.2.4: Test `almd remove` - Error: Dependency File Not Found for Deletion**
-            -   [x] Setup: Temp dir with `project.toml` and `almd-lock.toml` listing a dependency, but the actual dependency file is missing.
-            -   [x] Execute: `almd remove <dependency_name>`.
-        -   [x] Verify:
-        	-   Dependency entry removed from `project.toml`.
-        	-   Dependency entry removed from `almd-lock.toml`.
-        	-   Command may return a warning or error about file deletion failure, but manifest/lockfile changes should persist.
-        	-   PRD: "Handles potential errors gracefully (e.g., file not found, permissions)."
-       -   [x] **Sub-Task 5.2.5: Test `almd remove` - Error: `project.toml` Not Found (2025-05-08 - Refined fix for CWD handling)**
-        -   [x] Setup: Run `remove` in a temp dir without `project.toml`.
-        -   [x] Execute: `almd remove <dependency_name>`.
-        -   [x] Verify: Command returns an appropriate error.
-    -   [x] **Sub-Task 5.2.6: Test `almd remove` - Dependency in Manifest but not Lockfile**
-        -   [x] Setup: Temp dir with `project.toml` listing a dependency, `almd-lock.toml` exists but doesn't list it, and the dependency file exists.
-        -   [x] Execute: `almd remove <dependency_name>`.
-        -   [x] Verify:
-            -   Dependency entry removed from `project.toml`.
-            -   `almd-lock.toml` is processed (attempt to remove, no error if not found).
-            -   Dependency file deleted.
-            -   Command completes successfully or with a notice about the lockfile state.
-    -   [x] **Sub-Task 5.2.7: Test `almd remove` - Empty `project.toml` or `almd-lock.toml` (2025-05-08 - Empty project.toml case fixed)**
-        -   [x] Setup: Temp dir with empty `project.toml` and/or `almd-lock.toml`.
-        -   [x] Execute: `almd remove <dependency_name>`.
-        -   [x] Verify: Command returns an error indicating dependency not found (for empty `project.toml`) or handles empty lockfile gracefully, and files remain empty or unchanged.
-
-## Milestone 6: `install` Command Implementation
-
-**Goal:** Implement the `almd install` command to refresh dependencies based on `project.toml` and update `almd-lock.toml`.
-
--   [x] **Task 6.1: `urfave/cli` Command Setup for `install`**
-    -   [x] Define the `install` command structure (`cli.Command`) in `internal/cli/install/install.go`.
-    -   [x] Add the command to the `urfave/cli` App in `main.go`.
-    -   [x] Define optional `[dependency_names...]` argument.
-    -   [x] Define flags: `--force, -f` (bool), `--verbose` (bool).
-    -   [x] Manual Verification: Run `almd install --help` and confirm the command, argument, and flags are listed correctly.
-
--   [x] **Task 6.2: Argument Parsing and Initial Loading**
-    -   [x] In the `install` command's `Action`, parse optional dependency names. If none, target all.
-    -   [x] Load `project.toml` (using `internal/core/config`). Handle errors if not found.
-    -   [x] Load `almd-lock.toml` (using `internal/core/lockfile`). Handle if not found (treat as all dependencies needing install/addition to lockfile).
-    -   [x] Manual Verification: Test with and without dependency names. Check behavior with missing manifest/lockfile.
-
--   [x] **Task 6.3: Dependency Iteration and Configuration Retrieval**
-    -   [x] Iterate through targeted dependencies (all from `project.toml` or specified names).
-    -   [x] For each dependency:
-        -   [x] Retrieve its configuration (canonical `source` identifier, `path`) from `project.toml`.
-        -   [x] If a specified dependency name is not found in `project.toml`, skip with a warning.
-    -   [x] Manual Verification: Code review logic for iteration and config fetching. Test with a mix of valid and invalid specified dependency names.
-
--   [x] **Task 6.4: Target Version Resolution and Lockfile State Retrieval**
-    -   [x] For each dependency:
-        -   [x] Resolve its `source` from `project.toml` to a concrete downloadable raw URL and a definitive commit hash/version identifier (using `internal/source`). This involves fetching latest commit for branches/tags if necessary.
-        -   [x] Retrieve its current locked state (raw `source` URL, `hash`) from `almd-lock.toml`, if an entry exists.
-        -   [x] **Sub-Task 6.4.1: Support `github:owner/repo/path/to/file@ref` shorthand in `internal/source` (2025-05-08)**
-            -   [x] Modified `internal/core/source/source.go`'s `ParseSourceURL` function to correctly parse the shorthand, extract components, and build the raw download URL.
-    -   [x] Manual Verification: Test source resolution for branches, tags, and specific commits. Check retrieval from lockfile. Test new shorthand format.
-
--   [x] **Task 6.5: Comparison Logic and Update Decision**
-    -   [x] For each dependency, determine if an install is required based on PRD logic:
-        -   [x] Resolved target commit hash (from `project.toml` source) differs from locked commit hash.
-        -   [x] Dependency in `project.toml` but missing from `almd-lock.toml`.
-        -   [x] Local file at `path` is missing.
-        -   [x] `--force` flag is used.
-    -   [x] If none of the above, the dependency is considered up-to-date.
-    -   [x] Manual Verification: Code review decision logic against PRD.
-
--   [x] **Task 6.6: Perform Install (If Required)**
-    -   [x] For each dependency needing an install:
-        -   [x] Download the file from the resolved target raw URL (using `internal/downloader`).
-        -   [x] Calculate integrity hash (commit hash preferred, else SHA256 via `internal/hasher`).
-        -   [x] Save the downloaded file to its `path` (from `project.toml`), creating parent directories if needed.
-        -   [x] Update `almd-lock.toml`: store the exact raw download URL used, `path`, and new integrity `hash`. The `source` in `project.toml` remains (e.g., can still be a branch).
-    -   [x] Manual Verification: Test a scenario where an update is performed. Check downloaded file content, path, and `almd-lock.toml` changes.
-
--   [x] **Task 6.7: Output and Error Handling**
-    -   [x] Provide clear feedback: which dependencies checked, updated, already up-to-date.
-    -   [x] Report errors clearly (e.g., download failure, source resolution failure, file write failure) via `urfave/cli`.
-    -   [x] Manual Verification: Observe output for various scenarios (updates, no updates, errors).
-
--   [x] **Task 6.8: Fix Lint Errors in `install.go` (2025-05-08)**
-    -   [x] Corrected `lf.Packages` to `lf.Package` in `internal/cli/install/install.go`.
-    -   [x] Corrected type `project.LockPackageDetail` to `lockfile.PackageEntry` for lockfile map values in `internal/cli/install/install.go`.
-
-## Milestone 7: `install` Command Testing
-
-**Goal:** Implement unit tests for the `install` command.
-
--   [x] **Task 7.1: Test File Structure and Helpers for `install` (2025-05-08)**
-    -   [x] Create test file: `internal/cli/install/install_test.go`.
-    -   [x] Develop test helpers:
-        -   [x] `setupInstallTestEnvironment(...)`: Creates temp dir, `project.toml`, `almd-lock.toml`, mock dependency files.
-        -   [x] `runInstallCommand(...)`: Executes the `install` command's action with specified args and context.
-        -   [x] Mock HTTP server setup (similar to `add` command tests) for controlling download responses and simulating remote changes.
-
--   [ ] **Task 7.2: Implement `install` Command Unit Test Cases**
-    -   [x] **Sub-Task 7.2.1: Test `almd install` - All dependencies, one needs install (commit hash change) (2025-05-08)**
-        -   [x] Setup: `project.toml` specifies `depA@main`. `almd-lock.toml` has `depA` at `commit1`. Mock server resolves `main` for `depA` to `commit2` and serves new content.
-        -   [x] Execute: `almd install`.
-        -   [x] Verify: `depA` file updated, `almd-lock.toml` updated for `depA` to `commit2`. Other up-to-date deps untouched.
-    -   [x] **Sub-Task 7.2.2: Test `almd install <dep_name>` - Specific dependency install**
-        -   [x] Setup: Similar to 7.2.1, but also `depB` needs update.
-        -   [x] Execute: `almd install depA`.
-        -   [x] Verify: Only `depA` is updated. `depB` remains as per old lockfile.
-    -   [x] **Sub-Task 7.2.3: Test `almd install` - All dependencies up-to-date**
-        -   [x] Setup: `project.toml` sources resolve to same commits as in `almd-lock.toml`. Local files exist.
-        -   [x] Execute: `almd install`.
-        -   [x] Verify: No files downloaded, no changes to `almd-lock.toml`. Appropriate "up-to-date" messages.
-    -   [x] **Sub-Task 7.2.4: Test `almd install` - Dependency in `project.toml` but missing from `almd-lock.toml` (2025-05-08)**
-    -   [x] Setup: `depNew` in `project.toml`, but no entry in `almd-lock.toml`.
-    -   [x] Execute: `almd install`.
-    -   [x] Verify: `depNew` is downloaded, file saved, and entry added to `almd-lock.toml`.
-    -   [x] **Sub-Task 7.2.5: Test `almd install` - Local dependency file missing (2025-05-08)**
-    -   [x] Setup: `depA` in `project.toml` and `almd-lock.toml`, but its local file is deleted.
-    -   [x] Execute: `almd install depA`.
-    -   [x] Verify: `depA` is re-downloaded based on `almd-lock.toml`'s pinned version (or `project.toml` if it dictates a newer one). `almd-lock.toml` reflects the version downloaded.
-    -   [x] **Sub-Task 7.2.6: Test `almd install --force` - Force install on an up-to-date dependency (2025-05-08)**
-        -   [x] Setup: `depA` is up-to-date.
-        -   [x] Execute: `almd install --force depA`.
-        -   [x] Verify: `depA` is re-downloaded and `almd-lock.toml` entry is refreshed, even if commit hash was the same.
-    -   [x] **Sub-Task 7.2.7: Test `almd install <non_existent_dep>` - Non-existent dependency specified (2025-05-08)**
-        -   [x] Setup: `project.toml` does not contain `non_existent_dep`.
-        -   [x] Execute: `almd install non_existent_dep`.
-        -   [x] Verify: Warning message printed, no other actions taken for this dep. Other valid deps (if `install` was called without args but one was invalid) should process normally.
-    -   [x] **Sub-Task 7.2.8: Test `almd install` - Error during download (2025-05-08)**
-        -   [x] Setup: Mock server returns HTTP error for a dependency that needs update.
-        -   [x] Execute: `almd install`.
-        -   [x] Verify: Command reports error for that dependency. `almd-lock.toml` and local file for that dep remain unchanged or reflect pre-update state.
-    -   [x] **Sub-Task 7.2.9: Test `almd install` - Error during source resolution (e.g., branch not found) (2025-05-08)**
-        -   [x] Setup: `project.toml` points to `depA@nonexistent_branch`. Mock `internal/source` to simulate resolution failure.
-        -   [x] Execute: `almd install depA`.
-        -   [x] Verify: Command reports error for `depA`. No download attempt.
-    -   [x] **Sub-Task 7.2.10: Test `almd install` - `project.toml` not found (2025-05-08)**
-        -   [x] Setup: Run `install` in a temp dir without `project.toml`.
-        -   [x] Execute: `almd install`.
-        -   [x] Verify: Command returns an appropriate error.
-
-## Milestone 8: `list` Command Implementation
-
-**Goal:** Implement the `almd list` (and `ls`) command to display project dependencies.
-
--   [x] **Task 8.1: `urfave/cli` Command Setup for `list` (2025-05-08)**
-    -   [x] Define the `list` command structure (`cli.Command`) in `internal/cli/list/list.go`.
-    -   [x] Add `ls` as an alias for the `list` command.
-    -   [x] Add the command to the `urfave/cli` App in `main.go`.
-    -   [x] Manual Verification: Run `almd list --help` and `almd ls --help`. Confirm command, alias, and flags are listed.
-
--   [x] **Task 8.2: Manifest and Lockfile Loading for `list` (2025-05-08)**
-    -   [x] In the `list` command's `Action`, load `project.toml` (using `internal/core/config`). Handle if not found (print "No dependencies..." or error).
-    -   [x] Load `almd-lock.toml` (using `internal/core/lockfile`). Handle if not found (dependencies will show as "not locked").
-    -   [x] Manual Verification: Test with missing manifest/lockfile.
-
--   [x] **Task 8.3: Dependency Traversal and Information Gathering (2025-05-08)**
-    -   [x] Iterate through dependencies in `project.toml`'s `[dependencies]` table.
-    -   [x] For each dependency, retrieve:
-        -   [x] Logical name.
-        -   [x] Configured `source` from `project.toml`.
-        -   [x] Relative `path` from `project.toml`.
-        -   [x] Locked raw `source` URL and `hash` from `almd-lock.toml` (if present).
-        -   [x] Local file existence status at `path`.
-    -   [x] Manual Verification: Code review data gathering logic.
-
--   [x] **Task 8.4: Default Output Formatting (2025-05-08)**
-    -   [x] Implement the default output format as per PRD:
-        -   [x] Logical dependency name.
-        -   [x] Declared `source` from `project.toml`.
-        -   [x] Locked `hash` from `almd-lock.toml` (or "not locked").
-        -   [x] Relative `path`.
-    -   [x] Manual Verification: Run `almd list` with a sample project and check output.
-
--   [x] **Task 8.5: Handling Projects with No Dependencies (2025-05-08)**
-    -   [x] If `project.toml` has no `[dependencies]` table or it's empty, print an appropriate message (e.g., "No dependencies found in project.toml."). This should work for all output formats (default, long, json, porcelain - e.g. empty array for json).
-    -   [x] Manual Verification: Test with an empty `project.toml` or one without dependencies.
-
-## Milestone 9: `list` Command Testing
-
-**Goal:** Implement unit tests for the `list` command.
-
--   [x] **Task 9.1: Test File Structure and Helpers for `list` (2025-05-08)**
-    -   [x] Create test file: `internal/cli/list/list_test.go`.
-    -   [x] Develop test helpers:
-        -   [x] `setupListTestEnvironment(...)`: Creates temp dir, `project.toml`, `almd-lock.toml`, and optionally dummy dependency files.
-        -   [x] `runListCommand(...)`: Executes the `list` command's action, capturing its stdout.
-
--   [ ] **Task 9.2: Implement `list` Command Unit Test Cases**
-    -   [x] **Sub-Task 9.2.1: Test `almd list` - No dependencies (2025-05-08)**
-        -   [x] Setup: Empty `project.toml` or no `[dependencies]` table.
-        -   [x] Execute: `almd list`.
-        -   [x] Verify: Output indicates no dependencies. For `--json`, verify empty array or appropriate null structure. (Note: JSON output not yet implemented, test verifies default behavior)
-    -   [x] **Sub-Task 9.2.2: Test `almd list` - Single dependency (fully installed and locked) (2025-05-08)**
-        -   [x] Setup: `project.toml` with one dep, `almd-lock.toml` with corresponding entry, local file exists.
-        -   [x] Execute: `almd list`.
-        -   [x] Verify: Correct default output for the dependency.
-    -   [x] **Sub-Task 9.2.3: Test `almd list` - Multiple dependencies with varied states (2025-05-08)**
-        -   [x] Setup: Mix of deps: one fully installed, one in manifest but not lockfile, one in manifest & lockfile but file missing.
-        -   [x] Execute: `almd list`.
-        -   [x] Verify: Correct default output for each, reflecting their state.
-    -   [x] **Sub-Task 9.2.4: Test `almd ls` (alias) - Verify alias works (2025-05-08)**
-        -   [x] Setup: Basic project with one dependency.
-        -   [x] Execute: `almd ls`.
-        -   [x] Verify: Output is identical to `almd list`.
-    -   [x] **Sub-Task 9.2.5: Test `almd list` - `project.toml` not found (2025-05-08 - Covered by existing `TestListCommand_ProjectTomlNotFound`)**
-        -   [x] Setup: Run `list` in a temp dir without `project.toml`.
-        -   [x] Execute: `almd list`.
-        -   [x] Verify: Command returns an appropriate error or "no dependencies" message as per PRD.
-
-## Milestone 10: `list` Command Output Enhancement
-
-**Goal:** Update the `almd list` command output to be more informative and visually similar to `pnpm list`, including terminal colors using `fatih/color`.
-
--   [x] **Task 10.1: Define `list` Output Structure and Color Scheme**
-    -   [x] Define pnpm-like output structure: Project info, "dependencies:" header, then `name path hash` for each. (Covered by previous Task 10.2, updated 2025-05-08)
-    -   [x] Specify color scheme using `fatih/color` (inspired by user-provided image):
-        -   Project Name: Magenta, Bold, Underline (`color.FgMagenta`, `color.Bold`, `color.Underline`)
-        -   `@`: Standard color
-        -   Project Version: Magenta (`color.FgMagenta`) (Note: User did not specify bold/underline for version, keeping as is)
-        -   Project Path: Dim Gray, Bold, Underline (`color.FgHiBlack`, `color.Bold`, `color.Underline`)
-        -   `dependencies:` header: Cyan and Bold (`color.FgCyan`, `color.Bold`)
-        -   Dependency Name: Yellow (`color.FgYellow`)
-        -   Dependency Hash: Standard color (No specific color attribute, or `color.Reset`)
-        -   Dependency Path: Green (`color.FgGreen`)
-    -   [x] Ensure `NO_COLOR` environment variable is respected (typically handled by `fatih/color` automatically, but verify).
-
--   [x] **Task 10.2: Implement Output Changes in `internal/cli/list/list.go` (Initial pnpm-like format)**
-    -   [x] Load project name and version.
-    -   [x] Modify print statements to match the new pnpm-like format (without colors yet).
-
--   [x] **Task 10.3: Implement Color Output in `internal/cli/list/list.go`**
-    -   [x] Add `github.com/fatih/color` as a project dependency.
-    -   [x] Import `fatih/color` in `internal/cli/list/list.go`.
-    -   [x] Update print statements to use the defined color scheme via `fatih/color` functions.
-
--   [ ] **Task 10.4: Update `list` Command Tests (Blocked by Task 9.1, 9.2)**
-    -   [ ] Adjust existing tests in `internal/cli/list/list_test.go` to expect the new pnpm-like format (initially without asserting exact color codes, as this can be brittle). (File to be created in Task 9.1)
-    -   [x] Consider adding a simple manual verification step for color output. (Decision: Manual verification will be needed)
-    -   [ ] Add new test cases if necessary to cover different scenarios with the new format (e.g., project with name/version, project without). (To be done in Task 9.2)
-## Milestone 11: `add` and `remove` Command Output Enhancement (pnpm style) (2025-05-08)
-
-**Goal:** Update the `almd add` and `almd remove` command outputs to be more visually similar to `pnpm`, including terminal colors using `fatih/color`.
-
--   [x] **Task 11.1: Update `add` command output**
-    -   [x] Modify `internal/cli/add/add.go` to print output similar to `pnpm add`.
-    -   [x] Use green color for added dependency information.
-    -   [x] Include a "Done in Xs" message.
--   [x] **Task 11.2: Update `remove` command output**
-    -   [x] Modify `internal/cli/remove/remove.go` to print output similar to `pnpm remove`.
-    -   [x] Use red color for removed dependency information.
-    -   [x] Include a "Done in Xs" message.
--   [x] **Task 11.3: Add `fatih/color` dependency if not already present**
-    -   [x] Ensure `github.com/fatih/color` is in `go.mod`. (Already added by list command changes)
--   [ ] **Task 11.4: Manual Verification**
-    -   [ ] Run `almd add <url>` and verify the output matches the pnpm style.
-    -   [ ] Run `almd remove <dep_name>` and verify the output matches the pnpm style.
-## Milestone 12: `self update` Command Implementation
-
-**Goal:** Implement the `almd self update` command to allow the Almandine tool to update itself.
-
--   [x] **Task 12.1: `urfave/cli` Command Setup for `self update`**
-    -   [x] Define the `self` command structure (`cli.Command`) in a new file (e.g., `internal/cli/self/self.go`).
-    -   [x] Define the `update` subcommand within the `self` command.
-    -   [x] Add the `self` command (with its `update` subcommand) to the `urfave/cli` App in `cmd/almd/main.go`.
-    -   [x] Define flags for `almd self update`: `--yes`/`-y` (bool), `--check` (bool), `--source <url>` (string), `--verbose` (bool).
-    -   [x] Manual Verification: Run `almd self update --help` and confirm the command, subcommand, and flags are listed correctly.
-
--   [x] **Task 12.2: Add Self-Update Library**
-    -   [x] Add `github.com/creativeprojects/go-selfupdate` as a project dependency (`go get github.com/creativeprojects/go-selfupdate`).
-    -   [x] Manual Verification: `go.mod` and `go.sum` are updated.
-
--   [x] **Task 12.3: Implement Version Embedding (2025-05-08)**
-    -   [x] Ensure the application version is embedded at build time. This typically involves:
-        -   [x] Defining a `var version string` in the `main` package (`cmd/almd/main.go`).
-        -   [x] Setting this variable during the build using ldflags: `go build -ldflags="-X main.version=vX.Y.Z" ./cmd/almd`.
-        -   [x] The `cli.App` `Version` field should use this variable.
-    -   [x] Manual Verification: Build the binary with a version, run `almd --version`, and confirm the embedded version is printed.
-
--   [x] **Task 12.4: Implement Core `self update` Logic (2025-05-08)**
-    -   [x] In the `update` subcommand's `Action`:
-        -   [x] Retrieve the current application version (embedded in Task 12.3).
-        -   [x] Use `github.com/creativeprojects/go-selfupdate` to:
-            -   [x] Configure the updater (e.g., for GitHub releases, using `selfupdate.NewGitHubSource` and `selfupdate.NewUpdater`).
-            -   [x] If `--check` flag is used, detect the latest version and inform the user if an update is available, then exit.
-            -   [x] Detect the latest available release version.
-            -   [x] Compare with the current version. If no newer version, inform the user and exit.
-            -   [x] If a newer version is available, prompt for confirmation unless `--yes` is used.
-            -   [x] Perform the update (download, verify, replace).
-        -   [x] Handle errors gracefully (e.g., network issues, no new version, update failure).
-        -   [x] Provide clear output messages throughout the process.
-    -   [x] Manual Verification:
-        -   [x] Test `--check` flag when an update is available and when not.
-        -   [x] Test update process: with and without `--yes`.
-        -   [ ] Test with no new version available.
-        -   [ ] Simulate network error if possible to check error handling.
-
--   [ ] **Task 12.5: Testing for `self update`**
-    -   [ ] **Note:** Fully automated E2E testing for self-update is complex as it involves replacing the running binary. Initial testing will likely be manual or involve carefully crafted integration tests that mock parts of the update process.
-    -   [ ] Define manual test scenarios:
-        -   [ ] Update from an older version to a newer version.
-        -   [ ] Attempt update when already on the latest version.
-        -   [ ] Use `--check` flag.
-        -   [ ] Use `--yes` flag.
-    -   [ ] Consider creating a simple integration test that:
-        -   [ ] Mocks the `github.com/creativeprojects/go-selfupdate` library's interactions (e.g., API calls, download).
-        -   [ ] Verifies the command logic (flag parsing, conditional execution based on mocked updater responses).
-        -   [ ] This would not test the actual binary replacement but would cover the command's flow.
-
----
-
-## Milestone 13: Core Logic Unit Testing (`internal/core`)
-
-**Goal:** Ensure comprehensive unit test coverage for all packages within `internal/core`.
-
--   [x] **Task 13.1: Define Testing Strategy for `internal/core`**
-    -   [x] Framework: Standard Go `testing` package with `testify` for assertions.
-    -   [x] Scope: Unit tests for public functions/methods in each `internal/core` package.
-    -   [x] Mocks: Use mocks for external dependencies (e.g., network, filesystem) where appropriate.
-    -   [x] Structure: Test files alongside source files (e.g., `config_test.go` for `config.go` within `internal/core/config/`).
-    -   [x] Manual Verification: Review strategy for completeness.
-
--   [x] **Task 13.2: Implement Unit Tests for `internal/core/config`**
-    -   [x] Create `internal/core/config/config_test.go`.
-    -   [x] Test `LoadProjectToml` (valid, not found, invalid format).
-    -   [x] Test `SaveProjectToml` (writing, overwriting).
-    -   [x] Manual Verification: Run `go test ./internal/core/config/...`.
-
--   [x] **Task 13.3: Implement Unit Tests for `internal/core/downloader` (2025-05-08)**
-    -   [x] Create `internal/core/downloader/downloader_test.go`.
-    -   [x] Test `DownloadFile` (success, HTTP errors, network issues) using `httptest`.
-    -   [ ] Manual Verification: Run `go test ./internal/core/downloader/...`.
-
--   [x] **Task 13.4: Implement Unit Tests for `internal/core/hasher` (2025-05-08)**
-    -   [x] Create `internal/core/hasher/hasher_test.go`.
-    -   [x] Test `CalculateSHA256` with known content.
-    -   [ ] Manual Verification: Run `go test ./internal/core/hasher/...`.
-
--   [x] **Task 13.5: Implement Unit Tests for `internal/core/lockfile` (2025-05-08)**
-    -   [x] Create `internal/core/lockfile/lockfile_test.go`.
-    -   [x] Test `LoadLockfile` (valid, not found, invalid format).
-    -   [x] Test `SaveLockfile` (writing, overwriting).
-    -   [ ] Manual Verification: Run `go test ./internal/core/lockfile/...`.
-
--   [x] **Task 13.6: Implement Unit Tests for `internal/core/project` (2025-05-08)**
-    -   [x] Create `internal/core/project/project_test.go`.
-    -   [x] Test any helper functions or methods on the `Project`, `Dependency`, `Script`, etc. structs if they contain logic beyond simple data holding. (Tested `NewProject()` constructor; other structs are data holders).
-    -   [ ] Manual Verification: Run `go test ./internal/core/project/...`.
-
--   [x] **Task 13.7: Implement Unit Tests for `internal/core/source` (2025-05-08)**
-    -   [x] Create `internal/core/source/source_test.go`.
-    -   [x] Test `ParseSourceURL` with various valid and invalid GitHub URL formats (raw, blob, tree, with/without ref, shorthand).
-    -   [ ] Test `GetGitHubRawURLAndCommit` (mocking `FetchLatestCommitSHA` and `FetchFileCommitSHA`). *(Note: `GetGitHubRawURLAndCommit` function not found in current `source.go`)*.
-    -   [x] Create `internal/core/source/github_api_test.go`.
-    -   [x] Test `GetLatestCommitSHAForFile` (mocking HTTP calls to GitHub API). *(Note: Tested existing `GetLatestCommitSHAForFile` instead of non-existent `FetchLatestCommitSHA` / `FetchFileCommitSHA`)*.
-    -   [ ] Manual Verification: Run `go test ./internal/core/source/...`.
-
----
-
-## Milestone 14: Test Fixes (2025-05-08)
-
-**Goal:** Address and fix failing tests reported by `go test -v ./... -race -coverprofile=coverage.out -covermode=atomic`.
-
--   [x] **Task 14.1: Fix `TestRemoveCommand_ProjectTomlNotFound` in `internal/cli/remove/remove_test.go` (2025-05-08)**
-    -   [x] Investigated assertion failure: `"Error: Failed to load project.toml: open project.toml: no such file or directory" does not contain "cannot find the file specified"`.
-    -   [x] Updated assertion to correctly match the expected error message ("no such file or directory").
--   [x] **Task 14.2: Fix Data Races in `internal/core/source` tests (2025-05-08)**
-    -   [x] Investigated data races reported for `githubAPIURL` and `testModeBypassHostValidation` in `source_test.go`, `github_api_test.go`, and `source.go`.
-    -   [x] Implemented synchronization using exported mutexes (`GithubAPIBaseURLMutex`, `TestModeBypassHostValidationMutex`) in the `source` package to protect shared global variables accessed by parallel tests. Updated `github_api.go`, `source.go`, and `source_test.go` to use these mutexes. (Attempt 1)
-    -   [x] Added a package-level mutex (`githubAPITestMutex`) in `internal/core/source/github_api_test.go` to serialize test functions that call `setupSourceTest` or otherwise modify shared global state in the `source` package. Removed `t.Parallel()` from these specific test functions. (Attempt 2 - 2025-05-08)
--   [x] **Task 14.3: Fix Path Mismatch Failures in `internal/cli/list/list_test.go` (2025-05-08)**
-    -   [x] Investigated failures in `TestListCommand_SingleDependencyFullyInstalledAndLocked`, `TestListCommand_MultipleDependenciesVariedStates`, and `TestListCommand_AliasLs` due to `/private/var` vs `/var` path differences on macOS.
-    -   [x] Updated tests to use `filepath.EvalSymlinks` on the temporary directory path before constructing expected output strings, ensuring canonical paths are compared.
--   [x] **Task 14.4: Fix `TestCalculateSHA256_DifferentContent` in `internal/core/hasher/hasher_test.go` (2025-05-09)**
-    -   [x] Investigated assertion failures where actual calculated SHA256 hashes did not match expected hashes.
-    -   [x] Corrected the `expectedHash1` and `expectedHash2` values in `internal/core/hasher/hasher_test.go` to match the actual correct SHA256 hashes for the test strings "almandine-rocks" and "almandine-rules".
-## Milestone 15: Dev Environment Configuration (2025-05-09)
-
-**Goal:** Configure the development environment.
-
--   [x] **Task 15.1: Add `gitingest` to `devenv.nix` (2025-05-09)**
-    -   [x] Added `languages.python` configuration to `devenv.nix`.
-    -   [x] Enabled Python virtual environment (`venv.enable = true`).
-    -   [x] Added `gitingest` to `venv.requirements`.
-    -   [x] Manual Verification: Run `devenv shell` and confirm `gitingest` command is available.
-
--   [x] **Task 15.2: Fix `pre-commit-hooks` deprecated stage warning (2025-05-10)**
-    -   [x] Ran `pre-commit autoupdate --repo https://github.com/pre-commit/pre-commit-hooks`.
-    -   [x] Verified `.pre-commit-config.yaml` updated to `rev: v5.0.0` for `pre-commit-hooks`.
----
-
-## Milestone 16: Code Standards Application (2025-05-09)
-
-**Goal:** Ensure code comments adhere to defined project standards.
-
--   [x] **Task 16.1: Apply comment standards to `internal/cli/remove/remove_test.go` (2025-05-09)**
-    -   [x] Reviewed comments in `internal/cli/remove/remove_test.go` against `project/COMMENT_STANDARDS.txt`.
-    -   [x] Removed obvious "what" comments.
-    -   [x] Retained godoc comments and comments explaining test setup or "why".
----
-
-## Milestone 17: Refactoring and Cleanup (2025-05-09)
-
-**Goal:** Improve code quality, maintainability, and reduce complexity in existing modules.
-
--   [x] **Task 17.1: Refactor `internal/cli/add/add.go` (2025-05-09)**
-    -   [x] Break down the main `Action` function in `AddCmd` into smaller, focused helper functions (e.g., for arg parsing, URL handling, file operations, manifest updates, lockfile updates).
-    -   [x] Simplify the error handling and cleanup logic, potentially by returning errors more consistently and centralizing cleanup.
-    -   [x] Encapsulate filename determination logic (for manifest and disk) into a separate function.
-    -   [x] Encapsulate integrity hash determination logic into a separate function.
-    -   [x] Review and improve overall clarity and reduce nesting in the `Action` function.
-
--   [x] **Task 17.2: Refactor `internal/cli/install/install.go` (2025-05-09)**
-    -   [x] Break down the main `Action` function in `InstallCmd` into smaller, manageable functions (e.g., for determining deps to process, resolving single dep state, deciding on action, performing install/update for a single dep).
-    -   [x] Consider refactoring the management of `dependencyInstallState` into a dedicated helper or struct with methods. (Decision: Kept as local types for now, helper functions manage transitions).
-    -   [x] Review and improve overall clarity and reduce nesting in the `Action` function.
-
--   [x] **Task 17.3: Refactor `internal/core/source/source.go` (2025-05-09)**
-    -   [x] Break down the `ParseSourceURL` function into smaller helper functions for different URL types (e.g., `parseGitHubShorthandURL`, `parseGitHubFullURL`, `parseRawGitHubUserContentURL`).
-    -   [x] Review the usage of `testModeBypassHostValidation` and its mutex for clarity and safety.
-
--   [ ] **Task 17.4: Consolidate CLI Test Helpers (2025-05-09)**
-    -   [ ] Identify common test helper functions in `internal/cli/*/ *_test.go` files (e.g., `setup...TestEnvironment`, `run...Command`, `startMockServer`, `readProjectToml`, `readAlmdLockToml`).
-    -   [ ] Create a shared internal test utility package (e.g., `internal/testutil` or `internal/cli/testhelper`).
-    -   [ ] Move common helpers to this shared package and update tests to use them.
-
--   [x] **Task 17.5: Standardize Error Handling in CLI Commands (2025-05-09)**
-    -   [x] Review error handling and cleanup strategies in `add.go`, `remove.go`, and `install.go`.
-    -   [x] Define and apply a consistent approach for reporting errors to the user (via `cli.Exit` or other means).
-    -   [x] Ensure that partial changes are appropriately handled (e.g., cleanup of downloaded files if subsequent manifest/lockfile updates fail).
-
--   [x] **Task 17.6: Review Installer Scripts (`install.ps1`, `install.sh`) (2025-05-09)**
-    -   [x] Review `install.ps1` and `install.sh` for clarity, robustness, and potential areas for simplification.
-        -   Both scripts are generally clear, robust, and maintainable.
-        -   Key finding: Both scripts download the full source archive and extract the binary/necessary files.
-        -   Recommendation: Standardize by downloading pre-compiled release assets from GitHub Releases for the target OS/architecture. This aligns with common practice and the `self-update` mechanism, simplifies scripts, and reduces download size.
-        -   `install.ps1`: Downloads source, expects `almd.exe` in extracted root.
-        -   `install.sh`: Downloads source, expects `install/almd` (executable) and `src/` (copied to `$APP_HOME`).
-        -   The role and content of `$APP_HOME` should be consistent based on `almd`'s runtime needs. If `almd` is a self-contained binary, `$APP_HOME` might only be for user-generated config/data.
-    -   [x] Document any shared logic or installation philosophy to ensure consistency if one script is updated.
-        -   Shared philosophy: Install latest/specific version from GitHub or local build, place executable in PATH, use temp dirs, advise on PATH configuration.
-    -   [x] Consider if any parts of the scripts could be made more maintainable.
-        -   Current maintainability is good. Switching to release assets would be the main improvement.
-        -   Minor: `ps1` could improve `curl/wget` exit code checks. `sh` could use `jq` for API parsing if available and improve `wget` error checks.
-
----
-
-## Milestone 18: GitHub Actions Release Workflow (2025-05-10)
-
-**Goal:** Create a GitHub Action workflow to automate the building and releasing of Almandine.
-
--   [x] **Task 18.1: Create GitHub Action for Releases**
-    -   [x] Define workflow trigger (e.g., manual `workflow_dispatch`).
-    -   [x] Implement versioning logic:
-        -   [x] Start at `0.2.0-alpha.1`.
-        -   [x] Fetch existing tags to determine the current latest version.
-        -   [x] Auto-increment pre-release number (e.g., `0.2.0-alpha.1` -> `0.2.0-alpha.2`).
-        -   [x] Handle promotion from alpha to beta, rc, and final release (e.g., `0.2.0-alpha.N` -> `0.2.0-beta.1` -> `0.2.0-rc.1` -> `0.2.0`).
-    -   [x] Implement build steps for Windows, macOS, and Linux using Go cross-compilation.
-        -   [x] Ensure `main.version` is correctly embedded using ldflags.
-    -   [x] Create release artifacts (e.g., zipped binaries).
-    -   [x] Create a Git tag for the new version.
-    -   [x] Create a GitHub Release, attaching artifacts and generating basic release notes.
-    -   [x] Document how to use the release workflow.
-        -   **Usage Instructions:**
-            1.  Navigate to the "Actions" tab in your GitHub repository.
-            2.  Under "Workflows", find and select "Create Release".
-            3.  Click the "Run workflow" button.
-            4.  Choose the `bump_type` from the dropdown:
-                *   `alpha`: Increments or starts an alpha version (e.g., `v0.2.0-alpha.1` -> `v0.2.0-alpha.2`, or `v0.2.0` -> `v0.2.0-alpha.1`). Use this for the very first release if no `v0.2.0-alpha.X` tags exist.
-                *   `beta`: Increments or starts a beta version (e.g., `v0.2.0-alpha.2` -> `v0.2.0-beta.1`).
-                *   `rc`: Increments or starts a release candidate (e.g., `v0.2.0-beta.1` -> `v0.2.0-rc.1`).
-                *   `promote_to_final`: Promotes the latest pre-release to a final version (e.g., `v0.2.0-rc.1` -> `v0.2.0`).
-                *   `patch`: Bumps the patch version of the latest final release (e.g., `v0.2.0` -> `v0.2.1`).
-                *   `minor`: Bumps the minor version of the latest final release (e.g., `v0.2.1` -> `v0.3.0`).
-                *   `major`: Bumps the major version of the latest final release (e.g., `v0.3.0` -> `v1.0.0`).
-            5.  Decide if the release should be a `draft_release` (Yes/No).
-            6.  Click "Run workflow".
-            7.  The action will:
-                *   Determine the next version based on existing tags and the chosen `bump_type`.
-                *   Build binaries for Linux (amd64, arm64), macOS (amd64, arm64), and Windows (amd64).
-                *   Create a new Git tag with the determined version.
-                *   Create a GitHub Release with the new tag, attaching the built binaries.
-            8.  **Important:** Ensure your `main.version` variable in `cmd/almd/main.go` is correctly set up to be populated by `ldflags` during the build process (e.g., `var version string` in the main package, and `cli.App{ Version: version, ...}`). The workflow uses `go build -ldflags="-X main.version=$VERSION"`.
-            9.  The initial release, if no tags like `v0.2.0-alpha.X` exist, should be triggered with `bump_type: alpha`. This will create `v0.2.0-alpha.1`.
--   [x] **Task 18.2: Fix Release Workflow Build and Versioning (2025-05-11)**
-    -   [x] **`go build` Linker Error:**
-        -   Problem: Version string with spaces/special characters (e.g., `v0.2.0-('alpha', 1)`) caused `go build` linker error in `release.yml`.
-        -   Solution: Added single quotes around `'main.version=$VERSION'` within the `-ldflags` argument in `.github/workflows/release.yml`.
-    -   [x] **Version Increment/Format:**
-        -   Problem: `.github/scripts/determine_next_version.py` produced incorrect version format like `v0.2.0-('alpha', 1)` and did not correctly increment pre-release numbers.
--   [ ] **Task 18.5: Fix `determine_next_version.py` for correct prerelease increment (2025-05-11)**
-        -   [ ] Modified `determine_next_version.py` to correctly find the latest existing prerelease for a given major.minor.patch base and increment it, rather than always starting a new prerelease series from the overall latest tag.
-        -   Solution: Modified the script to use string-based prerelease identifiers (e.g., `prerelease='alpha.1'`) for `semver.VersionInfo`, ensuring correct format and increment behavior.
-
----
-
----
-
-## Milestone 19: SLSA Provenance Generation (2025-05-11)
-
-**Goal:** Implement SLSA Level 3+ provenance generation for Go binaries.
-
--   [ ] **Task 19.1: Create SLSA Go Builder Configuration Files**
-    -   [x] Create `.slsa-goreleaser/linux-amd64.yml`
-    -   [x] Create `.slsa-goreleaser/linux-arm64.yml`
-    -   [x] Create `.slsa-goreleaser/windows-amd64.yml`
-    -   [x] Create `.slsa-goreleaser/darwin-amd64.yml`
-    -   [x] Create `.slsa-goreleaser/darwin-arm64.yml`
-- [x] **Task 19.2: Create GitHub Workflow for SLSA Provenance**
-    -   [x] Create `.github/workflows/slsa-provenance.yml`
-    -   [x] Define triggers (`push` tags `v*`, `workflow_dispatch`).
-    -   [x] Implement `generate_provenance_args` job to determine version, commit, date, tree state, and release parameters.
-    -   [x] Implement `build_with_provenance` job using matrix for platforms.
-    -   [x] Call reusable SLSA Go builder `slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v2.1.0`.
-    -   [x] Pass necessary inputs: `go-version`, `config-file`, `evaluated-envs`, `upload-assets`, `upload-tag-name`, `prerelease`, `draft-release`.
-    -   [x] Ensure correct permissions are set (`id-token: write`, `contents: write`, `actions: read`).
--   [ ] **Task 19.3: Verify SLSA Provenance Generation**
-    -   [ ] Trigger the workflow manually or by pushing a test tag.
-    -   [ ] Verify that provenance files (`.intoto.jsonl`) are generated for each binary.
-    -   [ ] Verify that binaries and provenance files are uploaded to a GitHub release.
-    -   [ ] (Optional) Use `slsa-verifier` to verify the generated provenance against the binary.
-
----
-## Milestone 19: README Updates (2025-05-11)
-
-**Goal:** Keep the project README.md up-to-date with relevant information.
----
-
-## Milestone 20: Installer Script Fixes (2025-05-11)
-
-**Goal:** Address issues in the installer scripts.
-
-- [x] **Task 20.1: Fix Windows Installer Script (`install.ps1`) (2025-05-11)**
-    - [x] Modified `install.ps1` to download the specific Windows release asset (e.g., `almd_VERSION_windows_amd64.zip`) instead of the full source code archive.
-    - [x] Updated extraction logic to expect `almd.exe` at the root of the downloaded zip.
-    - [x] This resolves the "Could not find extracted directory" error during installation.
-
-- [x] **Task 20.2: Fix PowerShell variable syntax in `install.ps1` (2025-05-11)**
-    - [x] Corrected variable expansion for `$TmpDir` in `Write-Host` command on line 96 of [`install.ps1`](install.ps1:96) to `${TmpDir}` to prevent parsing errors.
-- [x] **Task 19.1: Add Installation Section to README.md (2025-05-11)**
-    - [x] Added a new "🚀 Installation" section to `README.md`.
-    - [x] Included `curl` command for macOS/Linux and `powershell` command for Windows to download and run installer scripts from the `main` branch on GitHub.
-    - [x] Ensured URLs point to `https://raw.githubusercontent.com/nightconcept/almandine/main/install.sh` and `https://raw.githubusercontent.com/nightconcept/almandine/main/install.ps1`.
-    - [x] Placed the new section after "Features" and before "Requirements".
-## Miscellaneous Tasks
-## Milestone 21: Release Asset Signing (2025-05-11)
-
-**Goal:** Ensure release assets are GPG signed and the signing script is functional.
-
-- [ ] **Task 21.1: Debug and Fix `scripts/sign_releases.py` (2025-05-11)**
-    - [ ] Investigate why the script appears stuck during execution.
-    - [ ] Identify and resolve any issues preventing interactive input or script completion.
-    - [ ] Ensure the script can successfully sign and upload asset signatures.
-
-- [x] **Task Misc.1: Create SECURITY.md (2025-05-11)**
-    - [x] Create `SECURITY.md` in the root directory.
-    - [x] Ensure content meets requirements for vulnerability reporting, disclosure policy, contact links, keywords (vulnerability, disclosure), and time references.
-
----
-
-## Milestone 22: CODEOWNERS File Creation (2025-05-11)
-
-**Goal:** Create a `CODEOWNERS` file for the project.
-
--   [x] **Task 22.1: Create `CODEOWNERS` file**
-    -   [x] Create `.github/CODEOWNERS` with standard template and placeholders.
-    -   [x] Manual Verification: File exists at `.github/CODEOWNERS` and contains placeholder content.
-
----
-
-## Milestone 23: Fix Version Bumping Logic (2025-05-11)
-
-**Goal:** Correct the version bumping script to handle existing pre-release tags.
-
--   [x] **Task 23.1: Fix `determine_next_version.py` for existing pre-release tags**
-    -   [x] Modify `.github/scripts/determine_next_version.py` to check if a calculated pre-release version (e.g., `v0.2.0-alpha.1`) already exists.
-    -   [x] If it exists, increment the pre-release number (e.g., to `v0.2.0-alpha.2`) and re-check until a unique version is found.
-    -   [x] Manual Verification: Run the script with `BUMP_TYPE=alpha` when `v0.2.0-alpha.1` exists. Verify it outputs `v0.2.0-alpha.2`. Test with `beta` and `rc` as well.
-
-- [x] Fix ShellCheck SC2016 warnings in install.sh (2025-05-12)
-
-## Milestone 24: Code Quality Improvements
--   [ ] **Task 24.1: Refactor `internal/cli/list/list.go:ListCmd` to reduce cyclomatic complexity (2025-05-13)**
-    -   [ ] Identify complex sections in `ListCmd`.
-    -   [ ] Extract logic into private helper functions.
-    -   [ ] Ensure tests in `internal/cli/list/list_test.go` still pass.
-
-**Goal:** Address code quality issues and improve maintainability.
-
--   [x] **Task 24.1: Fix Cyclomatic Complexity in `internal/cli/install/install.go` (2025-05-12)**
-    -   [x] Refactor `filterDependenciesRequiringAction` to reduce complexity.
-    -   [x] Refactor `resolveInstallStates` to reduce complexity.
-    -   [x] Refactor `executeInstallOperations` to reduce complexity.
--   [x] **Task 24.2: Refactor `parseGitHubFullURL` in `internal/core/source/source.go` (2025-05-13)**
-    -   [x] Reduced cyclomatic complexity from 26 by extracting logic into `parseGitHubURLWithType` and `parseGitHubURLWithAtRef` helper functions.
--   [x] **Task 24.3: Fix Cyclomatic Complexity in `internal/cli/add/add.go` (2025-05-13)**
-    -   [x] Refactored `AddCmd()` (complexity 19) and `calculateIntegrityHash()` (complexity 18) in [`internal/cli/add/add.go`](internal/cli/add/add.go:0) by extracting helper functions.
-
-
-
 ================================================
 File: scripts/README.md
 ================================================
@@ -8488,9 +7691,9 @@ File: .github/copilot-instructions.md
 
 ## 1. Preparation
 
-* **Project Context (Session Start):** ALWAYS review key project docs: `project/PRD.md` (architecture, goals, tech stack, versions, structure, style guide), `project/digest.txt` (current state summary), `project/TASKS.md` (assignments).
+* **Project Context (Session Start):** ALWAYS review key project docs: `docs/PRD.md` (architecture, goals, tech stack, versions, structure, style guide), `docs/digest.txt` (current state summary), `docs/TASKS.md` (assignments).
 * **Task Prep (Before Work):**
-    * ALWAYS consult `project/TASKS.md` for your assignment. If missing, add it (concise description, `YYYY-MM-DD`).
+    * ALWAYS consult `docs/TASKS.md` for your assignment. If missing, add it (concise description, `YYYY-MM-DD`).
     * ALWAYS review relevant existing code *before* suggesting changes.
 
 ## 2. Implementation Planning
@@ -8512,14 +7715,14 @@ File: .github/copilot-instructions.md
     * Propose beneficial low-risk refactoring.
     * Avoid duplication; use helpers/modules.
     * Explain use of language strengths/pitfalls if relevant.
-* **Dependencies:** No new/updated external dependencies without explicit maintainer approval (check `project/PRD.md` for approved stack/versions). Use only approved dependencies.
+* **Dependencies:** No new/updated external dependencies without explicit maintainer approval (check `docs/PRD.md` for approved stack/versions). Use only approved dependencies.
 * **Commits (User Task):** Follow Conventional Commits (`https://www.conventionalcommits.org/en/v1.0.0/`).
 * **Manual Testing:** Provide clear user instructions for manually testing the task's changes.
 
 ## 4. Folder Structure
 
-* **Strict Adherence:** Follow structure defined in `project/PRD.md`.
-* **Changes:** No adding/removing/relocating files/dirs without prior maintainer approval. Approved structure changes require updating `project/PRD.md` *before* implementation.
+* **Strict Adherence:** Follow structure defined in `docs/PRD.md`.
+* **Changes:** No adding/removing/relocating files/dirs without prior maintainer approval. Approved structure changes require updating `docs/PRD.md` *before* implementation.
 * **Source Location:** All source code must be in `src/`.
 * **Precedence:** This rule is foundational.
 
@@ -8527,7 +7730,7 @@ File: .github/copilot-instructions.md
 
 ### 5.1. General & Robustness
 
-* Follow language best practices unless overridden by `project/PRD.md` or these guidelines.
+* Follow language best practices unless overridden by `docs/PRD.md` or these guidelines.
 * Prioritize: Clarity, maintainability, efficiency.
 * Consider performance & basic security.
 * Implement robust error handling (language norms or `PRD.md` spec); handle errors gracefully.
@@ -8536,12 +7739,12 @@ File: .github/copilot-instructions.md
 
 * Keep files focused (ideally < 500 lines); refactor large ones.
 * Prefer small, single-purpose functions.
-* Structure code logically (per `project/PRD.md`) into modules.
+* Structure code logically (per `docs/PRD.md`) into modules.
 * Use clear, consistent imports (relative for local packages). Verify paths.
 
 ### 5.3. Style & Formatting
 
-* **Priority:** 1) `project/PRD.md`, 2) These rules, 3) Language common practices.
+* **Priority:** 1) `docs/PRD.md`, 2) These rules, 3) Language common practices.
 * **Type Hinting:** Mandatory for functions/classes/modules (dynamic languages).
 * **Indentation:** 2 spaces.
 * **Function Calls:** No space: `func()` not `func ()`.
@@ -8556,19 +7759,19 @@ File: .github/copilot-instructions.md
 * **Docstrings:** Required for public functions, classes, modules (standard format).
 * **Code Comments:** Explain non-obvious logic, complex algorithms, decisions (*why*, not *what*).
 * **Reasoning Comments:** Use `# Reason:` for complex block rationale.
-* **README Updates:** Update `project/README.md` for core features, dependency changes, or setup/build modifications.
+* **README Updates:** Update `docs/README.md` for core features, dependency changes, or setup/build modifications.
 
 ## 6. Testing
 
 * **Goal:** Tests are living documentation specifying behavior. Use common language framework.
-* **Behavior Specification:** Tests specify behavior. Type/scope/timing (e.g., E2E, Unit, Integration) defined in `project/PRD.md` per project phase.
+* **Behavior Specification:** Tests specify behavior. Type/scope/timing (e.g., E2E, Unit, Integration) defined in `docs/PRD.md` per project phase.
 * **Location:** Place tests in `/src/test` (Lua: `/src/spec`), mirroring `src/` structure (Sec 4).
     * Ex: Tests for `src/engine/mod.js` -> `src/test/engine/mod_test.js`.
     * Ex: Lua spec for `src/engine/mod.lua` -> `src/spec/engine/mod_spec.lua`.
 * **Content:** Tests clearly describe expected behavior per `PRD.md` goals for the current phase.
     * **Prototype Phase:** Primary focus on automated E2E tests validating core functionality.
 * **Strategy & Coverage:** Defined in `PRD.md`, evolves with phases.
-    * **Prototype Phase:** E2E priority. Comprehensive unit tests & code coverage metrics (e.g., 100% statement coverage) are **not** the focus *unless* specified in `project/PRD.md` for a later phase demanding them.
+    * **Prototype Phase:** E2E priority. Comprehensive unit tests & code coverage metrics (e.g., 100% statement coverage) are **not** the focus *unless* specified in `docs/PRD.md` for a later phase demanding them.
 * **Updating Tests:** Review/update tests with code changes to reflect *current* expected behavior. Fix failing/outdated tests promptly.
 
 ## 7. AI Interaction Protocols
@@ -8586,7 +7789,8 @@ File: .github/copilot-instructions.md
 * Report significant blockers/errors *during* implementation promptly with context and suggestions.
 * If a task seems complex, state potential benefit from a more advanced model **boldly** at the start (e.g., "**Suggestion: This complex refactoring might benefit from a more advanced model.**").
 * Be friendly, helpful, collaborative.
-* Explicitly state when task requirements are met. Mark task complete in `project/TASKS.md`.
+* Explicitly state when task requirements are met. Mark task complete in `docs/TASKS.md`.
+
 
 
 ================================================
@@ -9231,180 +8435,3 @@ jobs:
         uses: github/codeql-action/upload-sarif@60168efe1c415ce0f5521ea06d5c2062adbeed1b # v3.28.17
         with:
           sarif_file: results.sarif
-
-
-
-
-================================================
-File: .slsa-goreleaser/darwin-amd64.yml
-================================================
-# SLSA Go builder configuration for Darwin AMD64
-version: 1
-
-env:
-  - GO111MODULE=on
-  - CGO_ENABLED=0
-
-flags:
-  - -trimpath
-  # - -tags=netgo # Optional, include if your project uses netgo or other build tags
-
-goos: darwin
-goarch: amd64
-
-# Entrypoint to compile.
-main: ./cmd/almd
-
-# Binary output name pattern.
-# {{ .Os }} will be replaced by goos field.
-# {{ .Arch }} will be replaced by goarch field.
-binary: almd-{{ .Os }}-{{ .Arch }}
-
-# ldflags generated dynamically in the workflow.
-# These {{ .Env.VAR_NAME }} will be substituted by `evaluated-envs` in the GitHub workflow.
-ldflags:
-  - "-X main.version={{ .Env.VERSION }}"
-  # - "-X main.Commit={{ .Env.COMMIT }}"
-  # - "-X main.CommitDate={{ .Env.COMMIT_DATE }}"
-  # - "-X main.TreeState={{ .Env.TREE_STATE }}"
-
-
-
-================================================
-File: .slsa-goreleaser/darwin-arm64.yml
-================================================
-# SLSA Go builder configuration for Darwin ARM64
-version: 1
-
-env:
-  - GO111MODULE=on
-  - CGO_ENABLED=0
-
-flags:
-  - -trimpath
-  # - -tags=netgo # Optional, include if your project uses netgo or other build tags
-
-goos: darwin
-goarch: arm64
-
-# Entrypoint to compile.
-main: ./cmd/almd
-
-# Binary output name pattern.
-# {{ .Os }} will be replaced by goos field.
-# {{ .Arch }} will be replaced by goarch field.
-binary: almd-{{ .Os }}-{{ .Arch }}
-
-# ldflags generated dynamically in the workflow.
-# These {{ .Env.VAR_NAME }} will be substituted by `evaluated-envs` in the GitHub workflow.
-ldflags:
-  - "-X main.version={{ .Env.VERSION }}"
-  # - "-X main.Commit={{ .Env.COMMIT }}"
-  # - "-X main.CommitDate={{ .Env.COMMIT_DATE }}"
-  # - "-X main.TreeState={{ .Env.TREE_STATE }}"
-
-
-
-================================================
-File: .slsa-goreleaser/linux-amd64.yml
-================================================
-# SLSA Go builder configuration for Linux AMD64
-version: 1
-
-env:
-  - GO111MODULE=on
-  - CGO_ENABLED=0
-
-flags:
-  - -trimpath
-  # - -tags=netgo # Optional, include if your project uses netgo or other build tags
-
-goos: linux
-goarch: amd64
-
-# Entrypoint to compile.
-main: ./cmd/almd
-
-# Binary output name pattern.
-# {{ .Os }} will be replaced by goos field.
-# {{ .Arch }} will be replaced by goarch field.
-binary: almd-{{ .Os }}-{{ .Arch }}
-
-# ldflags generated dynamically in the workflow.
-# These {{ .Env.VAR_NAME }} will be substituted by `evaluated-envs` in the GitHub workflow.
-ldflags:
-  - "-X main.version={{ .Env.VERSION }}"
-  # - "-X main.Commit={{ .Env.COMMIT }}"
-  # - "-X main.CommitDate={{ .Env.COMMIT_DATE }}"
-  # - "-X main.TreeState={{ .Env.TREE_STATE }}"
-
-
-
-================================================
-File: .slsa-goreleaser/linux-arm64.yml
-================================================
-# SLSA Go builder configuration for Linux ARM64
-version: 1
-
-env:
-  - GO111MODULE=on
-  - CGO_ENABLED=0
-
-flags:
-  - -trimpath
-  # - -tags=netgo # Optional, include if your project uses netgo or other build tags
-
-goos: linux
-goarch: arm64
-
-# Entrypoint to compile.
-main: ./cmd/almd
-
-# Binary output name pattern.
-# {{ .Os }} will be replaced by goos field.
-# {{ .Arch }} will be replaced by goarch field.
-binary: almd-{{ .Os }}-{{ .Arch }}
-
-# ldflags generated dynamically in the workflow.
-# These {{ .Env.VAR_NAME }} will be substituted by `evaluated-envs` in the GitHub workflow.
-ldflags:
-  - "-X main.version={{ .Env.VERSION }}"
-  # - "-X main.Commit={{ .Env.COMMIT }}"
-  # - "-X main.CommitDate={{ .Env.COMMIT_DATE }}"
-  # - "-X main.TreeState={{ .Env.TREE_STATE }}"
-
-
-
-================================================
-File: .slsa-goreleaser/windows-amd64.yml
-================================================
-# SLSA Go builder configuration for Windows AMD64
-version: 1
-
-env:
-  - GO111MODULE=on
-  - CGO_ENABLED=0
-
-flags:
-  - -trimpath
-  # - -tags=netgo # Optional, include if your project uses netgo or other build tags
-
-goos: windows
-goarch: amd64
-
-# Entrypoint to compile.
-main: ./cmd/almd
-
-# Binary output name pattern.
-# {{ .Os }} will be replaced by goos field.
-# {{ .Arch }} will be replaced by goarch field.
-# The SLSA builder automatically appends .exe for windows.
-binary: almd-{{ .Os }}-{{ .Arch }}
-
-# ldflags generated dynamically in the workflow.
-# These {{ .Env.VAR_NAME }} will be substituted by `evaluated-envs` in the GitHub workflow.
-ldflags:
-  - "-X main.version={{ .Env.VERSION }}"
-  # - "-X main.Commit={{ .Env.COMMIT }}"
-  # - "-X main.CommitDate={{ .Env.COMMIT_DATE }}"
-  # - "-X main.TreeState={{ .Env.TREE_STATE }}"
