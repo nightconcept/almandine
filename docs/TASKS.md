@@ -25,3 +25,6 @@
     -   [x] Ensure the target executable name built by Go is `almd`.
     -   [x] *Note:* A separate wrapper script/alias named `almd` will be used by end-users to call `almd`. This task is about the Go build output name. (Build command might be `go build -o almd .`)
     -   [x] Manual Verification: Build the project (`go build -o almd .`) and confirm the output file is named `almd`.
+
+-   [x] **Task: Fix cyclomatic complexity in `updateAction`** (2025-05-13)
+    -   Refactor `internal/cli/self/self.go:updateAction()` to reduce cyclomatic complexity below 15.
