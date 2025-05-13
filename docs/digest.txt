@@ -153,6 +153,8 @@ Project tasks are managed using [go-task](https://taskfile.dev/). You can list a
 
 This project is licensed under the MIT License. See [LICENSE](docs/LICENSE) for details.
 
+
+
 ================================================
 File: LICENSE
 ================================================
@@ -177,6 +179,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
 
 ================================================
 File: Taskfile.yml
@@ -210,7 +214,8 @@ tasks:
       - go test ./...
       - gocyclo -over 15 .
       - gitingest -o docs/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,docs/digest.txt,docs/archive/* .
-      - cat -s docs/digest.txt > docs/temp_file.txt && mv docs/temp_file.txt docs/digest.txt
+      - sed -i'' -e :a -e '/^\n*$/{$d;N;ba' -e '}' docs/digest.txt && echo >> docs/digest.txt
+      - sed -i'' '$ { /^$/ d; }' docs/digest.txt
 
   sign:
     desc: Sign releases with GPG key.
@@ -222,6 +227,8 @@ tasks:
     cmds:
       - go build -o build/almd.exe ./cmd/almd
       - pwsh.exe -ExecutionPolicy Bypass -File ./install.ps1 --local
+
+
 
 ================================================
 File: devenv.lock
@@ -330,6 +337,8 @@ File: devenv.lock
   "version": 7
 }
 
+
+
 ================================================
 File: devenv.nix
 ================================================
@@ -368,6 +377,8 @@ File: devenv.nix
   '';
 }
 
+
+
 ================================================
 File: devenv.yaml
 ================================================
@@ -386,6 +397,8 @@ inputs:
 # If you have more than one devenv you can merge them
 #imports:
 # - ./backend
+
+
 
 ================================================
 File: go.mod
@@ -428,6 +441,8 @@ require (
 	golang.org/x/time v0.11.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+
 
 ================================================
 File: go.sum
@@ -520,6 +535,8 @@ gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+
+
 
 ================================================
 File: install.ps1
@@ -641,6 +658,8 @@ Write-Host "Installation complete!"
 Write-Host "Make sure $WrapperDir is in your Path environment variable. You may need to restart your terminal or system."
 
 Remove-Item -Recurse -Force $TmpDir
+
+
 
 ================================================
 File: install.sh
@@ -813,6 +832,8 @@ esac
 
 rm -rf "$TMP_DIR"
 
+
+
 ================================================
 File: .devenv.flake.nix
 ================================================
@@ -980,6 +1001,8 @@ devenv_direnvrc_latest_version = 1;
         };
       }
 
+
+
 ================================================
 File: .envrc
 ================================================
@@ -990,6 +1013,8 @@ eval "$(devenv direnvrc)"
 # The use_devenv function supports passing flags to the devenv command
 # For example: use devenv --impure --option services.postgres.enable:bool true
 use devenv
+
+
 
 ================================================
 File: .pre-commit-config.yaml
@@ -1036,6 +1061,8 @@ repos:
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
+
+
 
 ================================================
 File: cmd/almd/main.go
@@ -1084,6 +1111,8 @@ func main() {
 		log.Fatal(err)
 	}
 }
+
+
 
 ================================================
 File: docs/PRD.md
@@ -1253,6 +1282,7 @@ Almandine (`almd` as the CLI command) is a lightweight package manager for Go pr
                 -   `--check` (optional `cli.BoolFlag`): Only checks for available updates and reports the status without performing the update.
                 -   `--source <url>` (optional `cli.StringFlag`): Potentially allows specifying an alternative update source URL (though typically this would be hardcoded or configured for the official build).
                 -   `--verbose` (optional `cli.BoolFlag`): Enables detailed output during the update check and process.
+
 
 ## 3. Almandine Tool Project Structure (Go Implementation)
 
@@ -1507,6 +1537,8 @@ These rules specify how testing and behavior specification are implemented using
         Command unit tests mock external dependencies (network, file system interactions beyond the temp dir).
         E2E-style tests will naturally depend on the internal Go packages used for parsing/validation (e.g., `internal/core/config`, `internal/core/lockfile`).
 
+
+
 ================================================
 File: docs/SECURITY.md
 ================================================
@@ -1549,6 +1581,8 @@ The following are generally considered out of scope for our vulnerability disclo
 
 Thank you for helping keep Almandine secure. Your efforts in responsible disclosure are highly valued.
 
+
+
 ================================================
 File: docs/TASKS.md
 ================================================
@@ -1587,6 +1621,12 @@ File: docs/TASKS.md
     -   [x] Create `Taskfile.yml` with existing task definitions.
     -   [x] Update `README.md` to reflect new task runner and commands.
     -   [x] Update `README.md` requirements section.
+
+- [x] **Task: Ensure single blank line at end of docs/digest.txt** (2025-05-13)
+    - [x] Add command to `ready` task in `Taskfile.yml` to format `docs/digest.txt` for exactly one trailing blank line.
+
+
+
 
 ================================================
 File: internal/cli/add/add.go
@@ -1885,6 +1925,8 @@ func AddCmd() *cli.Command {
 		},
 	}
 }
+
+
 
 ================================================
 File: internal/cli/add/add_test.go
@@ -2438,6 +2480,8 @@ version = "0.1.0"
 	require.Error(t, err, "Attempting to read %s (which is a dir) as a file should fail", lockfile.LockfileName)
 }
 
+
+
 ================================================
 File: internal/cli/init/init.go
 ================================================
@@ -2540,6 +2584,8 @@ func InitCmd() *cli.Command {
 		},
 	}
 }
+
+
 
 ================================================
 File: internal/cli/init/init_test.go
@@ -2725,6 +2771,8 @@ func TestInitCommand_DefaultsAndEmpty(t *testing.T) {
 
 	assert.Nil(t, generatedConfig.Dependencies, "Dependencies should be nil/omitted")
 }
+
+
 
 ================================================
 File: internal/cli/install/install.go
@@ -3258,6 +3306,8 @@ func InstallCmd() *cli.Command {
 		},
 	}
 }
+
+
 
 ================================================
 File: internal/cli/install/install_test.go
@@ -4126,6 +4176,8 @@ func TestInstallCommand_ProjectTomlNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found in the current directory", "Error message should indicate file not found in current directory")
 }
 
+
+
 ================================================
 File: internal/cli/list/list.go
 ================================================
@@ -4302,6 +4354,8 @@ func printDefaultOutput(proj *project.Project, displayDeps []dependencyDisplayIn
 	}
 	return nil
 }
+
+
 
 ================================================
 File: internal/cli/list/list_test.go
@@ -4681,6 +4735,8 @@ hash = "%s"
 	assert.Equal(t, strings.TrimSpace(expectedOutput), strings.TrimSpace(output), "Output of 'almd ls' should match expected 'almd list' output")
 }
 
+
+
 ================================================
 File: internal/cli/remove/remove.go
 ================================================
@@ -4877,6 +4933,8 @@ func RemoveCmd() *cli.Command {
 		},
 	}
 }
+
+
 
 ================================================
 File: internal/cli/remove/remove_test.go
@@ -5302,6 +5360,8 @@ func runRemoveCommand(t *testing.T, workDir string, removeCmdArgs ...string) err
 	return app.Run(cliArgs)
 }
 
+
+
 ================================================
 File: internal/cli/self/self.go
 ================================================
@@ -5555,6 +5615,8 @@ func confirmUpdate(autoConfirm bool) (bool, error) {
 	return strings.TrimSpace(strings.ToLower(input)) == "y", nil
 }
 
+
+
 ================================================
 File: internal/core/config/config.go
 ================================================
@@ -5605,6 +5667,8 @@ func WriteProjectToml(dirPath string, data *project.Project) error {
 	_, err = file.Write(buf.Bytes())
 	return err
 }
+
+
 
 ================================================
 File: internal/core/config/config_test.go
@@ -5742,6 +5806,8 @@ version = "0.0.1"
 	assert.Nil(t, loadedProj.Dependencies)
 }
 
+
+
 ================================================
 File: internal/core/downloader/downloader.go
 ================================================
@@ -5775,6 +5841,8 @@ func DownloadFile(url string) ([]byte, error) {
 
 	return body, nil
 }
+
+
 
 ================================================
 File: internal/core/downloader/downloader_test.go
@@ -5867,6 +5935,8 @@ func TestDownloadFile_ReadBodyError(t *testing.T) {
 	assert.Contains(t, err.Error(), fmt.Sprintf("failed to read response body from %s", server.URL), "Error message mismatch for read body error")
 }
 
+
+
 ================================================
 File: internal/core/hasher/hasher.go
 ================================================
@@ -5890,6 +5960,8 @@ func CalculateSHA256(content []byte) (string, error) {
 	hashString := hex.EncodeToString(hashBytes)
 	return fmt.Sprintf("sha256:%s", hashString), nil
 }
+
+
 
 ================================================
 File: internal/core/hasher/hasher_test.go
@@ -5944,6 +6016,8 @@ func TestCalculateSHA256_DifferentContent(t *testing.T) {
 
 	assert.NotEqual(t, actualHash1, actualHash2, "Hashes for different content should not be the same")
 }
+
+
 
 ================================================
 File: internal/core/lockfile/lockfile.go
@@ -6033,6 +6107,8 @@ func (lf *Lockfile) AddOrUpdatePackage(name, rawURL, relativePath, integrityHash
 		Hash:   integrityHash,
 	}
 }
+
+
 
 ================================================
 File: internal/core/lockfile/lockfile_test.go
@@ -6224,6 +6300,8 @@ func TestAddOrUpdatePackage_NilMap(t *testing.T) {
 	assert.Equal(t, "urlC", lf.Package["libC"].Source)
 }
 
+
+
 ================================================
 File: internal/core/project/project.go
 ================================================
@@ -6272,6 +6350,8 @@ func NewProject() *Project {
 	}
 }
 
+
+
 ================================================
 File: internal/core/project/project_test.go
 ================================================
@@ -6302,6 +6382,8 @@ func TestNewProject(t *testing.T) {
 	assert.Equal(t, "", p.Package.License, "Package.License should be empty initially")
 	assert.Equal(t, "", p.Package.Description, "Package.Description should be empty initially")
 }
+
+
 
 ================================================
 File: internal/core/source/github_api.go
@@ -6385,6 +6467,8 @@ func GetLatestCommitSHAForFile(owner, repo, pathInRepo, ref string) (string, err
 
 	return commits[0].SHA, nil
 }
+
+
 
 ================================================
 File: internal/core/source/github_api_test.go
@@ -6570,6 +6654,8 @@ func TestGetLatestCommitSHAForFile_UsesCorrectURLParameters(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, expectedSHA, sha)
 }
+
+
 
 ================================================
 File: internal/core/source/source.go
@@ -6872,6 +6958,8 @@ func parseGitHubURLWithAtRef(u *url.URL, owner, repo string, pathParts []string)
 	rawURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, filePathInRepo)
 	return
 }
+
+
 
 ================================================
 File: internal/core/source/source_test.go
@@ -7254,6 +7342,8 @@ func TestParseSourceURL_NonGitHubURLs(t *testing.T) {
 	}
 }
 
+
+
 ================================================
 File: scripts/README.md
 ================================================
@@ -7320,6 +7410,7 @@ When executed, the script will:
     *   Avoid hardcoding sensitive credentials directly into scripts or committing them to version control. Using environment variables or interactive prompts (as the script does) is preferred.
 *   **API Rate Limits:** While the script processes releases and assets one by one, be mindful of GitHub API rate limits if you are processing a very large number of releases or assets frequently.
 *   **Manual Testing:** It is highly recommended to first test this script on a fork or a test repository with a few sample releases to ensure it behaves as expected with your GPG setup and GitHub token before running it on your main project repository.
+
 
 ================================================
 File: scripts/sign_releases.py
@@ -7554,10 +7645,16 @@ def main():
                 elif os.path.exists(temp_dir) and os.listdir(temp_dir):
                     logging.warning(f"Temporary directory {temp_dir} is not empty after processing asset {asset_name}. Manual cleanup may be required.")
 
+
     logging.info("\nScript finished.")
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
 
 ================================================
 File: .github/CODEOWNERS
@@ -7589,6 +7686,8 @@ File: .github/CODEOWNERS
 # /cmd/      @nightconcept
 # /internal/ @nightconcept
 # /scripts/  dark@nightconcept.net
+
+
 
 ================================================
 File: .github/copilot-instructions.md
@@ -7699,6 +7798,8 @@ File: .github/copilot-instructions.md
 * Be friendly, helpful, collaborative.
 * Explicitly state when task requirements are met. Mark task complete in `docs/TASKS.md`.
 
+
+
 ================================================
 File: .github/dependabot.yml
 ================================================
@@ -7714,6 +7815,8 @@ updates:
     directory: /
     schedule:
       interval: daily
+
+
 
 ================================================
 File: .github/scripts/determine_next_version.py
@@ -7868,12 +7971,15 @@ def main():
     else:
         next_v_tag = next_v_str
 
+
     print(f"Calculated next version: {next_v_tag}", file=sys.stderr)
     print(f"::set-output name=next_version::{next_v_tag}")
     print(f"::set-output name=is_prerelease::{is_prerelease}")
 
 if __name__ == "__main__":
     main()
+
+
 
 ================================================
 File: .github/workflows/ci.yml
@@ -7937,6 +8043,8 @@ jobs:
           COVERALLS_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: |
           goveralls -coverprofile=coverage.out -service=github -repotoken $COVERALLS_TOKEN
+
+
 
 ================================================
 File: .github/workflows/codeql.yml
@@ -8020,6 +8128,8 @@ jobs:
         with:
           category: "/language:${{matrix.language}}"
 
+
+
 ================================================
 File: .github/workflows/dependency-review.yml
 ================================================
@@ -8050,6 +8160,8 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: 'Dependency Review'
         uses: actions/dependency-review-action@38ecb5b593bf0eb19e335c03f97670f792489a8b # v4.7.0
+
+
 
 ================================================
 File: .github/workflows/release.yml
@@ -8241,6 +8353,8 @@ jobs:
             release-artifacts/almd-binaries-windows-amd64/*.zip
             release-artifacts/almd-binaries-darwin-amd64/*.tar.gz
             release-artifacts/almd-binaries-darwin-arm64/*.tar.gz
+
+
 
 ================================================
 File: .github/workflows/scorecard.yml

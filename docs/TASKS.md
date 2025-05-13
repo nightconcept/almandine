@@ -33,3 +33,6 @@
     -   [x] Create `Taskfile.yml` with existing task definitions.
     -   [x] Update `README.md` to reflect new task runner and commands.
     -   [x] Update `README.md` requirements section.
+
+- [x] **Task: Ensure single blank line at end of docs/digest.txt** (2025-05-13)
+    - [x] Add command to `ready` task in `Taskfile.yml` to format `docs/digest.txt` for exactly one trailing blank line.

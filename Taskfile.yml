@@ -27,6 +27,8 @@ tasks:
       - go test ./...
       - gocyclo -over 15 .
       - gitingest -o docs/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,docs/digest.txt,docs/archive/* .
+      - sed -i'' -e :a -e '/^\n*$/{$d;N;ba' -e '}' docs/digest.txt && echo >> docs/digest.txt
+      - sed -i'' '$ { /^$/ d; }' docs/digest.txt
 
   sign:
     desc: Sign releases with GPG key.
