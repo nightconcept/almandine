@@ -28,3 +28,8 @@
 
 -   [x] **Task: Fix cyclomatic complexity in `updateAction`** (2025-05-13)
     -   Refactor `internal/cli/self/self.go:updateAction()` to reduce cyclomatic complexity below 15.
+
+-   [x] **Task: Convert build tasks from xc to go-task** (2025-05-13)
+    -   [x] Create `Taskfile.yml` with existing task definitions.
+    -   [x] Update `README.md` to reflect new task runner and commands.
+    -   [x] Update `README.md` requirements section.

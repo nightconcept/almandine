@@ -40,7 +40,7 @@ powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/nig
 ### Windows
 - Go 1.24
 - [pre-commit](https://pre-commit.com/)
-- [xc](https://github.com/joerdav/xc) task runner
+- [go-task](https://taskfile.dev/) task runner
 
 _Note: These can all be installed via Scoop._
 
@@ -58,13 +58,14 @@ almd self update         # Update almd
 
 ## Tasks
 
+Project tasks are managed using [go-task](https://taskfile.dev/). You can list available tasks with `task --list`.
+
 ### build
 
-Builds the `almd` binary.
+Builds the `almd` binary for Linux and Windows.
 
 ```sh
-go build -o build/almd ./cmd/almd
-go build -o build/almd.exe ./cmd/almd
+task build
 ```
 
 ### lint
@@ -72,7 +73,7 @@ go build -o build/almd.exe ./cmd/almd
 Run lint.
 
 ```sh
-golangci-lint run
+task lint
 ```
 
 ### test
@@ -80,20 +81,15 @@ golangci-lint run
 Run tests.
 
 ```sh
-go test ./...
+task test
 ```
 
 ### ready
 
-Prepare for commit.
+Prepare for commit (runs tests, formats, lints, etc.).
 
 ```sh
-go test ./...
-go fmt ./...
-go vet ./...
-go mod tidy -v
-golangci-lint run --fix
-gitingest -o docs/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,docs/digest.txt,docs/archive/* .
+task ready
 ```
 
 ### sign
@@ -101,7 +97,7 @@ gitingest -o docs/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,
 Sign releases with GPG key.
 
 ```sh
-python scripts/sign_releases.py nightconcept/almandine --yes
+task sign
 ```
 
 ### yolo
@@ -109,8 +105,7 @@ python scripts/sign_releases.py nightconcept/almandine --yes
 Build and install the `almd` binary to Windows.
 
 ```sh
-go build -o build/almd.exe ./cmd/almd
-pwsh.exe -ExecutionPolicy Bypass -File ./install.ps1 --local
+task yolo
 ```
 
 ## License
