@@ -19,6 +19,7 @@ in {
   packages = with pkgs; [
     golangci-lint
     pre-commit
+    shellcheck
     xc
   ];
 

@@ -1,4 +1,4 @@
-fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
+# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
 
 **Purpose:** Tracks tasks and milestones for implementing the core `init` and `add` commands for the Almandine Go CLI (`almd`), based on the specifications in `project/PRD.md`.
 
@@ -865,3 +865,22 @@ fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
     -   [x] Modify `.github/scripts/determine_next_version.py` to check if a calculated pre-release version (e.g., `v0.2.0-alpha.1`) already exists.
     -   [x] If it exists, increment the pre-release number (e.g., to `v0.2.0-alpha.2`) and re-check until a unique version is found.
     -   [x] Manual Verification: Run the script with `BUMP_TYPE=alpha` when `v0.2.0-alpha.1` exists. Verify it outputs `v0.2.0-alpha.2`. Test with `beta` and `rc` as well.
+
+- [x] Fix ShellCheck SC2016 warnings in install.sh (2025-05-12)
+
+## Milestone 24: Code Quality Improvements
+-   [ ] **Task 24.1: Refactor `internal/cli/list/list.go:ListCmd` to reduce cyclomatic complexity (2025-05-13)**
+    -   [ ] Identify complex sections in `ListCmd`.
+    -   [ ] Extract logic into private helper functions.
+    -   [ ] Ensure tests in `internal/cli/list/list_test.go` still pass.
+
+**Goal:** Address code quality issues and improve maintainability.
+
+-   [x] **Task 24.1: Fix Cyclomatic Complexity in `internal/cli/install/install.go` (2025-05-12)**
+    -   [x] Refactor `filterDependenciesRequiringAction` to reduce complexity.
+    -   [x] Refactor `resolveInstallStates` to reduce complexity.
+    -   [x] Refactor `executeInstallOperations` to reduce complexity.
+-   [x] **Task 24.2: Refactor `parseGitHubFullURL` in `internal/core/source/source.go` (2025-05-13)**
+    -   [x] Reduced cyclomatic complexity from 26 by extracting logic into `parseGitHubURLWithType` and `parseGitHubURLWithAtRef` helper functions.
+-   [x] **Task 24.3: Fix Cyclomatic Complexity in `internal/cli/add/add.go` (2025-05-13)**
+    -   [x] Refactored `AddCmd()` (complexity 19) and `calculateIntegrityHash()` (complexity 18) in [`internal/cli/add/add.go`](internal/cli/add/add.go:0) by extracting helper functions.
