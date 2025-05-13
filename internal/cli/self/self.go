@@ -53,7 +53,7 @@ func SelfCmd() *cli.Command {
 // and supports custom GitHub repositories via the --source flag.
 func updateAction(c *cli.Context) error {
 	verbose := c.Bool("verbose")
-	currentVersionStr := c.App.Version
+	currentVersionStr := c.App.Version // Retain for initial parsing
 
 	currentSemVer, err := parseVersion(currentVersionStr, verbose)
 	if err != nil {
@@ -70,13 +70,40 @@ func updateAction(c *cli.Context) error {
 		return err // error is already a cli.Exit error
 	}
 
-	latestRelease, found, err := detectLatestVersion(c, updater, repoSlug, verbose)
+	// Pass currentSemVer.String() for messages as it's validated.
+	latestRelease, proceed, err := processUpdateCheck(c, currentSemVer, repoSlug, updater, verbose)
 	if err != nil {
-		return err // error is already a cli.Exit error
+		return err // Propagate error from processUpdateCheck
 	}
+	if !proceed {
+		return nil // Indicates no update needed, or user was informed (e.g. already latest)
+	}
+
+	// latestRelease is guaranteed non-nil if proceed is true
+	return executeUpdate(c, latestRelease, updater, verbose)
+}
+
+// processUpdateCheck handles detecting the latest version, comparing it with the current version,
+// and printing relevant information. It returns the latest release, a boolean indicating
+// whether to proceed with the update (true if an update is available and newer), and an error if one occurred.
+func processUpdateCheck(c *cli.Context, currentSemVer *semver.Version, repoSlug string, updater *selfupdate.Updater, verbose bool) (*selfupdate.Release, bool, error) {
+	if verbose {
+		fmt.Println("Checking for latest version...")
+	}
+
+	repository := selfupdate.ParseSlug(repoSlug)
+	latestRelease, found, err := updater.DetectLatest(c.Context, repository)
+	if err != nil {
+		return nil, false, cli.Exit(fmt.Sprintf("Error detecting latest version: %v", err), 1)
+	}
+
 	if !found {
-		fmt.Printf("Current version %s is already the latest.\n", currentVersionStr)
-		return nil
+		if verbose {
+			fmt.Println("No update available (checked with source, no newer version found).")
+		}
+		// Use currentSemVer.String() for consistency with other messages
+		fmt.Printf("Current version %s is already the latest.\n", currentSemVer.String())
+		return nil, false, nil
 	}
 
 	if verbose {
@@ -89,23 +116,30 @@ func updateAction(c *cli.Context) error {
 		}
 	}
 
+	// Compare using currentSemVer.String() which is the parsed version string
 	if !latestRelease.GreaterThan(currentSemVer.String()) {
-		fmt.Printf("Current version %s is already the latest or newer.\n", currentVersionStr)
-		return nil
+		fmt.Printf("Current version %s is already the latest or newer.\n", currentSemVer.String())
+		return nil, false, nil
 	}
 
-	fmt.Printf("New version available: %s (current: %s)\n", latestRelease.Version(), currentVersionStr)
+	fmt.Printf("New version available: %s (current: %s)\n", latestRelease.Version(), currentSemVer.String())
+	return latestRelease, true, nil
+}
 
+// executeUpdate handles the confirmation and execution of the self-update.
+// It assumes latestRelease is non-nil and represents an actual available update.
+func executeUpdate(c *cli.Context, latestRelease *selfupdate.Release, updater *selfupdate.Updater, verbose bool) error {
 	if c.Bool("check") {
+		// User was already informed by processUpdateCheck that a new version is available.
 		return nil
 	}
 
-	proceed, err := confirmUpdate(c.Bool("yes"))
+	proceedConfirmation, err := confirmUpdate(c.Bool("yes"))
 	if err != nil {
 		// This case should ideally not be reached if confirmUpdate handles its errors properly.
 		return cli.Exit(fmt.Sprintf("Error during confirmation: %v", err), 1)
 	}
-	if !proceed {
+	if !proceedConfirmation {
 		fmt.Println("Update cancelled.")
 		return nil
 	}
@@ -194,28 +228,6 @@ func newUpdater(verbose bool) (*selfupdate.Updater, error) {
 		fmt.Println("Updater initialized.")
 	}
 	return updater, nil
-}
-
-// detectLatestVersion checks for the latest release using the provided updater and repository slug.
-// It returns the latest release information, a boolean indicating if a release was found, and an error.
-func detectLatestVersion(c *cli.Context, updater *selfupdate.Updater, repoSlug string, verbose bool) (*selfupdate.Release, bool, error) {
-	if verbose {
-		fmt.Println("Checking for latest version...")
-	}
-
-	repository := selfupdate.ParseSlug(repoSlug)
-	latestRelease, found, err := updater.DetectLatest(c.Context, repository)
-	if err != nil {
-		return nil, false, cli.Exit(fmt.Sprintf("Error detecting latest version: %v", err), 1)
-	}
-
-	if !found {
-		if verbose {
-			fmt.Println("No update available (checked with source, no newer version found).")
-		}
-		return nil, false, nil
-	}
-	return latestRelease, true, nil
 }
 
 // confirmUpdate handles the user confirmation step for the update.

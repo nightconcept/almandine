@@ -6,6 +6,7 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/nightconcept/almandine)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/nightconcept/almandine/badge)](https://scorecard.dev/viewer/?uri=github.com/nightconcept/almandine)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10539/badge)](https://www.bestpractices.dev/projects/10539)
+[![Go Report Card](https://goreportcard.com/badge/github.com/nightconcept/almandine)](https://goreportcard.com/report/github.com/nightconcept/almandine)
 
 A modern, cross-platform, developer-friendly package manager for Lua projects.
 Easily manage, install, and update Lua single-file dependencies..
@@ -20,30 +21,32 @@ Easily manage, install, and update Lua single-file dependencies..
 
 You can install `almd` by running the following commands in your terminal. These scripts will download and run the appropriate installer for your system from the `main` branch of the official repository.
 
-### macOS and Linux
+### macOS/Linux Install
 
 ```sh
 curl -LsSf https://raw.githubusercontent.com/nightconcept/almandine/main/install.sh | sh
 ```
 
-### Windows
+### Windows Install
 
 ```powershell
 powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/nightconcept/almandine/main/install.ps1 | iex"
 ```
+
 ## Requirements
 
-### macOS/Linux
+### macOS/Linux Requirements
+
 - [Nix](https://nixos.org/)
 - [devenv](https://devenv.sh/)
 
-### Windows
+### Windows Requirements
+
 - Go 1.24
 - [pre-commit](https://pre-commit.com/)
 - [go-task](https://taskfile.dev/) task runner
 
 _Note: These can all be installed via Scoop._
-
 
 ## Usage
 
@@ -59,54 +62,6 @@ almd self update         # Update almd
 ## Tasks
 
 Project tasks are managed using [go-task](https://taskfile.dev/). You can list available tasks with `task --list`.
-
-### build
-
-Builds the `almd` binary for Linux and Windows.
-
-```sh
-task build
-```
-
-### lint
-
-Run lint.
-
-```sh
-task lint
-```
-
-### test
-
-Run tests.
-
-```sh
-task test
-```
-
-### ready
-
-Prepare for commit (runs tests, formats, lints, etc.).
-
-```sh
-task ready
-```
-
-### sign
-
-Sign releases with GPG key.
-
-```sh
-task sign
-```
-
-### yolo
-
-Build and install the `almd` binary to Windows.
-
-```sh
-task yolo
-```
 
 ## License
 

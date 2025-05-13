@@ -20,11 +20,12 @@ tasks:
   ready:
     desc: Prepare for commit.
     cmds:
-      - go test ./...
       - go fmt ./...
       - go vet ./...
       - go mod tidy -v
       - golangci-lint run --fix
+      - go test ./...
+      - gocyclo -over 15 .
       - gitingest -o docs/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,docs/digest.txt,docs/archive/* .
 
   sign:

@@ -27,7 +27,7 @@
     -   [x] Manual Verification: Build the project (`go build -o almd .`) and confirm the output file is named `almd`.
 
 -   [x] **Task: Fix cyclomatic complexity in `updateAction`** (2025-05-13)
-    -   Refactor `internal/cli/self/self.go:updateAction()` to reduce cyclomatic complexity below 15.
+    -   [x] Refactor `internal/cli/self/self.go:updateAction()` to reduce cyclomatic complexity below 15.
 
 -   [x] **Task: Convert build tasks from xc to go-task** (2025-05-13)
     -   [x] Create `Taskfile.yml` with existing task definitions.
