@@ -867,3 +867,12 @@ fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
     -   [x] Manual Verification: Run the script with `BUMP_TYPE=alpha` when `v0.2.0-alpha.1` exists. Verify it outputs `v0.2.0-alpha.2`. Test with `beta` and `rc` as well.
 
 - [x] Fix ShellCheck SC2016 warnings in install.sh (2025-05-12)
+
+## Milestone 24: Code Quality Improvements
+
+**Goal:** Address code quality issues and improve maintainability.
+
+-   [x] **Task 24.1: Fix Cyclomatic Complexity in `internal/cli/install/install.go` (2025-05-12)**
+    -   [x] Refactor `filterDependenciesRequiringAction` to reduce complexity.
+    -   [x] Refactor `resolveInstallStates` to reduce complexity.
+    -   [x] Refactor `executeInstallOperations` to reduce complexity.

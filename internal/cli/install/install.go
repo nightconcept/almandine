@@ -165,6 +165,72 @@ func collectDependenciesToProcess(projCfg *coreproject.Project, dependencyNames 
 	return dependenciesToProcessList, nil
 }
 
+// resolveGitHubCommitRef attempts to resolve a Git ref (branch/tag) to a specific commit SHA for GitHub sources.
+// If the ref is already a SHA, or resolution fails, it returns the original ref and URL.
+func resolveGitHubCommitRef(parsedSourceInfo *source.ParsedSourceInfo, depName string, verbose bool) (resolvedCommitHash string, finalTargetRawURL string) {
+	resolvedCommitHash = parsedSourceInfo.Ref
+	finalTargetRawURL = parsedSourceInfo.RawURL
+
+	if parsedSourceInfo.Provider == "github" && !isCommitSHARegex.MatchString(parsedSourceInfo.Ref) {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "  Ref '%s' for '%s' is not a full commit SHA. Attempting to resolve latest commit for path '%s'...\n", parsedSourceInfo.Ref, depName, parsedSourceInfo.PathInRepo)
+		}
+		latestSHA, err := source.GetLatestCommitSHAForFile(parsedSourceInfo.Owner, parsedSourceInfo.Repo, parsedSourceInfo.PathInRepo, parsedSourceInfo.Ref)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "  Warning: Could not resolve ref '%s' to a specific commit for '%s': %v. Proceeding with ref as is.\n", parsedSourceInfo.Ref, depName, err)
+		} else {
+			if verbose {
+				_, _ = fmt.Fprintf(os.Stdout, "  Resolved ref '%s' to commit SHA: %s for '%s'\n", parsedSourceInfo.Ref, latestSHA, depName)
+			}
+			resolvedCommitHash = latestSHA
+			finalTargetRawURL = strings.Replace(parsedSourceInfo.RawURL, "/"+parsedSourceInfo.Ref+"/", "/"+latestSHA+"/", 1)
+		}
+	} else if verbose && parsedSourceInfo.Provider == "github" {
+		_, _ = fmt.Fprintf(os.Stdout, "  Ref '%s' for '%s' appears to be a commit SHA. Using it directly.\n", parsedSourceInfo.Ref, depName)
+	}
+	return resolvedCommitHash, finalTargetRawURL
+}
+
+// resolveSingleDependencyState resolves the target and locked state for a single dependency.
+func resolveSingleDependencyState(depToProcess dependencyToProcess, lf *lockfile.Lockfile, verbose bool) (*dependencyInstallState, error) {
+	if verbose {
+		_, _ = fmt.Fprintf(os.Stdout, "Processing dependency: %s (Source: %s)\n", depToProcess.Name, depToProcess.Source)
+	}
+
+	parsedSourceInfo, err := source.ParseSourceURL(depToProcess.Source)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Warning: Could not parse source URL for dependency '%s' (%s): %v. Skipping.\n", depToProcess.Name, depToProcess.Source, err)
+		return nil, nil // Return nil, nil to indicate skipping this dependency
+	}
+
+	resolvedCommitHash, finalTargetRawURL := resolveGitHubCommitRef(parsedSourceInfo, depToProcess.Name, verbose)
+
+	currentState := dependencyInstallState{
+		Name:              depToProcess.Name,
+		ProjectTomlSource: depToProcess.Source,
+		ProjectTomlPath:   depToProcess.Path,
+		TargetRawURL:      finalTargetRawURL,
+		TargetCommitHash:  resolvedCommitHash,
+		Provider:          parsedSourceInfo.Provider,
+		Owner:             parsedSourceInfo.Owner,
+		Repo:              parsedSourceInfo.Repo,
+		PathInRepo:        parsedSourceInfo.PathInRepo,
+	}
+
+	if lockDetails, ok := lf.Package[depToProcess.Name]; ok {
+		currentState.LockedRawURL = lockDetails.Source
+		currentState.LockedCommitHash = lockDetails.Hash
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "  Found in lockfile: Name: %s, Locked Source: %s, Locked Hash: %s\n", depToProcess.Name, lockDetails.Source, lockDetails.Hash)
+		}
+	} else {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "  Dependency '%s' not found in lockfile.\n", depToProcess.Name)
+		}
+	}
+	return &currentState, nil
+}
+
 // resolveInstallStates resolves the target and locked states for each dependency.
 func resolveInstallStates(dependenciesToProcessList []dependencyToProcess, lf *lockfile.Lockfile, verbose bool) ([]dependencyInstallState, error) {
 	var installStates []dependencyInstallState
@@ -174,61 +240,16 @@ func resolveInstallStates(dependenciesToProcessList []dependencyToProcess, lf *l
 	}
 
 	for _, depToProcess := range dependenciesToProcessList {
-		if verbose {
-			_, _ = fmt.Fprintf(os.Stdout, "Processing dependency: %s (Source: %s)\n", depToProcess.Name, depToProcess.Source)
-		}
-
-		parsedSourceInfo, err := source.ParseSourceURL(depToProcess.Source)
+		state, err := resolveSingleDependencyState(depToProcess, lf, verbose)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Warning: Could not parse source URL for dependency '%s' (%s): %v. Skipping.\n", depToProcess.Name, depToProcess.Source, err)
+			// This error case is not currently hit by resolveSingleDependencyState as it returns nil, nil for skippable errors.
+			// However, keeping it for future robustness if resolveSingleDependencyState changes to return actual errors.
+			_, _ = fmt.Fprintf(os.Stderr, "Error resolving state for dependency '%s': %v. Skipping.\n", depToProcess.Name, err)
 			continue
 		}
-
-		var resolvedCommitHash = parsedSourceInfo.Ref
-		var finalTargetRawURL = parsedSourceInfo.RawURL
-
-		if parsedSourceInfo.Provider == "github" && !isCommitSHARegex.MatchString(parsedSourceInfo.Ref) {
-			if verbose {
-				_, _ = fmt.Fprintf(os.Stdout, "  Ref '%s' for '%s' is not a full commit SHA. Attempting to resolve latest commit for path '%s'...\n", parsedSourceInfo.Ref, depToProcess.Name, parsedSourceInfo.PathInRepo)
-			}
-			latestSHA, err := source.GetLatestCommitSHAForFile(parsedSourceInfo.Owner, parsedSourceInfo.Repo, parsedSourceInfo.PathInRepo, parsedSourceInfo.Ref)
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "  Warning: Could not resolve ref '%s' to a specific commit for '%s': %v. Proceeding with ref as is.\n", parsedSourceInfo.Ref, depToProcess.Name, err)
-			} else {
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "  Resolved ref '%s' to commit SHA: %s for '%s'\n", parsedSourceInfo.Ref, latestSHA, depToProcess.Name)
-				}
-				resolvedCommitHash = latestSHA
-				finalTargetRawURL = strings.Replace(parsedSourceInfo.RawURL, "/"+parsedSourceInfo.Ref+"/", "/"+latestSHA+"/", 1)
-			}
-		} else if verbose && parsedSourceInfo.Provider == "github" {
-			_, _ = fmt.Fprintf(os.Stdout, "  Ref '%s' for '%s' appears to be a commit SHA. Using it directly.\n", parsedSourceInfo.Ref, depToProcess.Name)
+		if state != nil {
+			installStates = append(installStates, *state)
 		}
-
-		currentState := dependencyInstallState{
-			Name:              depToProcess.Name,
-			ProjectTomlSource: depToProcess.Source,
-			ProjectTomlPath:   depToProcess.Path,
-			TargetRawURL:      finalTargetRawURL,
-			TargetCommitHash:  resolvedCommitHash,
-			Provider:          parsedSourceInfo.Provider,
-			Owner:             parsedSourceInfo.Owner,
-			Repo:              parsedSourceInfo.Repo,
-			PathInRepo:        parsedSourceInfo.PathInRepo,
-		}
-
-		if lockDetails, ok := lf.Package[depToProcess.Name]; ok {
-			currentState.LockedRawURL = lockDetails.Source
-			currentState.LockedCommitHash = lockDetails.Hash
-			if verbose {
-				_, _ = fmt.Fprintf(os.Stdout, "  Found in lockfile: Name: %s, Locked Source: %s, Locked Hash: %s\n", depToProcess.Name, lockDetails.Source, lockDetails.Hash)
-			}
-		} else {
-			if verbose {
-				_, _ = fmt.Fprintf(os.Stdout, "  Dependency '%s' not found in lockfile.\n", depToProcess.Name)
-			}
-		}
-		installStates = append(installStates, currentState)
 	}
 
 	if verbose && len(installStates) > 0 {
@@ -241,6 +262,76 @@ func resolveInstallStates(dependenciesToProcessList []dependencyToProcess, lf *l
 }
 
 // filterDependenciesRequiringAction identifies which dependencies actually need an install/update.
+
+func checkForceInstall(state dependencyInstallState, force bool, verbose bool) (needsAction bool, reason string) {
+	if force {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (forced).\n", state.Name)
+		}
+		return true, "Install/Update forced by user (--force)."
+	}
+	return false, ""
+}
+
+func checkMissingFromLockfile(state dependencyInstallState, verbose bool) (needsAction bool, reason string) {
+	if state.LockedCommitHash == "" {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (not in lockfile).\n", state.Name)
+		}
+		return true, "Dependency present in project.toml but not in almd-lock.toml."
+	}
+	return false, ""
+}
+
+func checkLocalFileStatus(state dependencyInstallState, verbose bool) (needsAction bool, reason string) {
+	if _, err := os.Stat(state.ProjectTomlPath); errors.Is(err, os.ErrNotExist) {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (file missing at %s).\n", state.Name, state.ProjectTomlPath)
+		}
+		return true, fmt.Sprintf("Local file missing at path: %s.", state.ProjectTomlPath)
+	} else if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Warning: Could not stat file for dependency '%s' at '%s': %v. Assuming install/update check is needed.\n", state.Name, state.ProjectTomlPath, err)
+		return true, fmt.Sprintf("Error checking local file status at %s: %v.", state.ProjectTomlPath, err)
+	}
+	return false, ""
+}
+
+func checkCommitHashMismatch(state dependencyInstallState, verbose bool) (needsAction bool, reason string) {
+	if state.TargetCommitHash == "" || state.LockedCommitHash == "" {
+		return false, ""
+	}
+	var lockedSHA string
+	if strings.HasPrefix(state.LockedCommitHash, "commit:") {
+		lockedSHA = strings.TrimPrefix(state.LockedCommitHash, "commit:")
+	}
+
+	if lockedSHA != "" && state.TargetCommitHash != lockedSHA {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (target commit %s != locked commit %s).\n", state.Name, state.TargetCommitHash, lockedSHA)
+		}
+		return true, fmt.Sprintf("Target commit hash (%s) differs from locked commit hash (%s).", state.TargetCommitHash, lockedSHA)
+	}
+	return false, ""
+}
+
+func checkHashTypeConflict(state dependencyInstallState, verbose bool) (needsAction bool, reason string) {
+	if state.TargetCommitHash == "" || state.LockedCommitHash == "" {
+		return false, ""
+	}
+	var lockedSHA string
+	if strings.HasPrefix(state.LockedCommitHash, "commit:") {
+		lockedSHA = strings.TrimPrefix(state.LockedCommitHash, "commit:")
+	}
+
+	if lockedSHA == "" && strings.HasPrefix(state.LockedCommitHash, "sha256:") && isCommitSHARegex.MatchString(state.TargetCommitHash) {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (target is specific commit %s, lockfile has content hash %s).\n", state.Name, state.TargetCommitHash, state.LockedCommitHash)
+		}
+		return true, fmt.Sprintf("Target is now a specific commit (%s), but lockfile has a content hash (%s).", state.TargetCommitHash, state.LockedCommitHash)
+	}
+	return false, ""
+}
+
 func filterDependenciesRequiringAction(installStates []dependencyInstallState, force bool, verbose bool) []dependencyInstallState {
 	var dependenciesThatNeedAction []dependencyInstallState
 
@@ -248,64 +339,25 @@ func filterDependenciesRequiringAction(installStates []dependencyInstallState, f
 		_, _ = fmt.Fprintln(os.Stdout, "\nDetermining which dependencies need install/update...")
 	}
 
-	for _, state := range installStates { // Use index to modify original slice for NeedsAction and ActionReason
-		reason := ""
-		needsAction := false
+	for _, state := range installStates {
+		var needsAction bool
+		var reason string
 
-		if force {
-			needsAction = true
-			reason = "Install/Update forced by user (--force)."
-			if verbose {
-				_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (forced).\n", state.Name)
-			}
-		}
-
-		if !needsAction && state.LockedCommitHash == "" {
-			needsAction = true
-			reason = "Dependency present in project.toml but not in almd-lock.toml."
-			if verbose {
-				_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (not in lockfile).\n", state.Name)
-			}
-		}
-
-		if !needsAction {
-			if _, err := os.Stat(state.ProjectTomlPath); errors.Is(err, os.ErrNotExist) {
-				needsAction = true
-				reason = fmt.Sprintf("Local file missing at path: %s.", state.ProjectTomlPath)
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (file missing at %s).\n", state.Name, state.ProjectTomlPath)
-				}
-			} else if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "Warning: Could not stat file for dependency '%s' at '%s': %v. Assuming install/update check is needed.\n", state.Name, state.ProjectTomlPath, err)
-				needsAction = true
-				reason = fmt.Sprintf("Error checking local file status at %s: %v.", state.ProjectTomlPath, err)
-			}
-		}
-
-		if !needsAction && state.TargetCommitHash != "" && state.LockedCommitHash != "" {
-			var lockedSHA string
-			if strings.HasPrefix(state.LockedCommitHash, "commit:") {
-				lockedSHA = strings.TrimPrefix(state.LockedCommitHash, "commit:")
-			}
-
-			if lockedSHA != "" && state.TargetCommitHash != lockedSHA {
-				needsAction = true
-				reason = fmt.Sprintf("Target commit hash (%s) differs from locked commit hash (%s).", state.TargetCommitHash, lockedSHA)
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (target commit %s != locked commit %s).\n", state.Name, state.TargetCommitHash, lockedSHA)
-				}
-			} else if lockedSHA == "" && strings.HasPrefix(state.LockedCommitHash, "sha256:") && isCommitSHARegex.MatchString(state.TargetCommitHash) {
-				needsAction = true
-				reason = fmt.Sprintf("Target is now a specific commit (%s), but lockfile has a content hash (%s).", state.TargetCommitHash, state.LockedCommitHash)
-				if verbose {
-					_, _ = fmt.Fprintf(os.Stdout, "  - %s: Needs install/update (target is specific commit %s, lockfile has content hash %s).\n", state.Name, state.TargetCommitHash, state.LockedCommitHash)
-				}
-			}
+		if needsAction, reason = checkForceInstall(state, force, verbose); needsAction {
+			// Already determined action
+		} else if needsAction, reason = checkMissingFromLockfile(state, verbose); needsAction {
+			// Already determined action
+		} else if needsAction, reason = checkLocalFileStatus(state, verbose); needsAction {
+			// Already determined action
+		} else if needsAction, reason = checkCommitHashMismatch(state, verbose); needsAction {
+			// Already determined action
+		} else {
+			// If none of the previous conditions were met, check the last one.
+			// The assignment happens regardless, but we only enter the 'if needsAction' block below if one of the checks returned true.
+			needsAction, reason = checkHashTypeConflict(state, verbose)
 		}
 
 		if needsAction {
-			// Modify a copy to avoid altering the original installStates slice passed around,
-			// and append this modified copy to dependenciesThatNeedAction.
 			actionableState := state // Make a copy
 			actionableState.NeedsAction = true
 			actionableState.ActionReason = reason
@@ -317,6 +369,64 @@ func filterDependenciesRequiringAction(installStates []dependencyInstallState, f
 	return dependenciesThatNeedAction
 }
 
+// executeSingleInstallOperation handles the installation process for a single dependency.
+// It returns the new lockfile entry and a boolean indicating success.
+func executeSingleInstallOperation(dep dependencyInstallState, verbose bool) (*lockfile.PackageEntry, bool) {
+	if verbose {
+		_, _ = fmt.Fprintf(os.Stdout, "  Installing/Updating '%s' from %s\n", dep.Name, dep.TargetRawURL)
+	}
+
+	fileContent, downloadErr := downloader.DownloadFile(dep.TargetRawURL)
+	if downloadErr != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to download dependency '%s' from '%s': %v\n", dep.Name, dep.TargetRawURL, downloadErr)
+		return nil, false
+	}
+	if verbose {
+		_, _ = fmt.Fprintf(os.Stdout, "    Successfully downloaded %s (%d bytes)\n", dep.Name, len(fileContent))
+	}
+
+	var integrityHash string
+	if dep.Provider == "github" && isCommitSHARegex.MatchString(dep.TargetCommitHash) {
+		integrityHash = "commit:" + dep.TargetCommitHash
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "    Using commit hash for integrity: %s\n", integrityHash)
+		}
+	} else {
+		contentHash, hashErr := hasher.CalculateSHA256(fileContent)
+		if hashErr != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to calculate SHA256 hash for dependency '%s': %v\n", dep.Name, hashErr)
+			return nil, false
+		}
+		integrityHash = contentHash
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stdout, "    Calculated content hash for integrity: %s\n", integrityHash)
+		}
+	}
+
+	targetDir := filepath.Dir(dep.ProjectTomlPath)
+	if mkdirErr := os.MkdirAll(targetDir, os.ModePerm); mkdirErr != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to create directory '%s' for dependency '%s': %v\n", targetDir, dep.Name, mkdirErr)
+		return nil, false
+	}
+	if writeErr := os.WriteFile(dep.ProjectTomlPath, fileContent, 0644); writeErr != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to write file '%s' for dependency '%s': %v\n", dep.ProjectTomlPath, dep.Name, writeErr)
+		return nil, false
+	}
+	if verbose {
+		_, _ = fmt.Fprintf(os.Stdout, "    Successfully saved %s to %s\n", dep.Name, dep.ProjectTomlPath)
+	}
+
+	newEntry := lockfile.PackageEntry{
+		Source: dep.TargetRawURL,
+		Path:   dep.ProjectTomlPath,
+		Hash:   integrityHash,
+	}
+	if verbose {
+		_, _ = fmt.Fprintf(os.Stdout, "    Prepared lockfile entry for %s: Path=%s, Hash=%s, SourceURL=%s\n", dep.Name, newEntry.Path, newEntry.Hash, newEntry.Source)
+	}
+	return &newEntry, true
+}
+
 // executeInstallOperations performs the download, hashing, file saving, and lockfile data updates.
 func executeInstallOperations(dependenciesThatNeedAction []dependencyInstallState, lf *lockfile.Lockfile, verbose bool) (successfulActions int, err error) {
 	if verbose && len(dependenciesThatNeedAction) > 0 {
@@ -324,59 +434,19 @@ func executeInstallOperations(dependenciesThatNeedAction []dependencyInstallStat
 	}
 
 	for _, dep := range dependenciesThatNeedAction {
-		if verbose {
-			_, _ = fmt.Fprintf(os.Stdout, "  Installing/Updating '%s' from %s\n", dep.Name, dep.TargetRawURL)
-		}
-
-		fileContent, downloadErr := downloader.DownloadFile(dep.TargetRawURL)
-		if downloadErr != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to download dependency '%s' from '%s': %v\n", dep.Name, dep.TargetRawURL, downloadErr)
-			continue // Skip to next dependency
-		}
-		if verbose {
-			_, _ = fmt.Fprintf(os.Stdout, "    Successfully downloaded %s (%d bytes)\n", dep.Name, len(fileContent))
-		}
-
-		var integrityHash string
-		if dep.Provider == "github" && isCommitSHARegex.MatchString(dep.TargetCommitHash) {
-			integrityHash = "commit:" + dep.TargetCommitHash
+		newLockEntry, success := executeSingleInstallOperation(dep, verbose)
+		if success && newLockEntry != nil {
+			lf.Package[dep.Name] = *newLockEntry
 			if verbose {
-				_, _ = fmt.Fprintf(os.Stdout, "    Using commit hash for integrity: %s\n", integrityHash)
+				_, _ = fmt.Fprintf(os.Stdout, "    Updated lockfile for %s.\n", dep.Name)
 			}
+			successfulActions++
 		} else {
-			contentHash, hashErr := hasher.CalculateSHA256(fileContent)
-			if hashErr != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to calculate SHA256 hash for dependency '%s': %v\n", dep.Name, hashErr)
-				continue
-			}
-			integrityHash = contentHash
+			// Error message already printed by executeSingleInstallOperation
 			if verbose {
-				_, _ = fmt.Fprintf(os.Stdout, "    Calculated content hash for integrity: %s\n", integrityHash)
+				_, _ = fmt.Fprintf(os.Stdout, "    Failed to process %s.\n", dep.Name)
 			}
 		}
-
-		targetDir := filepath.Dir(dep.ProjectTomlPath)
-		if mkdirErr := os.MkdirAll(targetDir, os.ModePerm); mkdirErr != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to create directory '%s' for dependency '%s': %v\n", targetDir, dep.Name, mkdirErr)
-			continue
-		}
-		if writeErr := os.WriteFile(dep.ProjectTomlPath, fileContent, 0644); writeErr != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Error: Failed to write file '%s' for dependency '%s': %v\n", dep.ProjectTomlPath, dep.Name, writeErr)
-			continue
-		}
-		if verbose {
-			_, _ = fmt.Fprintf(os.Stdout, "    Successfully saved %s to %s\n", dep.Name, dep.ProjectTomlPath)
-		}
-
-		lf.Package[dep.Name] = lockfile.PackageEntry{
-			Source: dep.TargetRawURL,
-			Path:   dep.ProjectTomlPath,
-			Hash:   integrityHash,
-		}
-		if verbose {
-			_, _ = fmt.Fprintf(os.Stdout, "    Updated lockfile entry for %s: Path=%s, Hash=%s, SourceURL=%s\n", dep.Name, dep.ProjectTomlPath, integrityHash, dep.TargetRawURL)
-		}
-		successfulActions++
 	}
 	return successfulActions, nil
 }
