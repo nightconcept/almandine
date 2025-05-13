@@ -1,0 +1,42 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Builds the 'almd' binary for linux and windows.
+    cmds:
+      - go build -o build/almd ./cmd/almd
+      - go build -o build/almd.exe ./cmd/almd
+
+  lint:
+    desc: Run lint.
+    cmds:
+      - golangci-lint run
+
+  test:
+    desc: Run tests.
+    cmds:
+      - go test ./...
+
+  ready:
+    desc: Prepare for commit.
+    cmds:
+      - go fmt ./...
+      - go vet ./...
+      - go mod tidy -v
+      - golangci-lint run --fix
+      - go test ./...
+      - gocyclo -over 15 .
+      - gitingest -o docs/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/*,.devenv/*,.direnv/*,docs/digest.txt,docs/archive/* .
+      - sed -i'' -e :a -e '/^\n*$/{$d;N;ba' -e '}' docs/digest.txt && echo >> docs/digest.txt
+      - sed -i'' '$ { /^$/ d; }' docs/digest.txt
+
+  sign:
+    desc: Sign releases with GPG key.
+    cmds:
+      - python scripts/sign_releases.py nightconcept/almandine --yes
+
+  yolo:
+    desc: Build and install the 'almd' binary to Windows.
+    cmds:
+      - go build -o build/almd.exe ./cmd/almd
+      - pwsh.exe -ExecutionPolicy Bypass -File ./install.ps1 --local

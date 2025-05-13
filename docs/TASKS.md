@@ -27,4 +27,12 @@
     -   [x] Manual Verification: Build the project (`go build -o almd .`) and confirm the output file is named `almd`.
 
 -   [x] **Task: Fix cyclomatic complexity in `updateAction`** (2025-05-13)
-    -   Refactor `internal/cli/self/self.go:updateAction()` to reduce cyclomatic complexity below 15.
+    -   [x] Refactor `internal/cli/self/self.go:updateAction()` to reduce cyclomatic complexity below 15.
+
+-   [x] **Task: Convert build tasks from xc to go-task** (2025-05-13)
+    -   [x] Create `Taskfile.yml` with existing task definitions.
+    -   [x] Update `README.md` to reflect new task runner and commands.
+    -   [x] Update `README.md` requirements section.
+
+- [x] **Task: Ensure single blank line at end of docs/digest.txt** (2025-05-13)
+    - [x] Add command to `ready` task in `Taskfile.yml` to format `docs/digest.txt` for exactly one trailing blank line.
