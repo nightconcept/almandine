@@ -194,59 +194,38 @@ func parseGitHubFullURL(u *url.URL) (*ParsedSourceInfo, error) {
 	owner := pathParts[0]
 	repo := pathParts[1]
 	var ref, filePathInRepo, rawURL, filename string
+	var err error
 
 	if len(pathParts) >= 4 && (pathParts[2] == "blob" || pathParts[2] == "tree" || pathParts[2] == "raw") {
-		// Handles /<owner>/<repo>/<type>/<ref>/<path_to_file>
-		if len(pathParts) < 5 {
-			return nil, fmt.Errorf("incomplete GitHub URL path: %s. Expected /<owner>/<repo>/<type>/<ref>/<path_to_file>", u.Path)
+		ref, filePathInRepo, filename, rawURL, err = parseGitHubURLWithType(u, owner, repo, pathParts)
+		if err != nil {
+			return nil, err
 		}
-		refType := pathParts[2]
-		ref = pathParts[3]
-		filePathInRepo = strings.Join(pathParts[4:], "/")
-		filename = pathParts[len(pathParts)-1]
-
-		if refType == "tree" {
-			return nil, fmt.Errorf("direct links to GitHub trees are not supported for adding single files: %s", u.String())
-		}
-		if owner == "" || repo == "" || ref == "" || filePathInRepo == "" || filename == "" {
-			return nil, fmt.Errorf("invalid GitHub '%s' URL '%s': one or more components (owner, repo, ref, path, filename) are empty", refType, u.String())
-		}
-		rawURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, filePathInRepo)
 	} else {
-		// Handles /<owner>/<repo>/<path_to_file>@<ref>
-		if len(pathParts) < 3 { // Need at least owner/repo/fileish@ref
-			return nil, fmt.Errorf("ambiguous GitHub URL path: %s. Expected /owner/repo/path@ref or a full /blob/ or /raw/ URL", u.Path)
+		ref, filePathInRepo, filename, rawURL, err = parseGitHubURLWithAtRef(u, owner, repo, pathParts)
+		if err != nil {
+			return nil, err
 		}
-		potentialPathWithRef := strings.Join(pathParts[2:], "/")
-		atSymbolIndex := strings.LastIndex(potentialPathWithRef, "@")
-
-		if atSymbolIndex != -1 && atSymbolIndex < len(potentialPathWithRef)-1 && atSymbolIndex > 0 {
-			filePathInRepo = potentialPathWithRef[:atSymbolIndex]
-			ref = potentialPathWithRef[atSymbolIndex+1:]
-			pathElements := strings.Split(filePathInRepo, "/")
-			if len(pathElements) > 0 {
-				filename = pathElements[len(pathElements)-1]
-			} else { // Should not happen if atSymbolIndex > 0
-				return nil, fmt.Errorf("could not determine filename from path '%s' in URL '%s'", filePathInRepo, u.String())
-			}
-		} else {
-			return nil, fmt.Errorf("ambiguous GitHub URL: %s. Specify a branch/tag/commit via '@' (e.g., file.txt@main) or use a full /blob/ or /raw/ URL", u.String())
-		}
-
-		if owner == "" || repo == "" || ref == "" || filePathInRepo == "" || filename == "" {
-			return nil, fmt.Errorf("invalid GitHub URL with '@ref' syntax '%s': one or more components (owner, repo, ref, path, filename) are empty", u.String())
-		}
-		rawURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, filePathInRepo)
 	}
 
-	if filePathInRepo == "" { // Should be caught by earlier checks
+	// Common validations after attempting to parse
+	if owner == "" {
+		return nil, fmt.Errorf("owner could not be determined from URL: %s", u.String())
+	}
+	if repo == "" {
+		return nil, fmt.Errorf("repository could not be determined from URL: %s", u.String())
+	}
+	if filePathInRepo == "" {
 		return nil, fmt.Errorf("file path in repository could not be determined from URL: %s", u.String())
 	}
-	if ref == "" { // Should be caught by earlier checks
+	if ref == "" {
 		return nil, fmt.Errorf("ref (branch, tag, commit) could not be determined from URL: %s. Please specify it", u.String())
 	}
 	if filename == "" {
 		return nil, fmt.Errorf("filename could not be determined from URL: %s", u.String())
+	}
+	if rawURL == "" { // Should be set by helpers
+		return nil, fmt.Errorf("raw download URL could not be constructed for URL: %s", u.String())
 	}
 
 	canonicalURL := fmt.Sprintf("github:%s/%s/%s@%s", owner, repo, filePathInRepo, ref)
@@ -261,4 +240,59 @@ func parseGitHubFullURL(u *url.URL) (*ParsedSourceInfo, error) {
 		PathInRepo:        filePathInRepo,
 		SuggestedFilename: filename,
 	}, nil
+}
+
+// parseGitHubURLWithType handles URLs like /<owner>/<repo>/<type>/<ref>/<path_to_file>
+func parseGitHubURLWithType(u *url.URL, owner, repo string, pathParts []string) (ref, filePathInRepo, filename, rawURL string, err error) {
+	if len(pathParts) < 5 {
+		err = fmt.Errorf("incomplete GitHub URL path: %s. Expected /<owner>/<repo>/<type>/<ref>/<path_to_file>", u.Path)
+		return
+	}
+	refType := pathParts[2]
+	ref = pathParts[3]
+	filePathInRepo = strings.Join(pathParts[4:], "/")
+	filename = pathParts[len(pathParts)-1]
+
+	if refType == "tree" {
+		err = fmt.Errorf("direct links to GitHub trees are not supported for adding single files: %s", u.String())
+		return
+	}
+	if owner == "" || repo == "" || ref == "" || filePathInRepo == "" || filename == "" {
+		err = fmt.Errorf("invalid GitHub '%s' URL '%s': one or more components (owner, repo, ref, path, filename) are empty", refType, u.String())
+		return
+	}
+	rawURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, filePathInRepo)
+	return
+}
+
+// parseGitHubURLWithAtRef handles URLs like /<owner>/<repo>/<path_to_file>@<ref>
+func parseGitHubURLWithAtRef(u *url.URL, owner, repo string, pathParts []string) (ref, filePathInRepo, filename, rawURL string, err error) {
+	if len(pathParts) < 3 { // Need at least owner/repo/fileish@ref
+		err = fmt.Errorf("ambiguous GitHub URL path: %s. Expected /owner/repo/path@ref or a full /blob/ or /raw/ URL", u.Path)
+		return
+	}
+	potentialPathWithRef := strings.Join(pathParts[2:], "/")
+	atSymbolIndex := strings.LastIndex(potentialPathWithRef, "@")
+
+	if atSymbolIndex != -1 && atSymbolIndex < len(potentialPathWithRef)-1 && atSymbolIndex > 0 {
+		filePathInRepo = potentialPathWithRef[:atSymbolIndex]
+		ref = potentialPathWithRef[atSymbolIndex+1:]
+		pathElements := strings.Split(filePathInRepo, "/")
+		if len(pathElements) > 0 {
+			filename = pathElements[len(pathElements)-1]
+		} else { // Should not happen if atSymbolIndex > 0
+			err = fmt.Errorf("could not determine filename from path '%s' in URL '%s'", filePathInRepo, u.String())
+			return
+		}
+	} else {
+		err = fmt.Errorf("ambiguous GitHub URL: %s. Specify a branch/tag/commit via '@' (e.g., file.txt@main) or use a full /blob/ or /raw/ URL", u.String())
+		return
+	}
+
+	if owner == "" || repo == "" || ref == "" || filePathInRepo == "" || filename == "" {
+		err = fmt.Errorf("invalid GitHub URL with '@ref' syntax '%s': one or more components (owner, repo, ref, path, filename) are empty", u.String())
+		return
+	}
+	rawURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, filePathInRepo)
+	return
 }

@@ -876,3 +876,5 @@ fi# Task Checklist: Almandine Go Implementation - `init` & `add` Commands
     -   [x] Refactor `filterDependenciesRequiringAction` to reduce complexity.
     -   [x] Refactor `resolveInstallStates` to reduce complexity.
     -   [x] Refactor `executeInstallOperations` to reduce complexity.
+-   [x] **Task 24.2: Refactor `parseGitHubFullURL` in `internal/core/source/source.go` (2025-05-13)**
+    -   [x] Reduced cyclomatic complexity from 26 by extracting logic into `parseGitHubURLWithType` and `parseGitHubURLWithAtRef` helper functions.
