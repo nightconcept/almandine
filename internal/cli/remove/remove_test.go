@@ -141,7 +141,7 @@ hash = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	err = runRemoveCommand(t, tempDir, "non-existent-dep")
 
 	assert.Error(t, err)
-	assert.Equal(t, "Error: Dependency 'non-existent-dep' not found in project.toml.", err.Error())
+	assert.Equal(t, "Error: dependency 'non-existent-dep' not found in project.toml", err.Error())
 	assert.Equal(t, 1, err.(cli.ExitCoder).ExitCode())
 
 	currentProjectToml, err := os.ReadFile(filepath.Join(tempDir, "project.toml"))
@@ -255,7 +255,7 @@ func TestRemoveCommand_ProjectTomlNotFound(t *testing.T) {
 
 	assert.Equal(t, 1, exitErr.ExitCode(), "Expected exit code 1")
 	// Error message should now come from config.LoadProjectToml when project.toml is not found.
-	assert.Contains(t, exitErr.Error(), "Error: Failed to load project.toml:", "Error message prefix mismatch")
+	assert.Contains(t, exitErr.Error(), "Error: failed to load project.toml:", "Error message prefix mismatch")
 	// Don't check for specific OS error message text which varies between platforms
 }
 
@@ -355,8 +355,8 @@ func TestRemoveCommand_EmptyProjectToml(t *testing.T) {
 	require.True(t, ok, "Error should be a cli.ExitCoder")
 	assert.Equal(t, 1, exitErr.ExitCode(), "Expected exit code 1")
 	// With the changes in remove.go, if project.toml is empty (or has no [dependencies] table),
-	// it should return "Error: No dependencies found in project.toml."
-	assert.Equal(t, "Error: No dependencies found in project.toml.", exitErr.Error())
+	// it should return "Error: no dependencies found in project.toml"
+	assert.Equal(t, "Error: no dependencies found in project.toml", exitErr.Error())
 
 	projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
 	projectTomlBytes, err := os.ReadFile(projectTomlPath)
